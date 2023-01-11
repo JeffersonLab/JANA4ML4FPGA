@@ -1,1 +1,1 @@
-../../receiver/tcp_thread.cc
+../../tester/receiver/tcp_thread.cc
