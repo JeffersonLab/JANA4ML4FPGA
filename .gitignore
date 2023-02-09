@@ -34,3 +34,6 @@
 .idea/
 
 cmake-build-debug/
+
+# temporary use, delete later
+/src/jana/rawdataparser
