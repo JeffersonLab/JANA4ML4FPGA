@@ -1,7 +1,0 @@
-/home/hdtrdops/GemTrd_2023/JANA4ML4FPGA/src/jana/rawdataparser/build/CMakeFiles/install/strip.dir
-/home/hdtrdops/GemTrd_2023/JANA4ML4FPGA/src/jana/rawdataparser/build/CMakeFiles/install/local.dir
-/home/hdtrdops/GemTrd_2023/JANA4ML4FPGA/src/jana/rawdataparser/build/CMakeFiles/install.dir
-/home/hdtrdops/GemTrd_2023/JANA4ML4FPGA/src/jana/rawdataparser/build/CMakeFiles/list_install_components.dir
-/home/hdtrdops/GemTrd_2023/JANA4ML4FPGA/src/jana/rawdataparser/build/CMakeFiles/edit_cache.dir
-/home/hdtrdops/GemTrd_2023/JANA4ML4FPGA/src/jana/rawdataparser/build/CMakeFiles/rebuild_cache.dir
-/home/hdtrdops/GemTrd_2023/JANA4ML4FPGA/src/jana/rawdataparser/build/CMakeFiles/jrawdataparser_plugin.dir
