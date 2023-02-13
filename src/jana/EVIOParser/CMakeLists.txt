@@ -1,6 +1,6 @@
 
 cmake_minimum_required(VERSION 3.9)
-project(janaEVIOParser_project)
+project(janaEVIOSource_project)
 
 if(NOT "${CMAKE_CXX_STANDARD}")
   set(CMAKE_CXX_STANDARD 14)
@@ -30,25 +30,26 @@ find_package(ROOT REQUIRED)
 if(true)
   # Automatically determine source file list.
   file(GLOB mysourcefiles *.cpp *.cc *.c  *.hpp *.hh *.h)
-  set( janaEVIOParser_project_PLUGIN_SOURCES ${mysourcefiles} )
+  set(janaEVIOSource_PLUGIN_SOURCES ${mysourcefiles} )
 else()
   # Manually manage source file list
-  set (janaEVIOParser_project_PLUGIN_SOURCES
-        JEventSourceEVIOParser.cc
+  set(janaEVIOSource_PLUGIN_SOURCES
+          JEventSourceEVIOSource.cc
           HDEVIO.cc
+          async_filebuf.cc
   )
 endif()
 
-add_library(janaTCP_plugin SHARED ${janaTCP_PLUGIN_SOURCES})
+add_library(janaEVIOSource_plugin SHARED ${janaEVIOSource_PLUGIN_SOURCES})
 
-target_include_directories(janaTCP_plugin PUBLIC ${CMAKE_SOURCE_DIR} ${JANA_INCLUDE_DIR} ${ROOT_INCLUDE_DIRS})
-target_link_libraries(janaTCP_plugin ${JANA_LIB} ${ROOT_LIBRARIES})
-set_target_properties(janaTCP_plugin PROPERTIES PREFIX "" OUTPUT_NAME "janaTCP" SUFFIX ".so")
+target_include_directories(janaEVIOSource_plugin PUBLIC ${CMAKE_SOURCE_DIR} ${JANA_INCLUDE_DIR} ${ROOT_INCLUDE_DIRS})
+target_link_libraries(janaEVIOSource_plugin ${JANA_LIB} ${ROOT_LIBRARIES})
+set_target_properties(janaEVIOSource_plugin PROPERTIES PREFIX "" OUTPUT_NAME "janaEVIOSource" SUFFIX ".so")
 
-install(TARGETS janaTCP_plugin DESTINATION plugins)
+install(TARGETS janaEVIOSource_plugin DESTINATION plugins)
 
 file(GLOB my_headers "*.h*")
-install(FILES ${my_headers} DESTINATION include/janaTCP)
+install(FILES ${my_headers} DESTINATION include/janaEVIOSource)
 
 # For root dictionaries
 file(GLOB my_pcms "${CMAKE_CURRENT_BINARY_DIR}/*.pcm")
