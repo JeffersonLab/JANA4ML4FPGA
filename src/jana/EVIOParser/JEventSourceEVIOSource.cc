@@ -1,5 +1,5 @@
 //
-// Created by xmei on 2/9/23.
+// Created by xme@jlab.org on 2/9/23.
 //
 
 #include <atomic>
@@ -16,8 +16,8 @@ extern "C" {
 void InitPlugin(JApplication *app) {
     InitJANAPlugin(app);
 
-    app->Add(new JEventSourceEVIOSource(TEST_FILEPATH, app));
-//    app->Add(new JEventSourceGeneratorT<JEventSourceEVIOSource>);
+//    app->Add(new JEventSourceEVIOSource(TEST_FILEPATH, app));
+    app->Add(new JEventSourceGeneratorT<JEventSourceEVIOSource>);
 }
 }
 
@@ -332,7 +332,6 @@ uint64_t JEventSourceEVIOSource::SearchFileForRunNumber() {
 /**
  * Open the evio file.
  * Taken from ./rawdataparser/JEventSource_EVIOpp.cc/h class JEventSource_EVIOpp constructor
- * @param fname
  */
 void JEventSourceEVIOSource::OpenEVIOFile(std::string filename) {
     source_type = kNoSource;

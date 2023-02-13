@@ -1,5 +1,5 @@
 //
-// Created by xmei on 2/9/23.
+// Created by xmei@jlab.org on 2/9/23.
 //
 
 #ifndef JANA4ML4FPGA_JEVENTSOURCEEVIOSOURCE_H
