@@ -1,23 +1,7 @@
 
 cmake_minimum_required(VERSION 3.9)
-project(janaEVIOSource_project)
+project(EVIOSource)
 
-if(NOT "${CMAKE_CXX_STANDARD}")
-  set(CMAKE_CXX_STANDARD 14)
-endif()
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)   # Enable -fPIC for all targets
-
-# Expose custom cmake modules
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-
-# Set install directory to $JANA_HOME
-set(CMAKE_INSTALL_PREFIX $ENV{JANA_HOME} CACHE PATH "magic incantation" FORCE)
-
-# Find dependencies
-find_package(JANA REQUIRED)
-
-
-find_package(ROOT REQUIRED)
 
 # According to the internet, CMake authors discourage the use
 # of GLOB for identifying source files. IMHO, this is due to
@@ -29,29 +13,25 @@ find_package(ROOT REQUIRED)
 # and managing the source file list manually the way they recommend.
 if(true)
   # Automatically determine source file list.
-  file(GLOB mysourcefiles *.cpp *.cc *.c  *.hpp *.hh *.h)
-  set(janaEVIOSource_PLUGIN_SOURCES ${mysourcefiles} )
+  file(GLOB SRC_FILES *.cc *.h)
 else()
   # Manually manage source file list
-  set(janaEVIOSource_PLUGIN_SOURCES
+  set(SRC_FILES
           JEventSourceEVIOSource.cc
           HDEVIO.cc
           async_filebuf.cc
   )
 endif()
 
-add_library(janaEVIOSource_plugin SHARED ${janaEVIOSource_PLUGIN_SOURCES})
+add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
 
-target_include_directories(janaEVIOSource_plugin PUBLIC ${CMAKE_SOURCE_DIR} ${JANA_INCLUDE_DIR} ${ROOT_INCLUDE_DIRS})
-target_link_libraries(janaEVIOSource_plugin ${JANA_LIB} ${ROOT_LIBRARIES})
-set_target_properties(janaEVIOSource_plugin PROPERTIES PREFIX "" OUTPUT_NAME "janaEVIOSource" SUFFIX ".so")
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR} ${JANA_INCLUDE_DIR} ${ROOT_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} ${JANA_LIB} ${ROOT_LIBRARIES})
+set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" OUTPUT_NAME ${PROJECT_NAME} SUFFIX ".so")
 
-install(TARGETS janaEVIOSource_plugin DESTINATION plugins)
+install(TARGETS ${PROJECT_NAME} DESTINATION ${PLUGIN_OUTPUT_DIRECTORY})
 
 file(GLOB my_headers "*.h*")
-install(FILES ${my_headers} DESTINATION include/janaEVIOSource)
+install(FILES ${my_headers} DESTINATION ${INCLUDE_OUTPUT_DIRECTORY}/${PROJECT_NAME})
 
-# For root dictionaries
-file(GLOB my_pcms "${CMAKE_CURRENT_BINARY_DIR}/*.pcm")
-install(FILES ${my_pcms} DESTINATION plugins)
 

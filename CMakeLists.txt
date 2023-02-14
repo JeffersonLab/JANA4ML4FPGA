@@ -2,9 +2,6 @@
 # ===================================================================================
 #    CMake flag       |  environment variable  |  Description
 # ===================================================================================
-# -DEIC_DD4HEP_HOME   | EIC_DD4HEP_HOME        |  DD4Hep Detector geometry install
-# -DIP6_DD4HEP_HOME   | IP6_DD4HEP_HOME        |  DD4Hep IP6 geometry install dir
-# -- (under review)   | EDM4HEP_ROOT           |  Edm4Hep  installation directory
 #------------------------------------------------------------------------------------
 # -DCMAKE_CXX_STANDARD      | 17 - standard for C++ compilation
 # ===================================================================================
@@ -16,19 +13,14 @@
 #      Name           |  Description
 # ==============================================================
 # JANA                |   Jana2 framework
-# EDM4HEP             |   Event data model based on podio
-# podio               |   IO library
-# DD4hep              |   Geometry framework
 # ROOT                |   CERN ROOT
-# spdlog              |   Formatting library
-# IRT                 |   Indirect Ray Tracing library
 # ==============================================================
 
 
 
 cmake_minimum_required(VERSION 3.16)
 
-project(EICRecon VERSION 0.3.6)
+project(JANA4ML4FPGA VERSION 0.0.0)
 
 # Make C++17 a default
 if(NOT "${CMAKE_CXX_STANDARD}")
@@ -38,56 +30,35 @@ endif()
 # Enable -fPIC for all targets
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Find packages
+find_package(JANA REQUIRED)
+find_package(ROOT REQUIRED)
+
 # Install to the top directory by default
 if( ${CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT} )
     set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR} CACHE PATH "Install in top directory by default" FORCE)
 endif()
 
-# Default plugins installation directory is 'plugins'
-if(NOT DEFINED PLUGIN_OUTPUT_DIRECTORY)
-    set(PLUGIN_OUTPUT_DIRECTORY "lib/EICrecon/plugins")
-    message(STATUS "${CMAKE_PROJECT_NAME}: Set default PLUGIN_OUTPUT_DIRECTORY")
-endif()
-message(STATUS "${CMAKE_PROJECT_NAME}: PLUGIN_OUTPUT_DIRECTORY: ${PLUGIN_OUTPUT_DIRECTORY}")
+set(PLUGIN_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/plugins")
+set(INCLUDE_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/include")
+set(LIBRARY_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/lib")
+set(PROGRAM_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/bin")
 
-# Default plugins static libraries installation directory is 'lib'
-if(NOT DEFINED PLUGIN_LIBRARY_OUTPUT_DIRECTORY)
-    set(PLUGIN_LIBRARY_OUTPUT_DIRECTORY "lib")
-    message(STATUS "${CMAKE_PROJECT_NAME}: Set default PLUGIN_OUTPUT_DIRECTORY")
-endif()
-message(STATUS "${CMAKE_PROJECT_NAME}: PLUGIN_LIBRARY_OUTPUT_DIRECTORY: ${PLUGIN_LIBRARY_OUTPUT_DIRECTORY}")
+message(STATUS "${CMAKE_PROJECT_NAME}: PLUGIN_OUTPUT_DIRECTORY : ${PLUGIN_OUTPUT_DIRECTORY}")
+message(STATUS "${CMAKE_PROJECT_NAME}: INCLUDE_OUTPUT_DIRECTORY: ${INCLUDE_OUTPUT_DIRECTORY}")
+message(STATUS "${CMAKE_PROJECT_NAME}: LIBRARY_OUTPUT_DIRECTORY: ${LIBRARY_OUTPUT_DIRECTORY}")
+message(STATUS "${CMAKE_PROJECT_NAME}: PROGRAM_OUTPUT_DIRECTORY: ${PROGRAM_OUTPUT_DIRECTORY}")
 
 
-# Check and print what JANA2 is used
-find_package(JANA REQUIRED)
-message(STATUS "${CMAKE_PROJECT_NAME}: JANA2 CMake   : ${JANA_DIR}")
+# JANA2
+message(STATUS "${CMAKE_PROJECT_NAME}: JANA2 cmake   : ${JANA_DIR}")
 message(STATUS "${CMAKE_PROJECT_NAME}: JANA2 includes: ${JANA_INCLUDE_DIR}")
 message(STATUS "${CMAKE_PROJECT_NAME}: JANA2 library : ${JANA_LIBRARY}")
 
-# PODIO, EDM4HEP, EDM4EIC event models
-find_package(podio REQUIRED)
-find_package(EDM4HEP REQUIRED)
-find_package(EDM4EIC REQUIRED)
-set(EDM4EIC_INCLUDE_DIR ${EDM4EIC_DIR}/../../include)
-
-# DD4Hep is required for the most of the part
-find_package(DD4hep REQUIRED)
-
-# ACTS
-find_package(Acts REQUIRED COMPONENTS Core PluginIdentification PluginTGeo PluginDD4hep)
-set(Acts_VERSION_MIN "19.0.0")
-set(Acts_VERSION "${Acts_VERSION_MAJOR}.${Acts_VERSION_MINOR}.${Acts_VERSION_PATCH}")
-if(${Acts_VERSION} VERSION_LESS ${Acts_VERSION_MIN}
-        AND NOT "${Acts_VERSION}" STREQUAL "9.9.9")
-    message(FATAL_ERROR "Acts version ${Acts_VERSION_MIN} or higher required, but ${Acts_VERSION} found")
-endif()
-set(Acts_INCLUDE_DIRS ${Acts_DIR}/../../../include ${ActsDD4hep_DIR}/../../../include )
 
 # CERN ROOT
-find_package(ROOT REQUIRED)
-
-# Set it ON for additional CMake printout
-set(EICRECON_VERBOSE_CMAKE OFF)
+message(STATUS "${CMAKE_PROJECT_NAME}: ROOT version  : ${ROOT_VERSION}")
+message(STATUS "${CMAKE_PROJECT_NAME}: ROOT libraries: ${ROOT_LIBRARIES}")
 
 
 # Add CMake additional functionality:
@@ -98,10 +69,11 @@ list (APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)   # Find Find<Modules>
 
 
 # ------------------------------------------------------------------
-print_grand_header("    B U I L D   E I C R E C O N   P A R T S    ")
+print_grand_header("    B U I L D   J A N A 4 M L 4 F P G A   P A R T S    ")
 # ------------------------------------------------------------------
-add_subdirectory( src/StreamingExample )
-add_subdirectory( src/tester )
+# add_subdirectory( src/StreamingExample )
+# add_subdirectory( src/tester )
+add_subdirectory( src/jana )
 
 
 
@@ -113,9 +85,9 @@ message(STATUS "\n-------------------------------")
 
 
 # Install all cmake helpers
-include(CMakePackageConfigHelpers)
-configure_package_config_file(cmake/EICreconConfig.cmake.in cmake/EICreconConfig.cmake INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/EICrecon)
-install(FILES ${CMAKE_BINARY_DIR}/cmake/EICreconConfig.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/EICrecon)  # why is this needed?
-file(GLOB EICRECON_CMAKE_FILES cmake/*.cmake)
-install(FILES ${EICRECON_CMAKE_FILES} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/EICrecon)
+# include(CMakePackageConfigHelpers)
+# configure_package_config_file(cmake/EICreconConfig.cmake.in cmake/EICreconConfig.cmake INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/EICrecon)
+# install(FILES ${CMAKE_BINARY_DIR}/cmake/EICreconConfig.cmake DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/EICrecon)  # why is this needed?
+# file(GLOB EICRECON_CMAKE_FILES cmake/*.cmake)
+# install(FILES ${EICRECON_CMAKE_FILES} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/EICrecon)
 

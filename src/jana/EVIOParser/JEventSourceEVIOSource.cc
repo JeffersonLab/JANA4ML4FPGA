@@ -415,6 +415,8 @@ double JEventSourceGeneratorT<JEventSourceEVIOSource>::CheckOpenable(std::string
     /// To determine confidence level, feel free to open up the file and check for magic bytes or metadata.
     /// Returning a confidence <- {0.0, 1.0} is perfectly OK!
 
-    return (resource_name == "JEventSourceEVIOSource") ? 1.0 : 0.0;
+    if( resource_name.find(".evio") != std::string::npos) return 0.5;
+
+    // return (resource_name == "JEventSourceEVIOSource") ? 1.0 : 0.0;
 }
 
