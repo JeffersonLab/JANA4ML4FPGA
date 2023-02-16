@@ -9,7 +9,6 @@
 #include "JEventSourceEVIOSource.h"
 #include "DModuleType.h"
 
-using namespace std;
 using namespace std::chrono;
 
 extern "C" {
@@ -162,7 +161,11 @@ void JEventSourceEVIOSource::SetEVIODefaultConfigParams(JApplication *app) {
 
 }
 
-uint64_t JEventSourceEVIOSource::SearchFileForRunNumber() {
+/**
+ * Function copied from ./rawdataparser/JEventSource_EVIOpp.cc/h JEventSource_EVIOpp::SearchFileForRunNumber(void)
+ * and renamed.
+ */
+uint64_t JEventSourceEVIOSource::GetRunNumberFromSourceFile() {
     /// This is called from the constructor when reading
     /// from a file to seed the default run number. This
     /// is needed because the first event is probably a BOR
@@ -312,7 +315,7 @@ uint64_t JEventSourceEVIOSource::SearchFileForRunNumber() {
 
         if (hdevio->Nevents > 500) {
             if (VERBOSE > 2)
-                evioout << "       more than 500 events checked and no run number seen! abondoning search" << endl;
+                evioout << "       more than 500 events checked and no run number seen! abandoning search" << endl;
             break;
         }
 
@@ -328,7 +331,6 @@ uint64_t JEventSourceEVIOSource::SearchFileForRunNumber() {
     return 0;
 }
 
-
 /**
  * Open the evio file.
  * Taken from ./rawdataparser/JEventSource_EVIOpp.cc/h class JEventSource_EVIOpp constructor
@@ -337,8 +339,6 @@ void JEventSourceEVIOSource::OpenEVIOFile(std::string filename) {
     source_type = kNoSource;
     hdevio = NULL;
     et_quit_next_timeout = false;
-
-    uint64_t run_number_seed = 0;
 
     if (VERBOSE > 0) {
         evioout << "Attempting to open \"" << filename << "\" as EVIO file..." << endl;
@@ -349,14 +349,12 @@ void JEventSourceEVIOSource::OpenEVIOFile(std::string filename) {
         cerr << hdevio->err_mess.str() << endl;
         throw JException("Failed to open EVIO file: " + filename, __FILE__, __LINE__);
         // throw exception indicating error
-
     }
+
     source_type = kFileSource;
     hdevio->IGNORE_EMPTY_BOR = IGNORE_EMPTY_BOR;
 
-    hdevio->PrintFileSummary();  // for test use
-    run_number_seed = JEventSourceEVIOSource::SearchFileForRunNumber(); // try and dig out run number from file
-    evioout << "  run_number_seed = " << run_number_seed << "            in file." << endl;
+    hdevio->PrintFileSummary();  // for test usage, TODO: maybe comment out later
 
     if (VERBOSE > 0) evioout << "Success opening event source \"" << filename << "\"!" << endl;
 }
@@ -364,7 +362,6 @@ void JEventSourceEVIOSource::OpenEVIOFile(std::string filename) {
 
 void JEventSourceEVIOSource::Open() {
 
-    // Refer to JANA2 tutorial https://github.com/JeffersonLab/JANA2/tree/master/src/examples/Tutorial
     JApplication *app = GetApplication();
 
     JEventSourceEVIOSource::SetEVIODefaultConfigParams(app);
@@ -372,38 +369,68 @@ void JEventSourceEVIOSource::Open() {
     JEventSourceEVIOSource::OpenEVIOFile(GetResourceName());
 }
 
+
 void JEventSourceEVIOSource::GetEvent(std::shared_ptr <JEvent> event) {
 
     /// Calls to GetEvent are synchronized with each other, which means they can
     /// read and write state on the JEventSource without causing race conditions.
 
     /// Configure event and run numbers
-    static size_t current_event_number = 1;
-    event->SetEventNumber(current_event_number++);
-    event->SetRunNumber(22);
 
-    int bufflen = 100000;
+    /// Loop the source twice, one for run number and one for events?
 
-    // TODO: add later
+    // This one loops over the file but do not use this->hdevio
+    event->SetRunNumber(JEventSourceEVIOSource::GetRunNumberFromSourceFile());
 
     /// Insert whatever data was read into the event
-    // std::vector<Hit*> hits;
-    // hits.push_back(new Hit(0,0,1.0,0));
-    // event->Insert(hits);
+    uint32_t buff_len = 4000000;
+    uint32_t *buff = new uint32_t[buff_len];
+
+    while (hdevio->readNoFileBuff(buff, buff_len)) {
+        uint32_t cur_event_len = hdevio->last_event_len;
+        // TODO: should we exclude the run number from events?
+        std::vector<uint32_t> cur_event(buff, buff + cur_event_len);
+        event->Insert(&cur_event);
+    }
 
     /// If you are reading a file of events and have reached the end, terminate the stream like this:
-    // // Close file pointer!
-    // throw RETURN_STATUS::kNO_MORE_EVENTS;
+    if (hdevio->err_code == hdevio->HDEVIO_EOF) {
+        // Close file pointer!
+        throw RETURN_STATUS::kNO_MORE_EVENTS;
+    }
 
     /// If you are streaming events and there are no new events in the message queue,
     /// tell JANA that GetEvent() was temporarily unsuccessful like this:
     // throw RETURN_STATUS::kBUSY;
+
+    /// Set the event number
+    event->SetEventNumber(hdevio->Nevents);
+
+    /// Clean up
+    if (buff) delete[] buff;
 }
 
 std::string JEventSourceEVIOSource::GetDescription() {
-    return "EVIOpp  - Reads EVIO formatted data from file and print file summary.";
+    return "EVIOpp  - Reads EVIO formatted data from *.evio file.";
 }
 
+
+//----------------
+// Destructor
+//----------------
+JEventSourceEVIOSource::~JEventSourceEVIOSource() {
+
+    // as well as anyone in a wait state
+    DONE = true;
+
+    if(VERBOSE>0) evioout << "Closing hdevio event source \"" << GetResourceName() << "\"" <<endl;
+
+    // Delete HDEVIO and print stats
+    if(hdevio){
+        hdevio->PrintStats();
+        delete hdevio;
+    }
+}
 
 template<>
 double JEventSourceGeneratorT<JEventSourceEVIOSource>::CheckOpenable(std::string resource_name) {
@@ -415,8 +442,7 @@ double JEventSourceGeneratorT<JEventSourceEVIOSource>::CheckOpenable(std::string
     /// To determine confidence level, feel free to open up the file and check for magic bytes or metadata.
     /// Returning a confidence <- {0.0, 1.0} is perfectly OK!
 
-    if( resource_name.find(".evio") != std::string::npos) return 0.5;
+    if (resource_name.find(".evio") != std::string::npos) return 0.5;
 
     // return (resource_name == "JEventSourceEVIOSource") ? 1.0 : 0.0;
 }
-

@@ -19,6 +19,8 @@
 
 #include "HDEVIO.h"
 
+using namespace std;
+
 // put a real path for simplicity
 /*
  * [hdtrdops@gluon200 ~]$ ls /gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_002539_00
@@ -51,7 +53,6 @@ public:
 
     uint32_t BLOCKS_TO_SKIP;
     uint32_t MAX_PARSED_EVENTS;
-    mutex PARSED_EVENTS_MUTEX;
 
     std::atomic<uint_fast64_t> NEVENTS_PROCESSED;
     std::atomic<uint_fast64_t> NDISPATCHER_STALLED;
@@ -64,9 +65,6 @@ public:
     EVIOSourceType source_type;
     HDEVIO *hdevio;
     bool et_quit_next_timeout;
-
-    // vector<DEVIOWorkerThread*> worker_threads;
-    thread *dispatcher_thread;
 
     JStreamLog evioout;
 
@@ -115,7 +113,7 @@ public:
 
     JEventSourceEVIOSource(std::string resource_name, JApplication* app);
 
-    virtual ~JEventSourceEVIOSource() = default;
+    virtual ~JEventSourceEVIOSource();
 
     void Open() override;
 
@@ -128,7 +126,7 @@ private:
 
     void OpenEVIOFile(std::string filename);
 
-    uint64_t SearchFileForRunNumber(void);
+    uint64_t GetRunNumberFromSourceFile(void);
 };
 
 template <>
