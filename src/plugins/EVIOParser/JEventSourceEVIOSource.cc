@@ -418,5 +418,6 @@ double JEventSourceGeneratorT<JEventSourceEVIOSource>::CheckOpenable(std::string
     if( resource_name.find(".evio") != std::string::npos) return 0.5;
 
     // return (resource_name == "JEventSourceEVIOSource") ? 1.0 : 0.0;
+    return 0;
 }
 

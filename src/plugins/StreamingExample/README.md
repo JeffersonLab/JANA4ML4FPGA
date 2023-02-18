@@ -23,7 +23,7 @@ way to test your setup is as follows:
 ```bash
 $ cd JANA2
 $ scons -j4
-$ $JANA_HOME/bin/jana -Pplugins=ZmqMain
+$ $JANA_HOME/bin/plugins -Pplugins=ZmqMain
 ```
 
 The entry point is `ZmqMain.cc`, which registers different components with the JANA framework.

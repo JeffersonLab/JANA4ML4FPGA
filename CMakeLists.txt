@@ -1,23 +1,3 @@
-#  Variables to control this CMake build:
-# ===================================================================================
-#    CMake flag       |  environment variable  |  Description
-# ===================================================================================
-#------------------------------------------------------------------------------------
-# -DCMAKE_CXX_STANDARD      | 17 - standard for C++ compilation
-# ===================================================================================
-#
-#
-# ==============================================================
-#    DEPENDENCIES (used by find_package)
-# ==============================================================
-#      Name           |  Description
-# ==============================================================
-# JANA                |   Jana2 framework
-# ROOT                |   CERN ROOT
-# ==============================================================
-
-
-
 cmake_minimum_required(VERSION 3.16)
 
 project(JANA4ML4FPGA VERSION 0.0.0)
@@ -36,7 +16,7 @@ find_package(ROOT REQUIRED)
 
 # Install to the top directory by default
 if( ${CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT} )
-    set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR} CACHE PATH "Install in top directory by default" FORCE)
+    set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/build CACHE PATH "Install in top directory by default" FORCE)
 endif()
 
 set(PLUGIN_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/plugins")
@@ -44,6 +24,8 @@ set(INCLUDE_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/include")
 set(LIBRARY_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/lib")
 set(PROGRAM_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/bin")
 
+
+message(STATUS "${CMAKE_PROJECT_NAME}: CMAKE_INSTALL_PREFIX    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "${CMAKE_PROJECT_NAME}: PLUGIN_OUTPUT_DIRECTORY : ${PLUGIN_OUTPUT_DIRECTORY}")
 message(STATUS "${CMAKE_PROJECT_NAME}: INCLUDE_OUTPUT_DIRECTORY: ${INCLUDE_OUTPUT_DIRECTORY}")
 message(STATUS "${CMAKE_PROJECT_NAME}: LIBRARY_OUTPUT_DIRECTORY: ${LIBRARY_OUTPUT_DIRECTORY}")
@@ -68,12 +50,18 @@ include(cmake/jana_plugin.cmake)                            # Add common setting
 list (APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)   # Find Find<Modules>.cmake
 
 
-# ------------------------------------------------------------------
+# Add src as a global include directory
+include_directories(${CMAKE_SOURCE_DIR}/src)
+
+# ---------------------------------------------------------------------------
 print_grand_header("    B U I L D   J A N A 4 M L 4 F P G A   P A R T S    ")
-# ------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
 # add_subdirectory( src/StreamingExample )
-# add_subdirectory( src/tester )
-add_subdirectory( src/jana )
+# add_subdirectory( src/executables )
+add_subdirectory(src/Services)
+add_subdirectory(src/plugins)
 
 
 

@@ -59,8 +59,8 @@ void InitPlugin(JApplication *app) {
     app->Add(new JFactoryGeneratorT<AHitParser>());
 
     // So we don't have to put this on the cmd line every time
-    app->SetParameterValue("jana:legacy_mode", 0);
-    app->SetParameterValue("jana:extended_report", 0);
+    app->SetParameterValue("plugins:legacy_mode", 0);
+    app->SetParameterValue("plugins:extended_report", 0);
 
     new std::thread(dummy_publisher_loop);
 }
