@@ -59,10 +59,10 @@ print_grand_header("    B U I L D   J A N A 4 M L 4 F P G A   P A R T S    ")
 
 
 # add_subdirectory( src/StreamingExample )
-# add_subdirectory( src/executables )
-add_subdirectory(src/Services)
-add_subdirectory(src/Plugins)
 
+add_subdirectory( src/services )
+add_subdirectory(src/plugins)
+add_subdirectory(src/executables)
 
 
 

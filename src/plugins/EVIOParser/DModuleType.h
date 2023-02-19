@@ -20,7 +20,7 @@ class DModuleType{
 		// type in the Block Header for JLab modules (bits 18-21).
 		//
 		// These were taken from mc2coda.h v2
-		// (see /site/coda/3.0/Extensions/mc2coda/v2.0/mc2coda.h)
+		// (see /site/coda/3.0/extensions/mc2coda/v2.0/mc2coda.h)
 		//
 		// Add new module types to end of list *before*  N_MODULE_TYPES
 		// To add a new module, one also needs to add a new case to the

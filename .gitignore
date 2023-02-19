@@ -39,4 +39,4 @@ build/
 cmake-build-debug/
 
 # temporary use, delete later
-/src/Plugins/rawdataparser
+/src/plugins/rawdataparser

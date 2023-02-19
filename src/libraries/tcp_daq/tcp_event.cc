@@ -1,4 +1,4 @@
-#include "jana_tcp.h"
+#include "tcp_event.h"
 #include "tcp_thread.h"
 static char HOST[128];
 static int  PORT=20249;
