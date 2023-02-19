@@ -12,7 +12,7 @@
 #include <spdlog/spdlog.h>
 #include <JANA/JApplication.h>
 #include <Services/Log/Log_service.h>
-#include <extensions/spdlog/SpdlogExtensions.h>
+#include <Extensions/spdlog/SpdlogExtensions.h>
 
 
 namespace spdlog::extensions {

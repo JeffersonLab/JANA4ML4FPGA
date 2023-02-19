@@ -72,11 +72,15 @@ def run(command, sink=default_sink, cwd=None, shell=False, retval_raise=False):
     return retval, start_time, end_time, lines
 
 
-
 def main():
-
     jana_path = shutil.which("jana")
-    print(jana_path)
+    print(f"Using JANA2 executable:\n {jana_path}")
+    run([
+        jana_path,
+
+    ])
+
+
 
 if __name__ == "__main__":
     main()

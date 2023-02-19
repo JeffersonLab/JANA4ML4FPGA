@@ -2,8 +2,7 @@
 
 #include <JANA/JEventProcessor.h>
 #include <JANA/JEventProcessorSequentialRoot.h>
-#include <extensions/spdlog/SpdlogMixin.h>
-
+#include <Extensions/spdlog/SpdlogMixin.h>
 #include <TDirectory.h>
 
 class JEvent;

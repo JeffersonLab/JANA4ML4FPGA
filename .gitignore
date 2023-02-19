@@ -1,3 +1,6 @@
+# The directory is used to install everything by default
+build/
+
 # Prerequisites
 *.d
 
@@ -36,4 +39,4 @@
 cmake-build-debug/
 
 # temporary use, delete later
-/src/plugins/rawdataparser
+/src/Plugins/rawdataparser

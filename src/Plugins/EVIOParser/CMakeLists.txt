@@ -20,7 +20,7 @@ else()
           JEventSourceEVIOSource.cc
           HDEVIO.cc
           async_filebuf.cc
-          ../../extensions/spdlog/SpdlogMixin.h)
+          ../../Extensions/spdlog/SpdlogMixin.h)
 endif()
 
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
