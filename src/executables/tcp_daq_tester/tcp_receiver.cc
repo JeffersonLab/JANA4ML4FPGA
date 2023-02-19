@@ -1,5 +1,5 @@
 #include "jana_tcp.h"
-#include "jana_input.h"
+#include "tcp_receiver.h"
 #include <sys/time.h>
 #include "tcp_thread.h"
 //

@@ -1,2 +1,2 @@
-add_subdirectory(tester)
+add_subdirectory( tcp_daq_tester )
 
