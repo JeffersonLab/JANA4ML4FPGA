@@ -1,4 +1,4 @@
-#include "jana_tcp.h"
+#include <tcp_daq/tcp_event.h>
 #include <sys/time.h>
 //
 //

@@ -53,6 +53,12 @@ list (APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)   # Find Find<Modules>
 # Add src as a global include directory
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
+# Libraries are a separated objects.
+# We add this include directory so that in code we could use
+# #include <tcp_daq/tcp_event.h> instead of <libraries/tcp_daq/tcp_event.h>
+# For peer plugins the later is OK, but for libraries <tcp_daq/tcp_event.h> is better
+include_directories(${CMAKE_SOURCE_DIR}/src/libraries)
+
 # ---------------------------------------------------------------------------
 print_grand_header("    B U I L D   J A N A 4 M L 4 F P G A   P A R T S    ")
 # ---------------------------------------------------------------------------
@@ -60,6 +66,7 @@ print_grand_header("    B U I L D   J A N A 4 M L 4 F P G A   P A R T S    ")
 
 # add_subdirectory( src/StreamingExample )
 
+add_subdirectory( src/libraries )
 add_subdirectory( src/services )
 add_subdirectory(src/plugins)
 add_subdirectory(src/executables)

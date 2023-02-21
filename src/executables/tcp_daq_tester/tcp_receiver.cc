@@ -1,7 +1,8 @@
-#include "jana_tcp.h"
+#include <tcp_daq/tcp_event.h>
+#include <tcp_daq/tcp_thread.h>
 #include "tcp_receiver.h"
 #include <sys/time.h>
-#include "tcp_thread.h"
+
 //
 //  g++ jana_input.cc jana_tcp.cc tcp_thread.cc -lpthread -lm -o jana_input.exe
 //  ./jana_input.exe

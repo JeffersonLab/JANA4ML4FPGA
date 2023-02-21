@@ -9,7 +9,7 @@
 #include <JANA/JApplication.h>
 #include <JANA/Services/JGlobalRootLock.h>
 #include <JANA/Services/JServiceLocator.h>
-#include <Services/Log/Log_service.h>
+#include <services/log/Log_service.h>
 
 
 #include <TFile.h>
