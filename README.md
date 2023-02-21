@@ -26,3 +26,21 @@ Example of reading evio file:
 ```bash
 /mnt/c/eic/data/2023-02_ml4fpga_trd_data/hd_rawdata_002539_000.evio
 ```
+
+
+## TCP test sender and receiver
+
+There are two test executables built with the project that could be used for testing
+
+- tcp_sender - can send dummy evio events through tcp
+- tcp_receiver - can receive them
+
+To make test loop: sender sends data to receiver - drinks coffee (or what it does): 
+
+```bash
+# In one terminal/process
+tcp_receiver
+
+# In another terminal/process
+tcp_sender -req=ex -cmd=send -host=localhost:20249
+```
