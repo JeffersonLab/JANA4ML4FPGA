@@ -11,8 +11,8 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 #include <JANA/JApplication.h>
-#include <Services/Log/Log_service.h>
-#include <Extensions/spdlog/SpdlogExtensions.h>
+#include <services/log/Log_service.h>
+#include <extensions/spdlog/SpdlogExtensions.h>
 
 
 namespace spdlog::extensions {
