@@ -37,6 +37,3 @@ build/
 .idea/
 
 cmake-build-debug/
-
-# temporary use, delete later
-/src/plugins/rawdataparser
