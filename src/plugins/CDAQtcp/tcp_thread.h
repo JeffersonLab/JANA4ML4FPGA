@@ -1,1 +1,1 @@
-../../tester/receiver/tcp_thread.h
+../../libraries/tcp_daq/tcp_thread.h
