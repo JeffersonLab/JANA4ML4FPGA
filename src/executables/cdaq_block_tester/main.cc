@@ -17,7 +17,7 @@ int main() {
 	JApplication app;
         auto topology = app.GetService<JTopologyBuilder>()->create_empty();
 
-        auto source = new BlockExampleSource;
+        auto source = new EVIOBlockedEventSource;
 	auto processor = new BlockExampleProcessor;
 
 	auto block_queue = new JMailbox<EVIOBlockedEvent*>;

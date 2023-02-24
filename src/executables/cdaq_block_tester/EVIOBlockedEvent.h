@@ -4,9 +4,10 @@
 
 #pragma once 
 
+#include <cctype>
 
 struct EVIOBlockedEvent {
-	int block_number;
-	std::vector<int> data;
+	uint32_t *buff;
+	uint32_t buff_len;
 };
 
