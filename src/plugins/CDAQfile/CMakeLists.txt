@@ -1,24 +1,21 @@
+cmake_minimum_required(VERSION 3.16)
 
-# TODO: updae to match example_evio_analysis
+# Automatically set plugin name the same as the directory name
+# Don't forget string(REPLACE " " "_" PLUGIN_NAME ${PLUGIN_NAME}) if this dir has spaces in its name
+get_filename_component(PLUGIN_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
+print_header(">>>>   P L U G I N :   ${PLUGIN_NAME}    <<<<")       # Fancy printing
 
-cmake_minimum_required(VERSION 3.9)
-project(CDAQfile)
+# Function creates ${PLUGIN_NAME}_plugin and ${PLUGIN_NAME}_library targets
+# Setting default includes, libraries and installation paths
+plugin_add(${PLUGIN_NAME} )
 
-# Manually manage source file list
-set(SRC_FILES
-        CDAQfile.cc
-        CDAQEVIOFileSource.h
-        ../../libraries/evio/HDEVIO.h
-        ../../libraries/evio/HDEVIO.cc
-        ../../libraries/evio/DModuleType.h
-        ../../extensions/spdlog/SpdlogMixin.h)
+# The macro grabs sources as *.cc *.cpp *.c and headers as *.h *.hh *.hpp
+# Then correctly sets sources for ${_name}_plugin and ${_name}_library targets
+# Adds headers to the correct installation directory
+plugin_glob_all(${PLUGIN_NAME})
 
-add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
+# Add cern root
+plugin_add_cern_root(${PLUGIN_NAME})
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR} ${JANA_INCLUDE_DIR} ${ROOT_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} ${JANA_LIB} ${ROOT_LIBRARIES} evio)
-set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" OUTPUT_NAME ${PROJECT_NAME} SUFFIX ".so")
-
-install(TARGETS ${PROJECT_NAME} DESTINATION ${PLUGIN_OUTPUT_DIRECTORY})
-
-
+# Add additional libraries
+target_link_libraries(${PLUGIN_NAME}_plugin evio)
