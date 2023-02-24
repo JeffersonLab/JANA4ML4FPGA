@@ -81,7 +81,7 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
     int pid, ppid;
     time_t t2;
     double tr1 = 0., tr2 = 0.;
-    unsigned long int nev = 0, nev1 = 0, rdata = 0, rdata1 = 0;
+    unsigned long int nev = 0, nev1 = 0, read_data_len = 0, rdata1 = 0;
     timeval tv1, tv[10], tm[10];
     time_t time_old = 0;
     long wdata = 0, wdata1 = 0;
@@ -89,7 +89,7 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
     int PACKET[MAXDATA_DC + 10];
     int *BUFFER = &PACKET[10];
     //int BUFFER[MAXDATA];
-    int HEADER[10];
+    int header_data[10];
     //int *HEADER=PACKET;
     int icc = 0, READY3 = 0;
     int status;
@@ -137,36 +137,35 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
             printf("=== Wait new HEADER pid=%d sd_current=%d Kclnt=%d ===\n", pid, socket_fd, Kclnt);
         }
 
-        rc = tcp_get(socket_fd, HEADER, sizeof(HEADER));
+        rc = tcp_get(socket_fd, header_data, sizeof(header_data));
         if (rc < 0) {
-            printf(" tcp_get() get error: rc<0  (%d)......\n", rc);
+            printf("  tcp_get() get error: rc<0  (%d)......\n", rc);
             TCP_FLAG = 0;
             continue;
         }
-        else if (rc > 0) { printf("Need to get more data \n"); };
 
-        rdata += sizeof(HEADER);
+        read_data_len += sizeof(header_data);
 
-        REQUEST = HEADER[0];
-        MARKER = HEADER[1];
-        LENEVENT = HEADER[2];
-        xxx = HEADER[3];
-        TriggerID = HEADER[4];
-        Nr_Modules = HEADER[5];
-        ModuleID = HEADER[6];
-        RunNum = HEADER[7];
-        status = HEADER[8];
+        REQUEST = header_data[0];
+        MARKER = header_data[1];
+        LENEVENT = header_data[2];
+        xxx = header_data[3];
+        TriggerID = header_data[4];
+        Nr_Modules = header_data[5];
+        ModuleID = header_data[6];
+        RunNum = header_data[7];
+        status = header_data[8];
         //printf("run_child recv::hdr ==> REQ=0x%X MARKER=0x%X LEN=%d TRG=0x%X Nmod=%d modID=%d \n",REQUEST,MARKER,LENEVENT,TriggerID,Nr_Modules,ModuleID);
         if (MARKER == 0xABCDEF00) {
             printf("!!!!! event-builder:: Test Connection MARKER=%X,  return 0xABCDEF11 \n", MARKER);
             //-- send HEADER --
-            HEADER[1] = 0xABCDEF11;
-            HEADER[2] = 0;
-            HEADER[3] = 0;
-            HEADER[4] = 0;
-            HEADER[5] = 0;
-            HEADER[6] = 0;
-            if (tcp_send_th(socket_fd, HEADER, sizeof(HEADER))) {
+            header_data[1] = 0xABCDEF11;
+            header_data[2] = 0;
+            header_data[3] = 0;
+            header_data[4] = 0;
+            header_data[5] = 0;
+            header_data[6] = 0;
+            if (tcp_send_th(socket_fd, header_data, sizeof(header_data))) {
                 perror("send");
                 TCP_FLAG = 0;
             }
@@ -180,9 +179,12 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
           continue;
           }
         */
-        if (TriggerID < 100)
-            printf(" >> RECV:0: REQUEST=0x%x, TriggerID=0x%x  evtSize=%d   (%d) ModID=%d  \n", REQUEST, HEADER[4],
-                   HEADER[2], RunNum, HEADER[6]);
+        if (TriggerID < 100) {
+            printf(" >> RECV:0: REQUEST=0x%x, TriggerID=0x%x  evtSize=%d   (%d) ModID=%d  \n", REQUEST, header_data[4],
+                   header_data[2], RunNum, header_data[6]);
+
+        }
+
 
 
 
@@ -191,9 +193,7 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
         //=================================================================================================================================
         if (REQUEST == 0x5) {  //---  recv BUFFERED ---;
 
-            if (sig_hup % 2)
-                printf("get_from_client:: MARKER=%X\n", MARKER);
-
+            if (is_verbose) printf("get_from_client:: MARKER=%X\n", MARKER);
 
             if (LENEVENT > MAXDATA) {
                 printf(" %c  \033[1m\033[31m  ERROR RECV:: event size > buffsize %d %lu trig=%d mod=%d \n", 7, LENEVENT,
@@ -218,7 +218,7 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
                 continue;
             };
 
-            rdata += LENEVENT * 4;
+            read_data_len += LENEVENT * 4;
 
             evtTrigID = BUFFER[1];
             evtModID = (BUFFER[0] >> 24) & 0xff;
@@ -247,7 +247,7 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
             }   //--------  if evtTrigID==BORE_TRIGGERID ------
 
 
-            if (sig_hup % 2 || DEBUG_RECV > 0 || TriggerID < 0) {
+            if (is_verbose || DEBUG_RECV > 0 || TriggerID < 0) {
                 printf("+++>>> recv::hdr:: TrID=%d(0x%x) ModNr=%d len=%d; evt:: TrgID=%d, ModID=%d, len=%d (%d bytes)\n",
                        TriggerID, TriggerID, ModuleID, LENEVENT, evtTrigID, evtModID, evtSize, evtSize * 4);
                 struct EvtHeader *hdr = (EvtHeader *) BUFFER;
@@ -318,7 +318,7 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
             if ((tr2 - tr1) > 5. || nev < 10) {
                 if (nev1 != nev) {
                     Rate = (nev - nev1) / (tr2 - tr1);
-                    Drate = (rdata - rdata1) / (tr2 - tr1) / 1000000.;
+                    Drate = (read_data_len - rdata1) / (tr2 - tr1) / 1000000.;
                     //Buffer_Full=(float)event_ptr->N_buf[ProducerID]/(float)(MAXEVT)*100.;
                     //double ff_lev = fifo->TCPBuffer->fifo->full_level;
                     printf("+RECV_%d_> Event=%ld LEN=%d Rate=%.1f Hz, Data=%.3f MB/s \n", rem_port, nev, LENEVENT, Rate,
@@ -326,8 +326,8 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
                     //	  printf("rdata= %ld %ld %ld --  time = %f %.1f %.1f \n",rdata,rdata1,rdata-rdata1,tr2,tr1,tr2-tr1 );
                     //printf("sdata= %ld %ld %ld --  time = %f %.1f %.1f nev=(%ld %ld %ld )\n",rdata,rdata1,rdata-rdata1,tr2,tr1,tr2-tr1,nev,nev1,nev-nev1 );
                     nev1 = nev;
-                    rdata = 0;
-                    rdata1 = rdata;
+                    read_data_len = 0;
+                    rdata1 = read_data_len;
                     tr1 = tr2;
                 } else {
                     //printf("RECV++> Event=%d, STAU:  wait next 5 sec...\n",nev);

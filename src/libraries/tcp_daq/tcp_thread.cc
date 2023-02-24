@@ -70,47 +70,47 @@ int tcp_open_remote_th(int PORT, char *hostname) {   /*----- CONNECT  !!!  ----*
     struct sockaddr_in pin;
     struct hostent *hp;
     int sd_current;
-    if (!sig_hup) printf(" go find out about the desired host machine \n");
+    printf(" go find out about the desired host machine \n");
     if ((hp = gethostbyname(hostname)) == 0) {
-        if (!sig_hup) perror("gethostbyname");
+        perror("gethostbyname");
         return -1;
     }
-    if (!sig_hup) printf(" name=%s \n", hp->h_name);
-    if (!sig_hup) printf(" alias=%s \n", (char *) hp->h_aliases);
-    if (!sig_hup) printf(" adr_type=0x%x \n", hp->h_addrtype);
-    if (!sig_hup) printf(" adr_len=%d \n", hp->h_length);
-    if (!sig_hup) printf(" address=%s \n", hp->h_addr);
+    printf(" name=%s \n", hp->h_name);
+    printf(" alias=%s \n", (char *) hp->h_aliases);
+    printf(" adr_type=0x%x \n", hp->h_addrtype);
+    printf(" adr_len=%d \n", hp->h_length);
+    printf(" address=%s \n", hp->h_addr);
 
-    if (!sig_hup) printf(" fill in the socket structure with host information \n");
+    printf(" fill in the socket structure with host information \n");
     //        sprintf(hp->h_addr,"131.169.46.71");
 
     /* fill in the socket structure with host information */
     memset(&pin, 0, sizeof(pin));
 
-    if (!sig_hup) printf(" after memset info \n");
+    printf(" after memset info \n");
 
     pin.sin_family = AF_INET;
     pin.sin_addr.s_addr = ((struct in_addr *) (hp->h_addr))->s_addr;
     pin.sin_port = htons(PORT);
 
-    if (!sig_hup) printf(" grab an Internet domain socket\n ");
+    printf(" grab an Internet domain socket\n ");
 
     if ((sd_current = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        if (!sig_hup) perror("socket");
+        perror("socket");
         return -1;
     }
 
-    if (!sig_hup) printf(" get socket option \n ");
+    printf(" get socket option \n ");
     // getsockopt(sd,0,SO_SNDBUF,optval,optlen);
 
     // printf("optval,optlen=  %d  %d \n",*optval,*optlen);
     //printf("optval,optlen=  %s  %d \n",*optval,*optlen);
 
 
-    if (!sig_hup) printf(" try to connect \n");
+    printf(" try to connect \n");
     /* connect to PORT on HOST */
     if (connect(sd_current, (struct sockaddr *) &pin, sizeof(pin)) == -1) {
-        if (!sig_hup) perror("connect");
+        perror("connect");
         return -1;
     }
     return sd_current;
@@ -183,7 +183,8 @@ int tcp_listen3(int socket_fd, char *host_name, int len, int *sd_current) {
 
     printf("listen:: try get host by addr %s \n", inet_ntoa(pin.sin_addr));
 
-    if ((hp = gethostbyaddr(&pin.sin_addr, sizeof(pin.sin_addr), AF_INET)) == 0) {
+    hostent *hp = gethostbyaddr(&pin.sin_addr, sizeof(pin.sin_addr), AF_INET);
+    if (hp == nullptr) {
         perror("tcp_listen3()::gethostbyaddr");
         strncpy(host_name, inet_ntoa(pin.sin_addr), len);
         host_name[len - 1] = 0;
