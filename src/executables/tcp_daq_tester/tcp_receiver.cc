@@ -137,9 +137,9 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
             printf("=== Wait new HEADER pid=%d sd_current=%d Kclnt=%d ===\n", pid, socket_fd, Kclnt);
         }
 
-        rc = tcp_get_th(socket_fd, HEADER, sizeof(HEADER));
+        rc = tcp_get(socket_fd, HEADER, sizeof(HEADER));
         if (rc < 0) {
-            printf(" tcp_get_th() get error: rc<0  (%d)......\n", rc);
+            printf(" tcp_get() get error: rc<0  (%d)......\n", rc);
             TCP_FLAG = 0;
             continue;
         }
@@ -206,7 +206,7 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
 
             //---------------- get only header ; 3 words  !!!!!  --------
             // rc=tcp_get_th(sd_current,BUFFER,LENEVENT*4);
-            rc = tcp_get_th(socket_fd, BUFFER, 3 * 4);
+            rc = tcp_get(socket_fd, BUFFER, 3 * 4);
             if (rc < 0) {
                 printf(" 2 get errorr rc<0 (%d)......\n", rc);
                 TCP_FLAG = 0;
@@ -279,8 +279,8 @@ int run_child(int socket_fd, int rem_port, unsigned int Kclnt) {
 
             //unsigned int * wrptr = fifo->AddEvent3(LENEVENT);
             //---------------- get only header ; 3 words  !!!!!  --------
-            rc = tcp_get_th(socket_fd, BUFFER,
-                            (LENEVENT - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
+            rc = tcp_get(socket_fd, BUFFER,
+                         (LENEVENT - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
             //memcpy(wrptr,BUFFER,3*4);  //--- words to bytes
             //rc=tcp_get_th(sd_current,((int*)wrptr+3),(LENEVENT-3)*4);
             if (rc < 0) {

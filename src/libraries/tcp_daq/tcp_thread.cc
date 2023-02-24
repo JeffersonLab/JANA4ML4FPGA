@@ -140,31 +140,28 @@ int tcp_send_th(int sd_current, int *DATA, int lenDATA) {
 }
 
 /*====================================================================*/
-int tcp_get_th(int sd_current, int *DATA, int lenDATA) {
-    int nleft, nread = 0;
-    char *rcv;
-    //-----------------------------------------------------
-    //if(!sig_hup)  printf("tcp_get_th(sd_current=%d DATA=%d lenDATA=%d)\n",sd_current,DATA[0],lenDATA);
-    nleft = lenDATA;
-    rcv = (char *) DATA;
-    while (nleft > 0) {
-        //if(!sig_hup) printf("tcp_get_th:: try to receive = %d of %d\n",nleft,lenDATA);
-        nread = recv(sd_current, rcv, nleft, 0);
-        if (nread <= 0) {
-            perror("recv");
+int tcp_get(int socket_fd, int *data, int data_len) {
+    int bytes_left = data_len;
+    auto data_bytes = (char *) data;
+    while (bytes_left > 0) {
+        // Read data
+        int read_len = recv(socket_fd, data_bytes, bytes_left, 0);
+        if (read_len <= 0) {
+            perror("    ERROR at tcp_get recv()");
             return -1;
         }
-        nleft -= nread;
-        //if(!sig_hup)  printf("tcp_get_th:: nread= %d ==== nleft=%d\n",nread,nleft);
-        rcv += nread;
+
+        // Prepare for the next read
+        bytes_left -= read_len;
+        data_bytes += read_len;
     }
-    return nleft;
+    return bytes_left;
 }
 
 /*====================================================================*/
 int tcp_listen3(int socket_fd, char *host_name, int len, int *sd_current) {
     printf("  Doing tcp_listen3::, waiting for replay at  \n");
-    printf("      socket_fd=%d\n len=%d", socket_fd, len);
+    printf("    socket_fd=%d\n len=%d", socket_fd, len);
 
     int rem_port;
 
