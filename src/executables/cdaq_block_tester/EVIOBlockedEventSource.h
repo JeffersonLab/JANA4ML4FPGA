@@ -5,6 +5,7 @@
 #pragma once
 
 #include <string>
+#include <cinttypes>
 
 #include <JANA/JBlockedEventSource.h>
 #include <JANA/JLogger.h>
@@ -15,9 +16,11 @@
 #define UNSET_EVIO_FILE "#"
 #define TEST_EVIO_FILE "/gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_002539_002.evio"
 
+#define DEFAULT_READ_BUFF_LEN 4000000  // number taken from the CDAQtcp example
+
 class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
 
-    int m_block_number = 1;
+    int m_block_number = 0; // what's this for
     JLogger m_logger;
 
     /**
@@ -33,15 +36,24 @@ class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
     virtual Status NextBlock(EVIOBlockedEvent &block);
 
     /**
-     * Process an EVIOBlockedEvent block and extract events from the block.
-     * Complicated part.
+     * Process an EVIOBlockedEvent block and extract JObjetcs from the block.
      * TODO
      */
     virtual std::vector <std::shared_ptr<JEvent>> DisentangleBlock(MyBlock &block, JEventPool &pool);
 
+    ~EVIOBlockedEventSource();
 
 protected:
     std::string m_filename = UNSET_EVIO_FILE;
-    HDEVIO *evio = nullptr;
+    HDEVIO* m_hdevio = nullptr;
+
+    uint32_t* m_buff = nullptr;
+    unit32_t m_buff_len = DEFAULT_READ_BUFF_LEN;
+
+    void OpenEVIOFile();
+
+    void SetEVIOFileName(std::string filename);
+
+    Status ReadOneBlock(EVIOBlockedEvent &block);
 
 };
