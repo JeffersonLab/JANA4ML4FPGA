@@ -20,11 +20,11 @@ int main() {
         auto source = new BlockExampleSource;
 	auto processor = new BlockExampleProcessor;
 
-	auto block_queue = new JMailbox<MyBlock*>;
+	auto block_queue = new JMailbox<EVIOBlockedEvent*>;
 	auto event_queue = new JMailbox<std::shared_ptr<JEvent>>;
 
-	auto block_source_arrow = new JBlockSourceArrow<MyBlock>("block_source", source, block_queue);
-	auto block_disentangler_arrow = new JBlockDisentanglerArrow<MyBlock>("block_disentangler", source, block_queue, event_queue, topology->event_pool);
+	auto block_source_arrow = new JBlockSourceArrow<EVIOBlockedEvent>("block_source", source, block_queue);
+	auto block_disentangler_arrow = new JBlockDisentanglerArrow<EVIOBlockedEvent>("block_disentangler", source, block_queue, event_queue, topology->event_pool);
 	auto processor_arrow = new JEventProcessorArrow("processors", event_queue, nullptr, topology->event_pool);
 
 	processor_arrow->add_processor(processor);

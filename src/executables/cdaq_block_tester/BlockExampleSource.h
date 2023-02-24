@@ -11,7 +11,7 @@
 #include "MyBlock.h"
 #include "MyObject.h"
 
-class BlockExampleSource : public JBlockedEventSource<MyBlock> {
+class BlockExampleSource : public JBlockedEventSource<EVIOBlockedEvent> {
 
 	int m_block_number = 1;
 	JLogger m_logger;
@@ -20,7 +20,7 @@ class BlockExampleSource : public JBlockedEventSource<MyBlock> {
 		LOG_INFO(m_logger) <<  "Initializing JBlockedEventSource" << LOG_END;
 	}
 
-	virtual Status NextBlock(MyBlock& block) {
+	virtual Status NextBlock(EVIOBlockedEvent& block) {
 		LOG_DEBUG(m_logger) <<  "JBlockedEventSource::NextBlock" << LOG_END;
 
 		if (m_block_number >= 10) {
