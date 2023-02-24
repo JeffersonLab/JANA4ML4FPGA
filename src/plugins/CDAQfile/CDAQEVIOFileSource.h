@@ -18,8 +18,8 @@
 #include <JANA/JFactory.h>
 #include <JANA/Compatibility/JStreamLog.h>
 
-#include "../../libraries/evio/HDEVIO.h"
-#include "../../libraries/evio/DModuleType.h"
+#include <evio/HDEVIO.h>
+#include <evio/DModuleType.h>
 
 // put a real path for simplicity
 /*
