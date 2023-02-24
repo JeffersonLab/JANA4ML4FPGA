@@ -1,7 +1,7 @@
 
 project(block_tester)
 
-print_header(">>>>   E X E C U T A B L E S : block_tester   <<<<")
+print_header(">>>>   E X E C U T A B L E S : ${PROJECT_NAME}   <<<<")
 
 file(GLOB block_tester_SRC
         *.h
