@@ -51,7 +51,7 @@ void JEventSourceCDAQtcp::GetEvent(std::shared_ptr <JEvent> event) {
 	int bufflen = 100000;
 	int buff[bufflen];
 	
-	auto Nread = tcp_get_th(m_sd, buff, bufflen);
+	auto Nread = tcp_get(m_sd, buff, bufflen);
 
     /// Insert whatever data was read into the event
     // std::vector<Hit*> hits;
