@@ -14,9 +14,9 @@
 #include <errno.h>
 #include <sys/wait.h>
 
-int tcp_open_th(int PORT,char* hostname);
-int open_remote_th(int PORT,char* hostname);
-int open_local_th(int PORT);
+int tcp_open_th(int port, char* hostname);
+int tcp_open_remote_th(int PORT, char* hostname);
+int tcp_open_local_th(int PORT);
 int tcp_send_th(int sd_current,int *DATA,int lenDATA);
 int tcp_get_th(int sd_current,int *DATA,int lenDATA);
-int tcp_listen3(int sd,char* host_name, int len, int *sd_current);
+int tcp_listen3(int socket_fd, char* host_name, int len, int *sd_current);

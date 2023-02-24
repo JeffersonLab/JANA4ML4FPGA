@@ -12,9 +12,9 @@
 int STREQ(char*s1,const char*s2) { if (strncasecmp(s1,s2,strlen(s2))) return 0; else return 1; }
 int  sig_pipe=0, sig_int=0, sig_hup=0, sig_alarm=0;
 
-void fpipe(int m)  { sig_pipe=1;   printf("\n Signal PIPE received \n\r");}
+void on_signal_pipe(int m)  { sig_pipe=1;   printf("\n Signal PIPE received \n\r");}
 
-void ctrl_c(int m) { sig_int=1;
+void on_signal_ctrl_c(int m) { sig_int=1;
    printf("\n CTRL-C pressed...\n"); 
    exit(0);
    //printf("\n CTRL-C pressed, cancel timer=%d\n",alarm(1)); 
@@ -145,8 +145,8 @@ int  main(int argc, char **argv)  {
     printf("Prescale=%d \n",prescale); 
     sleep(3);
 //-----------------------------------------------------------------------
-    signal(SIGPIPE,fpipe);
-    signal(SIGINT,ctrl_c);
+    signal(SIGPIPE, on_signal_pipe);
+    signal(SIGINT, on_signal_ctrl_c);
 
     const unsigned int   BORE_TRIGGERID = 0x55555555;
     const unsigned int   EORE_TRIGGERID = 0xAAAAAAAA;

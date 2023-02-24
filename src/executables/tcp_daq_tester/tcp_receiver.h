@@ -4,25 +4,25 @@
 #include <sstream>
 
 using namespace std;
-const int LHOST=128;
-#define LHOST 128
-struct HOST {
-    int PORT;
-    char NAME[LHOST];
-    int ModID;
-};
-#define MAXCLNT 32  //--  used 32 bit word   !!!!
+const int HOST_NAME_LEN=128;
 
+struct network_host_t {
+    int port;
+    char name[HOST_NAME_LEN];
+    int mod_id;
+};
+
+#define MAXCLNT 32  //--  used 32 bit word   !!!!
 #define MAXMOD  15L      //-- max 15 modules/crates
 #define MAXDATA_DC  300000L  //-- in words; 
 #define MAXDATA 65536L   //-- in words;  400kB max (RAW CDC) => 100000L
 
 
-struct CLIENT {
-  int DC_FLG;      //-- DC flag
-  int Kclnt;       //-- client number
-  int sd_current;  //-- tcp port number
-  int rem_port;
+struct client_t {
+  int dc_flag;           //-- DC flag
+  int client_number;     //-- client number
+  int sd_current;        //-- tcp port number
+  int rem_port;          //-- rem port?
   //FIFO *fifo_out;
   //FIFO_Buffer_list* fifo_buff_out;
   //FIFO_Buffer_list *fifo_buff_in;
