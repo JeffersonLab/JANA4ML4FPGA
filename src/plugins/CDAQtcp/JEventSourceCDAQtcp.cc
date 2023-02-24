@@ -4,25 +4,24 @@
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
-#include "tcp_thread.h"
+#include <tcp_daq/tcp_thread.h>
 
-/// Include headers to any JObjects you wish to associate with each event
-// #include "Hit.h"
-
-/// There are two different ways of instantiating JEventSources
-/// 1. Creating them manually and registering them with the JApplication
-/// 2. Creating a corresponding JEventSourceGenerator and registering that instead
-///    If you have a list of files as command line args, JANA will use the JEventSourceGenerator
-///    to find the most appropriate JEventSource corresponding to that filename, instantiate and register it.
-///    For this to work, the JEventSource constructor has to have the following constructor arguments:
+static int g_CDAQ_PORT = 10000;
 
 extern "C" {
     void InitPlugin(JApplication *app) {
         InitJANAPlugin(app);
         app->Add(new JEventSourceGeneratorT<JEventSourceCDAQtcp>);
+
+        // User should be able to add this plugin with nothing else and
+        // have it work as an event source. Add an event source name to
+        // ensure this.
+        app->SetDefaultParameter("CDAQtcp:port", g_CDAQ_PORT, "TCP port on remote host to connect to");
+        std::stringstream ss;
+        ss << "CDAQtcp:" << g_CDAQ_PORT;
+        app->Add(ss.str());
     }
 }
-
 
 JEventSourceCDAQtcp::JEventSourceCDAQtcp(std::string resource_name, JApplication* app) : JEventSource(resource_name, app) {
     SetTypeName(NAME_OF_THIS); // Provide JANA with class name
@@ -30,12 +29,14 @@ JEventSourceCDAQtcp::JEventSourceCDAQtcp(std::string resource_name, JApplication
 
 void JEventSourceCDAQtcp::Open() {
 
-	m_port = 10000;
-	m_remote_host = GetResourceName();
-	GetApplication()->SetDefaultParameter("CDAQtcp:port", m_port, "TCP port on remote host to connect to");
-	GetApplication()->SetDefaultParameter("CDAQtcp:remote_host", m_remote_host, "TCP port on remote host to connect to");
-
-	m_sd = tcp_open_th(m_port, (char*)m_remote_host.c_str());
+    // Use tcp_daq library to open socket and listen on port for TCP connection
+	// m_sd = tcp_open_th(m_port, (char*)m_remote_host.c_str());
+    LOG << "CDQtcp: Opening port " << g_CDAQ_PORT << LOG_END;
+    m_sd = tcp_open_local_th(g_CDAQ_PORT);
+    char host_name[256];
+    int host_name_max_len = 255;
+    auto err = tcp_listen3(m_sd, host_name, host_name_max_len, &m_sd_current);
+    if( err<0 ) throw JException("Error listening on port");
 }
 
 void JEventSourceCDAQtcp::GetEvent(std::shared_ptr <JEvent> event) {
@@ -51,7 +52,7 @@ void JEventSourceCDAQtcp::GetEvent(std::shared_ptr <JEvent> event) {
 	int bufflen = 100000;
 	int buff[bufflen];
 	
-	auto Nread = tcp_get(m_sd, buff, bufflen);
+	auto Nread = tcp_get(m_sd_current, buff, bufflen);
 
     /// Insert whatever data was read into the event
     // std::vector<Hit*> hits;
@@ -70,7 +71,7 @@ void JEventSourceCDAQtcp::GetEvent(std::shared_ptr <JEvent> event) {
 std::string JEventSourceCDAQtcp::GetDescription() {
 
     /// GetDescription() helps JANA explain to the user what is going on
-    return "";
+    return "JANA event source that reads from tcp socket that CDAQ sends to.";
 }
 
 

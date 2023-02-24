@@ -21,9 +21,9 @@ public:
     
     static std::string GetDescription();
     
-    int m_port;
     std::string m_remote_host;
     int m_sd;
+    int m_sd_current;
 
 };
 
