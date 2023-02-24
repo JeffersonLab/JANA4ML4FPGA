@@ -5,9 +5,13 @@
 #pragma once 
 
 #include <cctype>
+#include <cinttypes>
+
 
 struct EVIOBlockedEvent {
-	uint32_t *buff;
-	uint32_t buff_len;
+
+    std::vector<uint32_t> data;
+
+    bool swap_needed = false;  // do we need this?
 };
 

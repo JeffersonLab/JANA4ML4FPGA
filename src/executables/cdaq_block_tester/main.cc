@@ -1,9 +1,5 @@
+// Refer to JANA2 BlockExample
 
-<<<<<<< HEAD
-// Refer to JANA
-
-=======
->>>>>>> 0cdb9c4 (Another initialize)
 #include <JANA/JApplication.h>
 #include <JANA/Engine/JTopologyBuilder.h>
 #include <JANA/Engine/JBlockSourceArrow.h>
@@ -14,20 +10,19 @@
 #include "EVIOBlockedEventSource.h"
 #include "EVIOBlockProcessor.h"
 
-
 int main() {
 
     JApplication app;
     auto topology = app.GetService<JTopologyBuilder>()->create_empty();
 
-    auto source = new EVIOBlockedSource;
+    auto source = new EVIOBlockedEventSource;
     auto processor = new EVIOBlockProcessor();
 
-    auto block_queue = new JMailbox<EVIOBlock *>;
+    auto block_queue = new JMailbox<EVIOBlockedEvent *>;
     auto event_queue = new JMailbox <std::shared_ptr<JEvent>>;
 
-    auto block_source_arrow = new JBlockSourceArrow<EVIOBlock>("block_source", source, block_queue);
-    auto block_disentangler_arrow = new JBlockDisentanglerArrow<MyBlock>("block_disentangler", source, block_queue,
+    auto block_source_arrow = new JBlockSourceArrow<EVIOBlockedEvent>("block_source", source, block_queue);
+    auto block_disentangler_arrow = new JBlockDisentanglerArrow<EVIOBlockedEvent>("block_disentangler", source, block_queue,
                                                                          event_queue, topology->event_pool);
     auto processor_arrow = new JEventProcessorArrow("processors", event_queue, nullptr, topology->event_pool);
 
