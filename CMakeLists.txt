@@ -16,7 +16,7 @@ find_package(ROOT REQUIRED)
 
 # Install to the top directory by default
 if( ${CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT} )
-    set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/build CACHE PATH "Install in top directory by default" FORCE)
+    set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/install CACHE PATH "Install in top directory by default" FORCE)
 endif()
 
 set(PLUGIN_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/plugins")
@@ -63,8 +63,6 @@ include_directories(${CMAKE_SOURCE_DIR}/src/libraries)
 print_grand_header("    B U I L D   J A N A 4 M L 4 F P G A   P A R T S    ")
 # ---------------------------------------------------------------------------
 
-
-# add_subdirectory( src/StreamingExample )
 
 add_subdirectory( src/libraries )
 add_subdirectory( src/services )
