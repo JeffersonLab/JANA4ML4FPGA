@@ -349,21 +349,18 @@ int main(int argc, char **argv) {
     int Mod_tot, N_BOR_tot = -1;
     pid_t pid;
     char *substr1, *substr2;
-    struct network_host_t cmd_host;
+
     struct network_host_t data_host;
-    struct network_host_t seb_host;
+
 
 
     /*-----------  default value for hosts/ports ---------------------------*/
-    strncpy(cmd_host.name, "localhost", HOST_NAME_LEN);
-    cmd_host.port = 32768;
 
     strncpy(data_host.name, "localhost", HOST_NAME_LEN);
     data_host.port = 20249;
 
     Mod_tot = 1; //---  !!!!  check MAXMOD  !!!;
 
-    printf(" CMD_HOST=%s PORT=%d\n", cmd_host.name, cmd_host.port);
     printf("DATA_HOST=%s PORT=%d\n", data_host.name, data_host.port);
 
 
