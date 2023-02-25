@@ -2,9 +2,9 @@
 // Created by xmei on 2/24/23.
 //
 
-#ifndef JANA4ML4FPGA_EVIOBLOCKPROCESSOR_H
-#define JANA4ML4FPGA_EVIOBLOCKPROCESSOR_H
+#pragma once
 
+#include <JANA/JEventProcessor.h>
 
 class EVIOBlockProcessor : public JEventProcessor {
 
@@ -22,6 +22,3 @@ public:
 
 };
 
-
-
-#endif //JANA4ML4FPGA_EVIOBLOCKPROCESSOR_H

@@ -39,7 +39,7 @@ class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
      * Process an EVIOBlockedEvent block and extract JObjetcs from the block.
      * TODO
      */
-    virtual std::vector <std::shared_ptr<JEvent>> DisentangleBlock(MyBlock &block, JEventPool &pool);
+    virtual std::vector <std::shared_ptr<JEvent>> DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool);
 
     ~EVIOBlockedEventSource();
 
@@ -48,7 +48,7 @@ protected:
     HDEVIO* m_hdevio = nullptr;
 
     uint32_t* m_buff = nullptr;
-    unit32_t m_buff_len = DEFAULT_READ_BUFF_LEN;
+    uint32_t m_buff_len = DEFAULT_READ_BUFF_LEN;
 
     void OpenEVIOFile();
 

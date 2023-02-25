@@ -23,7 +23,7 @@ void EVIOBlockedEventSource::OpenEVIOFile() {
 //-----------------------------------------
 // Initialize
 //-----------------------------------------
-virtual void EVIOBlockedEventSource::Initialize() {
+void EVIOBlockedEventSource::Initialize() {
 
     LOG_INFO(m_logger) << "Initializing EVIOBlockedEventSource" << LOG_END;
 
@@ -81,7 +81,7 @@ EVIOBlockedEventSource::Status EVIOBlockedEventSource::ReadOneBlock(EVIOBlockedE
 //-----------------------------------------
 // NextBlock
 //-----------------------------------------
-virtual EVIOBlockedEventSource::Status EVIOBlockedEventSource::NextBlock(EVIOBlockedEvent& block) {
+EVIOBlockedEventSource::Status EVIOBlockedEventSource::NextBlock(EVIOBlockedEvent& block) {
 
     LOG_DEBUG(m_logger) << "EVIOBlockedEventSource::NextBlock" << LOG_END;
 
@@ -92,8 +92,8 @@ virtual EVIOBlockedEventSource::Status EVIOBlockedEventSource::NextBlock(EVIOBlo
 // DisentangleBlock
 // Parsing part goes here. Extract JObjects from blocks. Good luck!
 //-----------------------------------------
-virtual std::vector <std::shared_ptr<JEvent>>
-EVIOBlockedEventSource::DisentangleBlock(MyBlock &block, JEventPool &pool) {
+std::vector <std::shared_ptr<JEvent>>
+EVIOBlockedEventSource::DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool) {
 
     // Disentangle block into multiple events
 
@@ -114,7 +114,7 @@ EVIOBlockedEventSource::DisentangleBlock(MyBlock &block, JEventPool &pool) {
 // ~EVIOBlockedEventSource
 //-----------------------------------------
 EVIOBlockedEventSource::~EVIOBlockedEventSource() {
-    LOG_INFO << "Closing hdevio event source \"" << m_filename << "\"" << endl;
+    LOG_INFO(m_logger) << "Closing hdevio event source \"" << m_filename << "\"" << LOG_END;
     m_filename = UNSET_EVIO_FILE;
 
     // Delete HDEVIO and print stats
