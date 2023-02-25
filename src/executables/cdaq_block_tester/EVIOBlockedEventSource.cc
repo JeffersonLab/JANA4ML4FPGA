@@ -49,7 +49,7 @@ EVIOBlockedEventSource::Status EVIOBlockedEventSource::ReadOneBlock(EVIOBlockedE
     //
     EVIOBlockedEventSource::Status status;
 
-    m_buff = new uint32_t[m_buff_len];
+    if(! m_buff) m_buff = new uint32_t[m_buff_len];
     bool read_status = m_hdevio->readNoFileBuff(m_buff, m_buff_len, true);  // true is default allow_swap value
     uint32_t cur_len = m_hdevio->last_event_len;
 
@@ -59,22 +59,23 @@ EVIOBlockedEventSource::Status EVIOBlockedEventSource::ReadOneBlock(EVIOBlockedE
         block.swap_needed = m_hdevio->swap_needed;
 
         status = EVIOBlockedEventSource::Status::Success;
-        m_buff_len = DEFAULT_READ_BUFF_LEN;  // reset buff_len
     } else {
 
+        // If the above read failed then free the buffer in all cases
+        delete[] m_buff;
+        m_buff = nullptr;
+
         if (m_hdevio->err_code == HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL) {
-            m_buff_len = cur_len;
+            m_buff_len = cur_len;  // prepare to re-allocate correct size buffer on next call
             status = EVIOBlockedEventSource::Status::FailTryAgain;
         } else if (m_hdevio->err_code == HDEVIO::HDEVIO_EOF) {
-            LOG_DEBUG(m_logger) << "No more events in file!" << LOG_END;
+            LOG_DEBUG(m_logger) << "No more events in file." << LOG_END;
             status = EVIOBlockedEventSource::Status::FailFinished;
-        } else { // keep is simple first
-            delete[] m_buff;
+        } else { // keep it simple for now
             throw JException("Unhandled read status: " + m_filename, __FILE__, __LINE__);
         }
     }
 
-    delete[] m_buff; // reset buff
     return status;
 }
 
