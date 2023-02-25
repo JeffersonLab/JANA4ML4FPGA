@@ -25,6 +25,7 @@ public:
 private:
 
     void ThrowOnErrno (const std::string& comment);
+
     int32_t TcpReadData(int socket_fd, int *data, int data_len) {
         int bytes_left = data_len;
         auto data_bytes = (char *) data;
@@ -43,6 +44,8 @@ private:
         return bytes_left;
     }
 
+    void WaitForClient();
+
 
 
 
@@ -53,6 +56,8 @@ private:
     int m_socket_fd;                            /// Socket file descriptor that is used in all socket C funcs
     std::shared_ptr<spdlog::logger> m_log;      /// logger
     int TCP_FLAG;                               /// 0 failed state, 1 working state
+    std::atomic<bool> m_is_connected;           /// Flag that client is connected now
+    std::thread m_listen_thread;                /// Thread which is used to wait for client connection
 };
 
 template <>

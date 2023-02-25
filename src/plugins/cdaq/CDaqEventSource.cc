@@ -72,12 +72,21 @@ void CDaqEventSource::Open() {
     // HERE means SUCCESS!
     m_log->info("Socket binding success. Listening port {} [socket_fd={}]", m_port, m_socket_fd);
 
+    // Sync flag clear
+    m_is_connected = false;
+
+    // Start a thread that will wait for a client connection
+    m_listen_thread = std::thread([this](){this->WaitForClient();});
 }
 
 void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
 
     /// Calls to GetEvent are synchronized with each other, which means they can
     /// read and write state on the JEventSource without causing race conditions.
+
+    if(!m_is_connected) {
+        throw RETURN_STATUS::kTRY_AGAIN;
+    }
     
     /// Configure event and run numbers
     static size_t current_event_number = 1;
@@ -160,8 +169,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
             printf(" 2 get errorr rc<0 (%d)......\n", rc);
             TCP_FLAG = 0;
             throw RETURN_STATUS::kERROR;;
-        }
-        else if (rc > 0) {
+        } else if (rc > 0) {
             printf("Need to get more data=%d \n", rc);
             TCP_FLAG = 0;
             throw RETURN_STATUS::kERROR;;
@@ -182,23 +190,26 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
 
 
         if (evtTrigID == BORE_TRIGGERID) {    //-------------         New run           -----------
-            printf(" >> RECV:: BOR:: TriggerID=0x%x (0x%x)  \n", TriggerID, evtTrigID, RunNum);
-
-
-        }   //--------  if evtTrigID==BORE_TRIGGERID ------
-
-
-        if (is_verbose || DEBUG_RECV > 0 || TriggerID < 0) {
-            printf("+++>>> recv::hdr:: TrID=%d(0x%x) ModNr=%d len=%d; evt:: TrgID=%d, ModID=%d, len=%d (%d bytes)\n",
-                   TriggerID, TriggerID, ModuleID, LENEVENT, evtTrigID, evtModID, evtSize, evtSize * 4);
-            struct EvtHeader *hdr = (EvtHeader *) BUFFER;
-            //printf("      header:: EvSize=%d EvType=%d ModID=%d DevType=%d Trigger=%d \n"
-            //	   , hdr->EventSize, hdr->EventType, hdr->ModuleNo, hdr->DeviceType, hdr->Triggernumber);
+            m_log->debug("evtTrigID == BORE_TRIGGERID {} {} {}", TriggerID, evtTrigID, RunNum);
         }
 
-        if (evtSize != LENEVENT)
-            printf("*****> %c ERROR RECV:: TrigID=%d, event size::  %d != %d (LENEVENT)\n", 7, evtTrigID, evtSize,
-                   LENEVENT);
+
+//        if (is_verbose || DEBUG_RECV > 0 || TriggerID < 0) {
+//            printf("+++>>> recv::hdr:: TrID=%d(0x%x) ModNr=%d len=%d; evt:: TrgID=%d, ModID=%d, len=%d (%d bytes)\n",
+//                   TriggerID, TriggerID, ModuleID, LENEVENT, evtTrigID, evtModID, evtSize, evtSize * 4);
+//            struct EvtHeader *hdr = (EvtHeader *) BUFFER;
+//            //printf("      header:: EvSize=%d EvType=%d ModID=%d DevType=%d Trigger=%d \n"
+//            //	   , hdr->EventSize, hdr->EventType, hdr->ModuleNo, hdr->DeviceType, hdr->Triggernumber);
+//        }
+
+        if (evtSize != LENEVENT) {
+            // TODO WARN
+//            printf("*****> %c ERROR RECV:: TrigID=%d, event size::  %d != %d (LENEVENT)\n", 7, evtTrigID, evtSize,
+//                   LENEVENT);
+
+        }
+
+
         /*
       else
       printf("*****> %c OK    RECV:: TrigID=%d, event size::  %d != %d (LENEVENT)\n",7,evtTrigID,evtSize,LENEVENT);
@@ -207,22 +218,22 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
             printf("*****> %c ERROR RECV:: LENEVENT=%d  MAXDATA=%lu  bytes\n", 7, LENEVENT, MAXDATA);
         }
 
-        gettimeofday(&tm[1], NULL);
+
 
 
         //     wait_buff:;
         //---- Copy recv Buffer to SHMEM -----
-        if (DEBUG_RECV > 8) printf(" RECV: wait shmem\n");
+        // TODO debug print
+        // if (DEBUG_RECV > 8) printf(" RECV: wait shmem\n");
 
-        icc++;
 
         // fifo->AddEvent( BUFFER, LENEVENT);
 
         //unsigned int * wrptr = fifo->AddEvent3(LENEVENT);
         //---------------- get only header ; 3 words  !!!!!  --------
-        rc = tcp_get(socket_fd, BUFFER,
-                     (LENEVENT - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
+        rc = tcp_get(m_socket_fd, BUFFER, (LENEVENT - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
         //memcpy(wrptr,BUFFER,3*4);  //--- words to bytes
+    }
 	
 
 }
@@ -230,7 +241,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
 std::string CDaqEventSource::GetDescription() {
 
     /// GetDescription() helps JANA explain to the user what is going on
-    return "";
+    return "Reads EVIO events from CDaq from TCP";
 }
 
 
@@ -243,12 +254,67 @@ double JEventSourceGeneratorT<CDaqEventSource>::CheckOpenable(std::string resour
     
     /// To determine confidence level, feel free to open up the file and check for magic bytes or metadata.
     /// Returning a confidence <- {0.0, 1.0} is perfectly OK!
-    
-    return (resource_name == "JEventSourceCDAQtcp") ? 1.0 : 0.0;
+
+    // For convenience, we convert resource_name to lower case
+    std::transform(resource_name.begin(), resource_name.end(), resource_name.begin(),
+                   [](unsigned char c){ return std::tolower(c); });
+
+    // And also check all conceivable variants
+    return ((resource_name == "tcpcdaqevio") || (resource_name == "tcp-cdaq-evio") || (resource_name == "tcp-cdaq-evio")) ? 1.0 : 0.0;
 }
 
 void CDaqEventSource::ThrowOnErrno(const std::string &comment) {
     auto error_message = fmt::format("{}: {}",comment, strerror(errno));
     m_log->error(error_message);
     throw std::runtime_error(error_message);
+}
+
+void CDaqEventSource::WaitForClient() {
+    m_is_connected = false;
+    char host_name[128];
+    int len = 128;
+    int *sd_current;
+
+    m_log->info("Waiting for clients");
+    m_log->debug("   socket_fd={}", m_socket_fd);
+    m_log->debug("   port={}", m_port);
+    m_log->debug("   Start listening");
+
+
+    // Start listening
+    auto result = listen(m_socket_fd, 5);
+    if (result == -1) {
+        ThrowOnErrno("ERROR at socket listen");
+    }
+
+    /* wait for a client to talk to us */
+    struct sockaddr_in pin{};
+    socklen_t addr_len = sizeof(pin);
+    if ((*sd_current = accept(m_socket_fd, (struct sockaddr *) &pin, &addr_len)) == -1) {
+        ThrowOnErrno("ERROR at socket accept");
+    }
+    m_log->info("Client connected. Checking...");
+    int remote_port = ntohs(pin.sin_port);
+    m_log->info("  Remote port: {}", remote_port);
+    m_log->info("  Try to get host by address: {}", inet_ntoa(pin.sin_addr));
+
+    hostent *hp = gethostbyaddr(&pin.sin_addr, sizeof(pin.sin_addr), AF_INET);
+    if (hp == nullptr) {
+        m_log->warn("gethostbyaddr failed to get host address");
+
+        strncpy(host_name, inet_ntoa(pin.sin_addr), len);
+        host_name[len - 1] = 0;
+    } else {
+        m_log->info("We are listening to {}", hp->h_name);
+        strncpy(host_name, hp->h_name, len);
+        host_name[len - 1] = 0;
+    }
+
+    m_log->debug("Connection info:");
+    m_log->debug("  Host: {}({})", host_name, inet_ntoa(pin.sin_addr));
+    m_log->debug("  Port: {}", remote_port);
+    m_log->debug("  Accepted sock_sd: {}", *sd_current);
+    m_log->debug("  m_socket_sd     : {}", m_socket_fd);
+
+    m_is_connected = true;
 }
