@@ -114,7 +114,7 @@ macro(plugin_glob_all _name)
     string(REPLACE ${CMAKE_SOURCE_DIR}/src "" PLUGIN_RELATIVE_PATH ${PROJECT_SOURCE_DIR})
 
     # Add sources to plugin
-    target_sources(${_name}_plugin PRIVATE ${PLUGIN_SRC_FILES})
+    target_sources(${_name}_plugin PRIVATE ${PLUGIN_SRC_FILES} ${HEADER_FILES})
 
     #Add correct headers installation
     # Install headers for plugin
