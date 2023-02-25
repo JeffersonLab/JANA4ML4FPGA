@@ -29,9 +29,9 @@ class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
     virtual void Initialize();
 
     /**
-     * Read a chunk of evio file, store it in @param block, and @return reading status.
+     * Use @var m_buff to read a chunk of evio file, copy it to @param block, and @return reading status.
      * One call to HDEVIO::readNoFileBuff() gets one block.
-     * Need to consider the case where the bufflen is not big enough that a second read is necessary.
+     * Need to consider the case where the buff_len is not big enough that a second read is necessary.
      */
     virtual Status NextBlock(EVIOBlockedEvent &block);
 
@@ -55,5 +55,4 @@ protected:
     void SetEVIOFileName(std::string filename);
 
     Status ReadOneBlock(EVIOBlockedEvent &block);
-
 };
