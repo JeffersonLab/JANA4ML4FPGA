@@ -1,7 +1,8 @@
-
-
 #include "CDaqEventSource.h"
 
+#include <future>
+#include <thread>
+#include <chrono>
 #include <JANA/JEvent.h>
 #include <tcp_daq/tcp_thread.h>
 #include <services/log/Log_service.h>
@@ -71,23 +72,81 @@ void CDaqEventSource::Open() {
 
     // HERE means SUCCESS!
     m_log->info("Socket binding success. Listening port {} [socket_fd={}]", m_port, m_socket_fd);
-
-    // Sync flag clear
-    m_is_connected = false;
+    m_log->info("m_receive_fd.is_lock_free() {}", m_receive_fd.is_lock_free());
 
     // Start a thread that will wait for a client connection
+    m_receive_fd = -1;
     m_listen_thread = std::thread([this](){this->WaitForClient();});
+    m_listen_thread.detach();
 }
+
+
+void CDaqEventSource::WaitForClient() {
+
+    char host_name[128];
+    int len = 128;
+
+    m_log->info("Waiting for clients");
+    m_log->debug("   socket_fd={}", m_socket_fd);
+    m_log->debug("   port={}", m_port);
+    m_log->debug("   Start listening");
+
+    // Start listening
+    auto result = listen(m_socket_fd, 5);
+    if (result == -1) {
+        ThrowOnErrno("ERROR at socket listen");
+    }
+
+    /* wait for a client to talk to us */
+    struct sockaddr_in pin{};
+    socklen_t addr_len = sizeof(pin);
+    int receive_fd = accept(m_socket_fd, (struct sockaddr *) &pin, &addr_len);
+    if (receive_fd == -1) {
+        ThrowOnErrno("ERROR at socket accept");
+    }
+    m_log->info("Client connected. Checking...");
+    int remote_port = ntohs(pin.sin_port);
+    m_log->info("  Remote port: {}", remote_port);
+    m_log->info("  Try to get host by address: {}", inet_ntoa(pin.sin_addr));
+
+    hostent *hp = gethostbyaddr(&pin.sin_addr, sizeof(pin.sin_addr), AF_INET);
+    if (hp == nullptr) {
+        m_log->warn("gethostbyaddr failed to get host address");
+        strncpy(host_name, inet_ntoa(pin.sin_addr), len);
+        host_name[len - 1] = 0;
+    } else {
+        m_log->info("Client host name: {}", hp->h_name);
+        strncpy(host_name, hp->h_name, len);
+        host_name[len - 1] = 0;
+    }
+
+    m_log->debug("Connection info:");
+    m_log->debug("  Host: {}({})", host_name, inet_ntoa(pin.sin_addr));
+    m_log->debug("  Port: {}", remote_port);
+    m_log->debug("  Accepted sock_sd: {}", receive_fd);
+    m_log->debug("  m_socket_sd     : {}", m_socket_fd);
+
+    m_receive_fd = receive_fd;
+}
+
 
 void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
 
     /// Calls to GetEvent are synchronized with each other, which means they can
     /// read and write state on the JEventSource without causing race conditions.
 
-    if(!m_is_connected) {
+
+      //auto receive_fd_status =
+    if (m_receive_fd == -1) {
+        // Not yet connected. Wait more
         throw RETURN_STATUS::kTRY_AGAIN;
+    } else {
+        m_log->info("Getting date from the client");
     }
-    
+
+    int receive_fd = m_receive_fd;
+
+
     /// Configure event and run numbers
     static size_t current_event_number = 1;
     event->SetEventNumber(current_event_number++);
@@ -103,7 +162,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
 
     // READ 10 bytes block
     int header_data[10];
-    int rc = TcpReadData(m_socket_fd, header_data, sizeof(header_data));
+    int rc = TcpReadData(receive_fd, header_data, sizeof(header_data));
     if (rc < 0) {
         m_log->error("TcpReadData error. Return Code = {}. It is -1, right? Sigh... why this error message...", rc);
         TCP_FLAG = 0;
@@ -133,7 +192,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
         header_data[4] = 0;
         header_data[5] = 0;
         header_data[6] = 0;
-        if (tcp_send_th(m_socket_fd, header_data, sizeof(header_data))) {
+        if (tcp_send_th(receive_fd, header_data, sizeof(header_data))) {
             perror("send");
             TCP_FLAG = 0;
         }
@@ -164,7 +223,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
         // rc=tcp_get_th(sd_current,BUFFER,LENEVENT*4);
         int PACKET[MAXDATA_DC + 10];
         int *BUFFER = &PACKET[10];
-        rc = tcp_get(m_socket_fd, BUFFER, 3 * 4);
+        rc = TcpReadData(receive_fd, BUFFER, 3 * 4);
         if (rc < 0) {
             printf(" 2 get errorr rc<0 (%d)......\n", rc);
             TCP_FLAG = 0;
@@ -231,7 +290,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
 
         //unsigned int * wrptr = fifo->AddEvent3(LENEVENT);
         //---------------- get only header ; 3 words  !!!!!  --------
-        rc = tcp_get(m_socket_fd, BUFFER, (LENEVENT - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
+        rc = TcpReadData(m_receive_fd, BUFFER, (LENEVENT - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
         //memcpy(wrptr,BUFFER,3*4);  //--- words to bytes
     }
 	
@@ -266,55 +325,5 @@ double JEventSourceGeneratorT<CDaqEventSource>::CheckOpenable(std::string resour
 void CDaqEventSource::ThrowOnErrno(const std::string &comment) {
     auto error_message = fmt::format("{}: {}",comment, strerror(errno));
     m_log->error(error_message);
-    throw std::runtime_error(error_message);
-}
-
-void CDaqEventSource::WaitForClient() {
-    m_is_connected = false;
-    char host_name[128];
-    int len = 128;
-    int *sd_current;
-
-    m_log->info("Waiting for clients");
-    m_log->debug("   socket_fd={}", m_socket_fd);
-    m_log->debug("   port={}", m_port);
-    m_log->debug("   Start listening");
-
-
-    // Start listening
-    auto result = listen(m_socket_fd, 5);
-    if (result == -1) {
-        ThrowOnErrno("ERROR at socket listen");
-    }
-
-    /* wait for a client to talk to us */
-    struct sockaddr_in pin{};
-    socklen_t addr_len = sizeof(pin);
-    if ((*sd_current = accept(m_socket_fd, (struct sockaddr *) &pin, &addr_len)) == -1) {
-        ThrowOnErrno("ERROR at socket accept");
-    }
-    m_log->info("Client connected. Checking...");
-    int remote_port = ntohs(pin.sin_port);
-    m_log->info("  Remote port: {}", remote_port);
-    m_log->info("  Try to get host by address: {}", inet_ntoa(pin.sin_addr));
-
-    hostent *hp = gethostbyaddr(&pin.sin_addr, sizeof(pin.sin_addr), AF_INET);
-    if (hp == nullptr) {
-        m_log->warn("gethostbyaddr failed to get host address");
-
-        strncpy(host_name, inet_ntoa(pin.sin_addr), len);
-        host_name[len - 1] = 0;
-    } else {
-        m_log->info("We are listening to {}", hp->h_name);
-        strncpy(host_name, hp->h_name, len);
-        host_name[len - 1] = 0;
-    }
-
-    m_log->debug("Connection info:");
-    m_log->debug("  Host: {}({})", host_name, inet_ntoa(pin.sin_addr));
-    m_log->debug("  Port: {}", remote_port);
-    m_log->debug("  Accepted sock_sd: {}", *sd_current);
-    m_log->debug("  m_socket_sd     : {}", m_socket_fd);
-
-    m_is_connected = true;
+    throw JException(error_message);
 }

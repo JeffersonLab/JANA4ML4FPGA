@@ -107,7 +107,9 @@ def main():
     run([
         jana_path,
         "-Pplugins="+",".join(plugins),
+        "-Pjana:debug_plugin_loading=1",
         "-Pcdaq:LogLevel=trace",
+        "-Pjana:timeout=0",
         "tcp-cdaq-evio"
 
     ])

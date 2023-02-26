@@ -5,6 +5,7 @@
 #include <spdlog/logger.h>
 #include <extensions/spdlog/SpdlogMixin.h>
 #include <sys/socket.h>
+#include <future>
 
 class CDaqEventSource : public JEventSource, spdlog::extensions::SpdlogMixin<CDaqEventSource>
 {
@@ -26,12 +27,12 @@ private:
 
     void ThrowOnErrno (const std::string& comment);
 
-    int32_t TcpReadData(int socket_fd, int *data, int data_len) {
+    int32_t TcpReadData(int read_fd, int *data, int data_len) {
         int bytes_left = data_len;
         auto data_bytes = (char *) data;
         while (bytes_left > 0) {
             // Read data
-            int read_len = recv(socket_fd, data_bytes, bytes_left, 0);
+            int read_len = recv(read_fd, data_bytes, bytes_left, 0);
             if (read_len <= 0) {
                 perror("    ERROR at tcp_get recv()");
                 return -1;
@@ -56,8 +57,15 @@ private:
     int m_socket_fd;                            /// Socket file descriptor that is used in all socket C funcs
     std::shared_ptr<spdlog::logger> m_log;      /// logger
     int TCP_FLAG;                               /// 0 failed state, 1 working state
-    std::atomic<bool> m_is_connected;           /// Flag that client is connected now
-    std::thread m_listen_thread;                /// Thread which is used to wait for client connection
+
+
+    // We wait for a client in a separate thread. This thread returns file descriptor that can be used
+    // for 'recv' function, to get data from socket. This field is used for:
+    // 1. Check someone is connected as this promise is done when this happnes
+    // 2. Get receive file descriptor that is needed for further reads
+    std::atomic<int> m_receive_fd=-1;
+    std::thread m_listen_thread;               /// Thread is used to wait for a client to connect
+
 };
 
 template <>
