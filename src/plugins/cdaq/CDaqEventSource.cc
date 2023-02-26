@@ -6,6 +6,7 @@
 #include <JANA/JEvent.h>
 #include <tcp_daq/tcp_thread.h>
 #include <services/log/Log_service.h>
+#include "CDaqRawData.h"
 
 #define MAXCLNT 32  //--  used 32 bit word   !!!!
 #define MAXMOD  15L      //-- max 15 modules/crates
@@ -135,30 +136,19 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
     /// Calls to GetEvent are synchronized with each other, which means they can
     /// read and write state on the JEventSource without causing race conditions.
 
-
-      //auto receive_fd_status =
+    // m_receive_fd - is a file descriptor that could be used in recv function
+    // it is set by WaitForClient when the client connects
+    // JANA at the same time will be trying to get events
+    // So this is the place where we wait for a client on this thread
     if (m_receive_fd == -1) {
         // Not yet connected. Wait more
         throw RETURN_STATUS::kTRY_AGAIN;
     } else {
         m_log->info("Getting date from the client");
     }
-
     int receive_fd = m_receive_fd;
 
-
-    /// Configure event and run numbers
-    static size_t current_event_number = 1;
-    event->SetEventNumber(current_event_number++);
-    event->SetRunNumber(22);
-
-    // Read next
-//    if (TCP_FLAG == 0) {
-//        printf(" EXIT PORT=%d \n", socket_fd);
-//        return 1;
-//    }
-
-    m_log->trace("Wait new HEADER [socket_fd={}]", m_socket_fd);
+    // If we are here, a client has connected
 
     // READ 10 bytes block
     int header_data[10];
@@ -173,18 +163,24 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
     read_data_len += sizeof(header_data);
 
     // We-HaVe-LIkE-tHis-NaMiNGconvEnTIOn-HeEeEerE
-    int REQUEST = header_data[0];
-    int MARKER = header_data[1];
-    int LENEVENT = header_data[2];
-    int xxx = header_data[3];     // ???
-    int TriggerID = header_data[4];
-    int Nr_Modules = header_data[5];
-    int ModuleID = header_data[6];
-    int RunNum = header_data[7];
-    int status = header_data[8];
+    int header_request = header_data[0];
+    int header_marker = header_data[1];
+    int header_event_len = header_data[2];
+    int header_useless = header_data[3];     // ???
+    int header_trigger_id = header_data[4];
+    int header_num_modules = header_data[5];
+    int header_module_id = header_data[6];
+    int header_run_number = header_data[7];
+    int header_status = header_data[8];
+
+    /// Configure event and run numbers
+    static size_t current_event_number = 1;
+    event->SetEventNumber(current_event_number++);
+    event->SetRunNumber(header_run_number);
+
     //printf("run_child recv::hdr ==> REQ=0x%X MARKER=0x%X LEN=%d TRG=0x%X Nmod=%d modID=%d \n",REQUEST,MARKER,LENEVENT,TriggerID,Nr_Modules,ModuleID);
-    if (MARKER == 0xABCDEF00) {
-        printf("!!!!! event-builder:: Test Connection MARKER=%X,  return 0xABCDEF11 \n", MARKER);
+    if (header_marker == 0xABCDEF00) {
+        m_log->debug("Test Connection MARKER=0xABCDEF00  return 0xABCDEF11");
         //-- send HEADER --
         header_data[1] = 0xABCDEF11;
         header_data[2] = 0;
@@ -199,57 +195,52 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
         throw RETURN_STATUS::kTRY_AGAIN;
     }
 
-    if (TriggerID < 100) {
-        printf(" >> RECV:0: REQUEST=0x%x, TriggerID=0x%x  evtSize=%d   (%d) ModID=%d  \n",
-               REQUEST, header_data[4], header_data[2], RunNum, header_data[6]);
+    if (header_trigger_id < 100) {
+        m_log->debug("header_trigger_id < 100: request=0x{:02X} trigger_id=0x{:02X} evt_size={} run={} mod_id={}",
+                     header_request, header_data[4], header_data[2], header_run_number, header_data[6]);
     }
 
     //=================================================================================================================================
     //                                                               ---  recv BUFFERED ---
     //=================================================================================================================================
-    if (REQUEST == 0x5) {  //---  recv BUFFERED ---;
-        m_log->trace("get_from_client:: MARKER={}", MARKER);
+    if (header_request == 0x5) {  //---  recv BUFFERED ---;
+        m_log->trace("get_from_client:: MARKER={}", header_marker);
 
-        if (LENEVENT > MAXDATA) {
-            printf(" %c  \033[1m\033[31m  ERROR RECV:: event size > buffsize %d %lu trig=%d mod=%d \n", 7, LENEVENT,
-                   MAXDATA, TriggerID, ModuleID);
+        // Check event len is OK
+        if (header_event_len > MAXDATA) {
+            m_log->error("ERROR RECV:: event size={} > buffsize={} trig={} mod={}",
+                         header_event_len, MAXDATA, header_trigger_id, header_module_id);
 
-            close(m_socket_fd);
-            TCP_FLAG = 0;
+            close(m_receive_fd);
             throw RETURN_STATUS::kERROR;;
         }
 
-        //---------------- get only header ; 3 words  !!!!!  --------
-        // rc=tcp_get_th(sd_current,BUFFER,LENEVENT*4);
+        // First we read only 3 words from header
         int PACKET[MAXDATA_DC + 10];
         int *BUFFER = &PACKET[10];
         rc = TcpReadData(receive_fd, BUFFER, 3 * 4);
         if (rc < 0) {
-            printf(" 2 get errorr rc<0 (%d)......\n", rc);
-            TCP_FLAG = 0;
-            throw RETURN_STATUS::kERROR;;
+            ThrowOnErrno("TCP receive error");
         } else if (rc > 0) {
-            printf("Need to get more data=%d \n", rc);
-            TCP_FLAG = 0;
-            throw RETURN_STATUS::kERROR;;
-        };
-
-        read_data_len += LENEVENT * 4;
-
-        unsigned int evtTrigID = BUFFER[1];
-        unsigned int evtModID = (BUFFER[0] >> 24) & 0xff;
-        unsigned int evtSize = BUFFER[2];
-
-        if (evtTrigID == EORE_TRIGGERID ||
-            evtTrigID == BORE_TRIGGERID) {    //-------------       for memory book          -----------
-
-            printf(" >> RECV:: TriggerID=0x%x (0x%x) evtSize=%d  got Run Number = %d ModID=%d \n", TriggerID,
-                   evtTrigID, evtSize, RunNum, evtModID);
+            ThrowOnErrno("Need to get more data");
         }
 
+        read_data_len += header_event_len * 4;
 
-        if (evtTrigID == BORE_TRIGGERID) {    //-------------         New run           -----------
-            m_log->debug("evtTrigID == BORE_TRIGGERID {} {} {}", TriggerID, evtTrigID, RunNum);
+        unsigned int event_trigger_id = BUFFER[1];
+        unsigned int event_mod_id = (BUFFER[0] >> 24) & 0xff;
+        unsigned int event_size = BUFFER[2];
+
+        if (event_trigger_id == EORE_TRIGGERID ||
+            event_trigger_id == BORE_TRIGGERID) {    //-------------       for memory book          -----------
+            // Who knows what is it? TODO check with Sergey
+            printf(" >> RECV:: TriggerID=0x%x (0x%x) evtSize=%d  got Run Number = %d ModID=%d \n", header_trigger_id,
+                   event_trigger_id, event_size, header_run_number, event_mod_id);
+        }
+
+        if (event_trigger_id == BORE_TRIGGERID) {    //-------------         New run           -----------
+            // New run number?
+            m_log->debug("evtTrigID == BORE_TRIGGERID {} {} {} New run number?", header_trigger_id, event_trigger_id, header_run_number);
         }
 
 
@@ -261,40 +252,21 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
 //            //	   , hdr->EventSize, hdr->EventType, hdr->ModuleNo, hdr->DeviceType, hdr->Triggernumber);
 //        }
 
-        if (evtSize != LENEVENT) {
-            // TODO WARN
-//            printf("*****> %c ERROR RECV:: TrigID=%d, event size::  %d != %d (LENEVENT)\n", 7, evtTrigID, evtSize,
-//                   LENEVENT);
+        if (event_size != header_event_len) {
+            m_log->warn("event_size ({}) != header_event_len ({}), TrigID={}", event_size, header_event_len, event_trigger_id);
+            // TODO event_size but header_event_len need renaming
+        }
 
+        if (header_event_len > MAXDATA) {
+            printf("*****> %c ERROR RECV:: LENEVENT=%d  MAXDATA=%lu  bytes\n", 7, header_event_len, MAXDATA);
+            // TODO make it with m_log. Should we throw kERROR here?
         }
 
 
-        /*
-      else
-      printf("*****> %c OK    RECV:: TrigID=%d, event size::  %d != %d (LENEVENT)\n",7,evtTrigID,evtSize,LENEVENT);
-        */
-        if (LENEVENT > MAXDATA) {
-            printf("*****> %c ERROR RECV:: LENEVENT=%d  MAXDATA=%lu  bytes\n", 7, LENEVENT, MAXDATA);
-        }
-
-
-
-
-        //     wait_buff:;
-        //---- Copy recv Buffer to SHMEM -----
-        // TODO debug print
-        // if (DEBUG_RECV > 8) printf(" RECV: wait shmem\n");
-
-
-        // fifo->AddEvent( BUFFER, LENEVENT);
-
-        //unsigned int * wrptr = fifo->AddEvent3(LENEVENT);
-        //---------------- get only header ; 3 words  !!!!!  --------
-        rc = TcpReadData(m_receive_fd, BUFFER, (LENEVENT - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
+        // Get the rest of DATA
+        rc = TcpReadData(m_receive_fd, BUFFER, (header_event_len - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
         //memcpy(wrptr,BUFFER,3*4);  //--- words to bytes
     }
-	
-
 }
 
 std::string CDaqEventSource::GetDescription() {
