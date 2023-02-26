@@ -58,7 +58,7 @@ class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
         LOG_INFO(m_logger) <<  "JBlockedEventSource::NextBlock" << LOG_END;
 
         EVIOBlockedEventSource::Status status;
-        uint32_t* m_buff = new uint32_t[m_buff_len];
+        m_buff = new uint32_t[m_buff_len];
 
         // Read buffer containing blocked event into the given "block" object.
         //
@@ -87,6 +87,7 @@ class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
             if (m_hdevio->err_code == HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL) {
                 m_buff_len = cur_len;
                 status = Status::FailTryAgain;
+                LOG_INFO(m_logger) << "Block \"" << m_block_number << " HDEVIO_USER_BUFFER_TOO_SMALL" << LOG_END;
             } else if (m_hdevio->err_code == HDEVIO::HDEVIO_EOF) {
                 status = Status::FailFinished;
                 LOG_INFO(m_logger) << "No more blocks in \"" << m_filename << "\"!" << LOG_END;
