@@ -108,7 +108,6 @@ class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
                 LOG_INFO(m_logger) << "No more blocks in \"" << m_filename << "\"!" << LOG_END;
 
                 // FIXME: We should NOT need t ocall this! JANA does not seem to accept the FailedFinished status as a condition to end.
-                ~EVIOBlockedEventSource();
                 japp->Quit(true);
             } else { // keep it ugly now
                 throw JException("Unhandled EVIO file read return status: " , __FILE__, __LINE__);
