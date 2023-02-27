@@ -5,20 +5,13 @@
 #pragma once
 
 #include <string>
-<<<<<<< HEAD
 #include <cinttypes>
-=======
->>>>>>> 19e12fd4a3cc53ec94a91c36a7df9bdfe74feac0
 
 #include <JANA/JBlockedEventSource.h>
 #include <JANA/JLogger.h>
 #include <evio/HDEVIO.h>
 
-<<<<<<< HEAD
 #include <rawdataparser/EVIOBlockedEvent.h>
-=======
-#include "EVIOBlockedEvent.h"
->>>>>>> 19e12fd4a3cc53ec94a91c36a7df9bdfe74feac0
 
 #define UNSET_EVIO_FILE "#"
 #define TEST_EVIO_FILE "/gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_002539_002.evio"
@@ -27,44 +20,7 @@
 
 class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
 
-<<<<<<< HEAD
     int m_block_number = 0; // what's this for
-    JLogger m_logger;
-
-    /**
-     * Open an evio file.
-     */
-    virtual void Initialize();
-
-    /**
-     * Use @var m_buff to read a chunk of evio file, copy it to @param block, and @return reading status.
-     * One call to HDEVIO::readNoFileBuff() gets one block.
-     * Need to consider the case where the buff_len is not big enough that a second read is necessary.
-     */
-    virtual Status NextBlock(EVIOBlockedEvent &block);
-
-    /**
-     * Process an EVIOBlockedEvent block and extract JObjetcs from the block.
-     * TODO
-     */
-    virtual std::vector <std::shared_ptr<JEvent>> DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool);
-
-    ~EVIOBlockedEventSource();
-
-protected:
-    std::string m_filename = UNSET_EVIO_FILE;
-    HDEVIO* m_hdevio = nullptr;
-
-    uint32_t* m_buff = nullptr;
-    uint32_t m_buff_len = DEFAULT_READ_BUFF_LEN;
-
-    void OpenEVIOFile();
-
-    void SetEVIOFileName(std::string filename);
-
-    Status ReadOneBlock(EVIOBlockedEvent &block);
-=======
-    int m_block_number = 1;
     JLogger m_logger;
 
     std::string m_filename = UNSET_EVIO_FILE;
@@ -136,12 +92,17 @@ protected:
             } else if (m_hdevio->err_code == HDEVIO::HDEVIO_EOF) {
                 status = Status::FailFinished;
                 LOG_INFO(m_logger) << "No more blocks in \"" << m_filename << "\"!" << LOG_END;
+
+                // FIXME: We should NOT need t ocall this! JANA does not seem to accept the FailedFinished status as a condition to end.
+                ~EVIOBlockedEventSource();
+                japp->Quit(true);
             } else { // keep it ugly now
                 throw JException("Unhandled EVIO file read return status: " , __FILE__, __LINE__);
             }
         }
 
         delete[] m_buff;
+        m_buff = nullptr;
         return status;
     }
 
@@ -150,20 +111,7 @@ protected:
      * Complicated part.
      * TODO
      */
-    std::vector <std::shared_ptr<JEvent>> DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool){
-        // Disentangle block into multiple events
-
-        // Insert all events into events from the event pool (pool will
-        // create as needed.)
-        std::vector<std::shared_ptr<JEvent>> events;
-//		for (auto datum : block.data) {
-//			auto event = pool.get(0);  // TODO: Make location be transparent to end user
-//			event->Insert(new MyObject(datum));
-//			events.push_back(event);
-//		}
-
-        return events;
-    }
+    std::vector <std::shared_ptr<JEvent>> DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool);
 
     ~EVIOBlockedEventSource(){
         LOG_INFO(m_logger) << "Closing hdevio event source \"" << m_filename << "\"" << LOG_END;
@@ -179,5 +127,4 @@ protected:
         }
     }
 
->>>>>>> 19e12fd4a3cc53ec94a91c36a7df9bdfe74feac0
 };
