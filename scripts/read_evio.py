@@ -13,6 +13,9 @@ class ConsoleRunSink:
     def add_line(self, line):
         print(line)
 
+    def done(self):
+        print("Sink done")
+
     @property
     def is_displayed(self):
         return True
@@ -74,9 +77,40 @@ def run(command, sink=default_sink, cwd=None, shell=False, retval_raise=False):
 
 def main():
     jana_path = shutil.which("jana")
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    jana_plugin_path_env = os.environ.get("JANA_PLUGIN_PATH", "")
+
     print(f"Using JANA2 executable:\n {jana_path}")
+    print(f"root_dir: {root_dir}")
+    print(f"jana_plugin_path_env BEFORE : {jana_plugin_path_env}")
+
+    plugin_dirs = [
+        os.path.join(root_dir, "cmake-build-debug/src/plugins/cdaq"),
+        os.path.join(root_dir, "cmake-build-debug/src/services/log"),
+        os.path.join(root_dir, "cmake-build-debug/src/services/root_output")
+    ]
+
+    plugins = [
+        "log",
+        "root_output",
+        "cdaq",
+    ]
+
+    for plugin_dir in plugin_dirs:
+        jana_plugin_path_env = plugin_dir + ":" + jana_plugin_path_env
+
+    print(f"jana_plugin_path_env AFTER : {jana_plugin_path_env}")
+
+    os.environ["JANA_PLUGIN_PATH"] = jana_plugin_path_env
+
+
     run([
         jana_path,
+        "-Pplugins="+",".join(plugins),
+        "-Pjana:debug_plugin_loading=1",
+        "-Pcdaq:LogLevel=trace",
+        "-Pjana:timeout=0",
+        "tcp-cdaq-evio"
 
     ])
 
