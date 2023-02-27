@@ -22,12 +22,9 @@ int main() {
     auto block_queue = new JMailbox<EVIOBlockedEvent *>;
     auto event_queue = new JMailbox <std::shared_ptr<JEvent>>;
 
-    block_queue->set_threshold(1); // For debugging, have it call the disentangler right away
-    _DBG_<<"THRESHOLD IS: " << block_queue->get_threshold() << std::endl;
-
     auto block_source_arrow = new JBlockSourceArrow<EVIOBlockedEvent>("block_source", source, block_queue);
-    auto block_disentangler_arrow = new JBlockDisentanglerArrow<EVIOBlockedEvent>("block_disentangler", source, block_queue,
-                                                                         event_queue, topology->event_pool);
+    auto block_disentangler_arrow = new JBlockDisentanglerArrow<EVIOBlockedEvent>(
+            "block_disentangler", source, block_queue, event_queue, topology->event_pool);
     auto processor_arrow = new JEventProcessorArrow("processors", event_queue, nullptr, topology->event_pool);
 
     processor_arrow->add_processor(processor);

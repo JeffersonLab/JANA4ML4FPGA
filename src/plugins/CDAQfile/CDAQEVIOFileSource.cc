@@ -360,6 +360,9 @@ void CDAQEVIOFileSource::OpenEVIOFile(std::string filename) {
     if (VERBOSE > 0) evioout << "Success opening event source \"" << filename << "\"!" << endl;
 }
 
+void CDAQEVIOFileSource::GetEvent(std::shared_ptr <JEvent> event) {
+    std::cout << "CDAQEVIOFileSource::GetEvent() is not implemented!" << std::endl;
+}
 
 void CDAQEVIOFileSource::Open() {
 
