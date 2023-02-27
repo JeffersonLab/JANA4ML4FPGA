@@ -29,6 +29,20 @@ class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
     uint32_t *m_buff = nullptr;
     uint32_t m_buff_len = DEFAULT_READ_BUFF_LEN;
 
+    ~EVIOBlockedEventSource(){
+        LOG_INFO(m_logger) << "Closing hdevio event source \"" << m_filename << "\"" << LOG_END;
+        m_filename = UNSET_EVIO_FILE;
+
+        // Delete HDEVIO and print stats
+        if (m_hdevio) {
+            m_hdevio->PrintStats();
+            delete m_hdevio;
+        }
+        if (m_buff) {
+            delete[] m_buff;
+        }
+    }
+
     /**
      * Open an evio file.
      */
@@ -112,19 +126,5 @@ class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
      * TODO
      */
     std::vector <std::shared_ptr<JEvent>> DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool);
-
-    ~EVIOBlockedEventSource(){
-        LOG_INFO(m_logger) << "Closing hdevio event source \"" << m_filename << "\"" << LOG_END;
-        m_filename = UNSET_EVIO_FILE;
-
-        // Delete HDEVIO and print stats
-        if (m_hdevio) {
-            m_hdevio->PrintStats();
-            delete m_hdevio;
-        }
-        if (m_buff) {
-            delete[] m_buff;
-        }
-    }
 
 };
