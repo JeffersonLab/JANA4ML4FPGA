@@ -20,7 +20,7 @@
 
 class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
 
-    int m_block_number = 0; // what's this for
+    int m_block_number = 1;
     JLogger m_logger;
 
     std::string m_filename = UNSET_EVIO_FILE;
