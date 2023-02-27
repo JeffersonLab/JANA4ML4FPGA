@@ -2,14 +2,21 @@
 // Copyright 2020, Jefferson Science Associates, LLC.
 // Subject to the terms in the LICENSE file found in the top-level directory.
 
+#include <rawdataparser/EVIOBlockedEventParser.h>
 #include "EVIOBlockedEventSource.h"
 
 using namespace std;
 
+//-----------------------------------------
+// SetEVIOFileName
+//-----------------------------------------
 void EVIOBlockedEventSource::SetEVIOFileName(std::string filename){
     m_filename = filename;
 }
 
+//-----------------------------------------
+// OpenEVIOFile
+//-----------------------------------------
 void EVIOBlockedEventSource::OpenEVIOFile() {
     m_hdevio = new HDEVIO(m_filename, true, 2);   // 2 for VERBOSE level
     if (!m_hdevio->is_open) {
@@ -35,6 +42,9 @@ void EVIOBlockedEventSource::Initialize() {
     EVIOBlockedEventSource::OpenEVIOFile();
 }
 
+//-----------------------------------------
+// ReadOneBlock
+//-----------------------------------------
 EVIOBlockedEventSource::Status EVIOBlockedEventSource::ReadOneBlock(EVIOBlockedEvent& block) {
 
     // Read buffer containing blocked event into the given "block" object.
@@ -60,7 +70,6 @@ EVIOBlockedEventSource::Status EVIOBlockedEventSource::ReadOneBlock(EVIOBlockedE
 
         status = EVIOBlockedEventSource::Status::Success;
     } else {
-
         // If the above read failed then free the buffer in all cases
         delete[] m_buff;
         m_buff = nullptr;
@@ -71,6 +80,7 @@ EVIOBlockedEventSource::Status EVIOBlockedEventSource::ReadOneBlock(EVIOBlockedE
         } else if (m_hdevio->err_code == HDEVIO::HDEVIO_EOF) {
             LOG_DEBUG(m_logger) << "No more events in file." << LOG_END;
             status = EVIOBlockedEventSource::Status::FailFinished;
+            japp->Quit(true); // FIXME: We should NOT need t ocall this! JANA does not seem to accept the FailedFinished status as a condition to end.
         } else { // keep it simple for now
             throw JException("Unhandled read status: " + m_filename, __FILE__, __LINE__);
         }
@@ -84,8 +94,6 @@ EVIOBlockedEventSource::Status EVIOBlockedEventSource::ReadOneBlock(EVIOBlockedE
 //-----------------------------------------
 EVIOBlockedEventSource::Status EVIOBlockedEventSource::NextBlock(EVIOBlockedEvent& block) {
 
-    LOG_DEBUG(m_logger) << "EVIOBlockedEventSource::NextBlock" << LOG_END;
-
     return EVIOBlockedEventSource::ReadOneBlock(block);
 }
 
@@ -95,20 +103,9 @@ EVIOBlockedEventSource::Status EVIOBlockedEventSource::NextBlock(EVIOBlockedEven
 //-----------------------------------------
 std::vector <std::shared_ptr<JEvent>>
 EVIOBlockedEventSource::DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool) {
-
     // Disentangle block into multiple events
-
-    // Insert all events into events from the event pool (pool will
-    // create as needed.)
-    std::vector <std::shared_ptr<JEvent>> events;
-    // TODO
-    // Insert events into the single events queue
-//    for (auto datum : block.data) {
-//        auto event = pool.get(0);  // TODO: Make location be transparent to end user
-//        event->Insert(new MyObject(datum));
-//        events.push_back(event);
-//    }
-    return events;
+    EVIOBlockedEventParser parser; // TODO: make this persistent
+    return parser.ParseEVIOBlockedEvent(block, pool);
 }
 
 //-----------------------------------------
@@ -126,5 +123,4 @@ EVIOBlockedEventSource::~EVIOBlockedEventSource() {
     if (m_buff) {
         delete[] m_buff;
     }
-
 }

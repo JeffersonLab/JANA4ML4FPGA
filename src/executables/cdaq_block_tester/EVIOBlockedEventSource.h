@@ -11,7 +11,7 @@
 #include <JANA/JLogger.h>
 #include <evio/HDEVIO.h>
 
-#include "EVIOBlockedEvent.h"
+#include <rawdataparser/EVIOBlockedEvent.h>
 
 #define UNSET_EVIO_FILE "#"
 #define TEST_EVIO_FILE "/gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_002539_002.evio"

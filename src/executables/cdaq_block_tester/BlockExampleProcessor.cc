@@ -16,8 +16,7 @@ void BlockExampleProcessor::Init() {
 }
 
 void BlockExampleProcessor::Process(const std::shared_ptr<const JEvent> &event) {
-    LOG << "BlockExampleProcessor::Process, Event #" << event->GetEventNumber() << LOG_END;
-    
+_DBG__;    
     // auto objs = event->Get<MyObject>();
     // std::lock_guard<std::mutex>lock(m_mutex);
 

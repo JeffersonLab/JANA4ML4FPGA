@@ -44,7 +44,7 @@ class DEPICSvalue:public JObject{
 				name = nameval.substr(0, pos);
 				sval = nameval.substr(pos+1);
 				
-				stringstream ss(sval);
+				std::stringstream ss(sval);
 				ss >> ival;
 				ss.str(sval);
 				ss >> uval;
