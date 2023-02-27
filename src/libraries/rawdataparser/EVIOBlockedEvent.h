@@ -10,6 +10,7 @@
 
 struct EVIOBlockedEvent {
 
+    int block_number;
     std::vector<uint32_t> data;
 
     bool swap_needed = false;  // do we need this?

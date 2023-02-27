@@ -16,7 +16,7 @@ void EVIOBlockProcessor::Init() {
     // Open TFiles, set up TTree branches, etc
 }
 
-// The parsing etc code goes here?
+
 void EVIOBlockProcessor::Process(const std::shared_ptr<const JEvent> &event) {
     LOG << "EVIOBlockProcessor::Process, Event #" << event->GetEventNumber() << LOG_END;
 
@@ -32,4 +32,3 @@ void EVIOBlockProcessor::Finish() {
     // Close any resources
     LOG << "EVIOBlockProcessor::Finish" << LOG_END;
 }
-
