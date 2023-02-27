@@ -1,5 +1,5 @@
 
-project(block_tester)
+project(jana4ml4fpga)
 
 print_header(">>>>   E X E C U T A B L E S : ${PROJECT_NAME}   <<<<")
 
