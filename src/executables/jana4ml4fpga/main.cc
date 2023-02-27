@@ -1,48 +1,39 @@
-// Refer to JANA2 BlockExample
+//
+// Created by xmei on 2/27/23.
+//
 
-#include <JANA/JApplication.h>
-#include <JANA/Engine/JTopologyBuilder.h>
-#include <JANA/Engine/JBlockSourceArrow.h>
-#include <JANA/Engine/JBlockDisentanglerArrow.h>
-#include <JANA/Engine/JEventProcessorArrow.h>
+#include <iostream>
 
-#include <rawdataparser/EVIOBlockedEvent.h>
-#include "EVIOBlockedEventSource.h"
-#include "EVIOBlockProcessor.h"
+#include <TFile.h>
 
-int main() {
+#include "JANA4ML4FPGA_CLI.h"
+#include "CDAQTopology.h"
 
-    JApplication app;
-    japp = &app; // FIXME: should not need this!
-    auto topology = app.GetService<JTopologyBuilder>()->create_empty();
+using namespace jana;
 
-    auto source = new EVIOBlockedEventSource;
-    auto processor = new EVIOBlockProcessor();
+/// The default plugins
+/// Add new default plugin names here and the main() will do JApplication::AddPlugin() for you.
+std::vector<std::string> JANA4ML4FPGA_DEFAULT_PLUGINS = {
+    "log",
+};
 
-    auto block_queue = new JMailbox<EVIOBlockedEvent *>;
-    auto event_queue = new JMailbox <std::shared_ptr<JEvent>>;
+int main( int narg, char **argv) {
+    std::vector<std::string> default_plugins = JANA4ML4FPGA_DEFAULT_PLUGINS;
 
-    block_queue->set_threshold(1); // For debugging, have it call the disentangler right away
-    _DBG_<<"THRESHOLD IS: " << block_queue->get_threshold() << std::endl;
+    auto options = jana::GetCliOptions(narg, argv, false);
 
-    auto block_source_arrow = new JBlockSourceArrow<EVIOBlockedEvent>("block_source", source, block_queue);
-    auto block_disentangler_arrow = new JBlockDisentanglerArrow<EVIOBlockedEvent>(
-            "block_disentangler", source, block_queue, event_queue, topology->event_pool);
-    auto processor_arrow = new JEventProcessorArrow("processors", event_queue, nullptr, topology->event_pool);
+    if (HasPrintOnlyCliOptions(options, default_plugins))
+        return -1;
 
-    processor_arrow->add_processor(processor);
+    AddBlockedEventSourceFromCli(options);
 
-    topology->arrows.push_back(block_source_arrow);
-    topology->arrows.push_back(block_disentangler_arrow);
-    topology->arrows.push_back(processor_arrow);
+    japp = jana::CreateJApplication(options);
 
-    topology->sources.push_back(block_source_arrow);
-    topology->sinks.push_back(processor_arrow);
+    /// @note: do not search for available plugins at various paths
+    jana::AddDefaultPluginsToJApplication(japp, default_plugins);
 
-    block_source_arrow->attach(block_disentangler_arrow);
-    block_disentangler_arrow->attach(processor_arrow);
+    auto exit_code = jana::Execute(japp, options);  /// topology is added inside
 
-    app.SetParameterValue("log:trace", "JWorker");
-    app.Run(true);
+    delete japp;
+    return exit_code;
 }
-
