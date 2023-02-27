@@ -121,9 +121,7 @@ class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
 
     /**
      * Process an EVIOBlockedEvent block and extract events from the block.
-     * Complicated part.
-     * TODO
      */
     std::vector <std::shared_ptr<JEvent>> DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool);
-
 };
+
