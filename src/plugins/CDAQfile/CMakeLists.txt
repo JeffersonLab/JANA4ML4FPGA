@@ -18,4 +18,4 @@ plugin_glob_all(${PLUGIN_NAME})
 plugin_add_cern_root(${PLUGIN_NAME})
 
 # Add additional libraries
-target_link_libraries(${PLUGIN_NAME}_plugin tcp_daq evio)
+target_link_libraries(${PLUGIN_NAME}_plugin evio)

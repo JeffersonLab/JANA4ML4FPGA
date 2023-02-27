@@ -2,9 +2,10 @@
 // Created by xmei@jlab.org on 2/9/23.
 //
 
-#ifndef JANA4ML4FPGA_JEVENTSOURCEEVIOSOURCE_H
-#define JANA4ML4FPGA_JEVENTSOURCEEVIOSOURCE_H
+#ifndef JANA4ML4FPGA_JEVENTSOURCEEVIOFILE_H
+#define JANA4ML4FPGA_JEVENTSOURCEEVIOFILE_H
 
+#include <string>
 #include <atomic>
 #include <chrono>
 #include <cinttypes>
@@ -17,7 +18,8 @@
 #include <JANA/JFactory.h>
 #include <JANA/Compatibility/JStreamLog.h>
 
-#include "HDEVIO.h"
+#include <evio/HDEVIO.h>
+#include <evio/DModuleType.h>
 
 // put a real path for simplicity
 /*
@@ -29,7 +31,10 @@ hd_rawdata_002539_002.evio  hd_rawdata_002539_005.evio
 #define TEST_FILEPATH "/gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_002539_007.evio"
 
 
-class JEventSourceEVIOSource : public JEventSource {
+
+// This class is copied from /rawdataparser/JEventSource_EVIOpp but remove some contents.
+
+class CDAQEVIOFileSource : public JEventSource {
 
 public:
     enum EVIOSourceType{
@@ -113,13 +118,13 @@ public:
     uint32_t jobtype;
     bool IS_CDAQ_FILE = false;
 
-    JEventSourceEVIOSource(std::string resource_name, JApplication* app);
+    CDAQEVIOFileSource(std::string resource_name, JApplication* app);
 
-    virtual ~JEventSourceEVIOSource() = default;
+    virtual ~CDAQEVIOFileSource();
 
     void Open() override;
 
-    void GetEvent(std::shared_ptr<JEvent>) override;
+    void GetEvent(std::shared_ptr<JEvent>);  //TODO
 
     static std::string GetDescription();
 
@@ -132,6 +137,6 @@ private:
 };
 
 template <>
-double JEventSourceGeneratorT<JEventSourceEVIOSource>::CheckOpenable(std::string);
+double JEventSourceGeneratorT<CDAQEVIOFileSource>::CheckOpenable(std::string);
 
-#endif //JANA4ML4FPGA_JEVENTSOURCEEVIOSOURCE_H
+#endif //JANA4ML4FPGA_JEVENTSOURCEEVIOFILE_H
