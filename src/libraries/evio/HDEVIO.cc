@@ -9,7 +9,7 @@
 // on Mac OSX so we disable it's use here when compiling
 // on that pltform.
 #ifndef __APPLE__
-#define USE_ASYNC_FILEBUF 1
+#define USE_ASYNC_FILEBUF 0
 #endif // __APPLE__
 
 #include <stdlib.h>
@@ -37,7 +37,7 @@ HDEVIO::HDEVIO(string fname, bool read_map_file, int verbose):filename(fname),VE
 	buff  = NULL;
 
 	is_open = false;
-#ifndef USE_ASYNC_FILEBUF
+#if ! USE_ASYNC_FILEBUF
 	ifs.open(filename.c_str());
 	if(!ifs.is_open()){
 		ClearErrorMessage();
