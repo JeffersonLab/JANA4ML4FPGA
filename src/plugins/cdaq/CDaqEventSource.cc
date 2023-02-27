@@ -133,6 +133,8 @@ void CDaqEventSource::WaitForClient() {
 
 void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
 
+    static std::once_flag begin_data_taking_flag;
+
     /// Calls to GetEvent are synchronized with each other, which means they can
     /// read and write state on the JEventSource without causing race conditions.
 
@@ -144,7 +146,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
         // Not yet connected. Wait more
         throw RETURN_STATUS::kTRY_AGAIN;
     } else {
-        m_log->info("Getting date from the client");
+        std::call_once(begin_data_taking_flag, [this](){ m_log->info("Starting to receive events...");});
     }
     int receive_fd = m_receive_fd;
 
@@ -204,7 +206,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
     //                                                               ---  recv BUFFERED ---
     //=================================================================================================================================
     if (header_request == 0x5) {  //---  recv BUFFERED ---;
-        m_log->trace("get_from_client:: MARKER={}", header_marker);
+        m_log->trace("get_from_client:: MARKER=0x{:02X}", header_marker);
 
         // Check event len is OK
         if (header_event_len > MAXDATA) {
