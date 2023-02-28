@@ -77,6 +77,8 @@ public:
     ~EVIOBlockedEventParser();
 
     std::vector <std::shared_ptr<JEvent>> ParseEVIOBlockedEvent(EVIOBlockedEvent &block, JEventPool &pool);
+    std::vector <std::shared_ptr<JEvent>> ParseEVIOBlockedEvent(EVIOBlockedEvent &block, std::shared_ptr<JEvent> &preallocated_event);
+    std::vector <std::shared_ptr<JEvent>> ParseEVIOBlockedEvent(EVIOBlockedEvent &block, JEventPool *pool=nullptr, std::shared_ptr<JEvent> *preallocated_event=nullptr);
 
     void ParseBank(uint32_t *istart, uint32_t *iend);
     void ParseEPICSbank(uint32_t* &iptr, uint32_t *iend);
