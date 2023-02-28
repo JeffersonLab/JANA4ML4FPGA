@@ -315,7 +315,7 @@ namespace jana {
             // Run JANA in normal mode
             try {
                 JSignalHandler::register_handlers(app);
-
+                printHeaderIMG();
                 AddCDAQTopology(app);   /// major change
 
                 app->Run(true);
@@ -354,6 +354,7 @@ namespace jana {
         tokenizer["--list-default-plugins"] = ShowDefaultPlugins;
 
         // `jana4ml4fpga` has the same effect with `jana4ml4fpga -h`
+        /// Comment out temporarily
 //        if (nargs == 1) {
 //            options.flags[ShowUsage] = true;
 //        }

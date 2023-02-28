@@ -39,5 +39,15 @@ void printPluginNames(std::vector<std::string>const& plugin_names) {
     std::cout << ss.str()<< std::endl;
 }
 
+void printHeaderIMG() {
+    std::cout << std::endl;
+    std::cout << "                             #                     #                                   \n"
+                 "      #   ##   #    #   ##   #    #  #    # #      #    #  ###### #####   ####    ##   \n"
+                 "      #  #  #  ##   #  #  #  #    #  ##  ## #      #    #  #      #    # #    #  #  #  \n"
+                 "      # #    # # #  # #    # #    #  # ## # #      #    #  #####  #    # #      #    # \n"
+                 "      # ###### #  # # ###### ####### #    # #      ####### #      #####  #  ### ###### \n"
+                 " #    # #    # #   ## #    #      #  #    # #           #  #      #      #    # #    # \n"
+                 "  ####  #    # #    # #    #      #  #    # ######      #  #      #       ####  #    # \n\n\n";
+}
 
 #endif //JANA4ML4FPGA_APPPRINTER_H
