@@ -23,7 +23,7 @@
 #  define JANA4ML4FPGA_APP_VERSION Error
 #endif
 
-#define JANA4ML4FPGA_APP_VERSION_STR STR(THIS_APP_VERSION)
+#define JANA4ML4FPGA_APP_VERSION_STR STR(JANA4ML4FPGA_APP_VERSION)
 
 namespace jana {
 
@@ -354,9 +354,9 @@ namespace jana {
         tokenizer["--list-default-plugins"] = ShowDefaultPlugins;
 
         // `jana4ml4fpga` has the same effect with `jana4ml4fpga -h`
-        if (nargs == 1) {
-            options.flags[ShowUsage] = true;
-        }
+//        if (nargs == 1) {
+//            options.flags[ShowUsage] = true;
+//        }
 
         for (int i = 1; i < nargs; i++) {
             std::string arg = argv[i];
