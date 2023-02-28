@@ -61,6 +61,10 @@ namespace jana {
     /// @param default_plugins is given at the top of the eicrecon.cc.
     void PrintDefaultPlugins(std::vector<std::string> const& default_plugins);
 
+    /// Add the default plugins and the user input plugins to @param options.params.
+    /// It comes before creating the @class JApplication, so that printer will print the plugins correctly.
+    void AddPluginsToOptionParams(UserOptions& options, std::vector<std::string> const& default_plugins);
+
     void AddDefaultPluginsToJApplication(JApplication* app, std::vector<std::string> const& default_plugins);
 
     void PrintFactories(JApplication* app);

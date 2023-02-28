@@ -144,6 +144,51 @@ namespace jana {
         return false;
     }
 
+    /// Detect whether the cli params @param options.params contain "-Pplugins_to_ignore=...<erase_str>...".
+    /// If true, delete @param erase_str from the original cli string "-Pplugins_to_ignore".
+    bool HasExcludeDefaultPluginsInCliParams(UserOptions& options, const std::string erase_str) {
+        auto has_ignore_plugins = options.params.find("plugins_to_ignore");
+        if (has_ignore_plugins == options.params.end())
+            return false;
+
+        // Has cli option "-Pplugins_to_ignore". Look for @param erase_str
+        size_t pos = has_ignore_plugins->second.find(erase_str);
+        if (pos == std::string::npos)  // does not contain @param erase_str
+            return false;
+
+        // Detect @param flag_str. Delete flag_str from the original cli option.
+        std::string ignore_str;
+        if (erase_str.length() + pos == has_ignore_plugins->second.length()) { // @param flag_str is at the end
+            ignore_str = has_ignore_plugins->second.erase(pos, erase_str.length());
+        } else { // erase "<flag_str>," from "-Pplugins_to_ignore".
+            ignore_str = has_ignore_plugins->second.erase(pos, erase_str.length() + 1);
+        }
+        options.params["plugins_to_ignore"] = ignore_str;
+        return true;
+    }
+
+    void AddPluginsToOptionParams(UserOptions& options, std::vector<std::string> const& default_plugins) {
+        std::string plugins_str;  // the complete plugins list
+
+        // Add the default plugins into the plugin set if there is no
+        // "-Pplugins_to_ignore=default (exclude all default plugins)" option
+        if (HasExcludeDefaultPluginsInCliParams(options, "default") == false)
+            /// @note: The sequence of adding the default plugins matters.
+            /// Have to keep the original sequence to not causing troubles.
+            for (std::string s : default_plugins) {
+                plugins_str += s + ",";
+            }
+
+        // Insert other plugins in cli option "-Pplugins=pl1,pl2,..."
+        auto has_cli_plugin_params = options.params.find("plugins");
+        if (has_cli_plugin_params != options.params.end()) {
+            plugins_str += has_cli_plugin_params->second;
+            options.params["plugins"] = plugins_str;
+        } else {
+            options.params["plugins"] = plugins_str.substr(0, plugins_str.size() - 1); // exclude last ","
+        }
+    }
+
     void AddTimeoutValueToOptionParams(JParameterManager *para_mgr, int val=0) { // FIXME: what the default value?
         // If the user hasn't specified a timeout (on cmd line or in config file), set the timeout to default
         if (para_mgr->FindParameter("jana:timeout") == nullptr) {
