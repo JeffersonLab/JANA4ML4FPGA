@@ -7,7 +7,6 @@
 #include <TFile.h>
 
 #include "JANA4ML4FPGA_CLI.h"
-#include "CDAQTopology.h"
 
 using namespace jana;
 
@@ -20,12 +19,15 @@ std::vector<std::string> JANA4ML4FPGA_DEFAULT_PLUGINS = {
 int main( int narg, char **argv) {
     std::vector<std::string> default_plugins = JANA4ML4FPGA_DEFAULT_PLUGINS;
 
+    /// Since jana JComponentManager does not support BlockedEventSource yet, we manually manage them now
+    std::vector<std::string> evio_file_sources;
+
     auto options = jana::GetCliOptions(narg, argv, false);
 
     if (HasPrintOnlyCliOptions(options, default_plugins))
         return -1;
 
-    AddBlockedEventSourceFromCli(options);
+    AddBlockedEventSourceFromCli(options, evio_file_sources);
 
     japp = jana::CreateJApplication(options);
 

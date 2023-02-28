@@ -7,6 +7,14 @@
 #define JANA4ML4FPGA_JANA4ML4FPGA_CLI_H
 
 #include <JANA/JApplication.h>
+#include <JANA/Engine/JTopologyBuilder.h>
+#include <JANA/Engine/JBlockSourceArrow.h>
+#include <JANA/Engine/JBlockDisentanglerArrow.h>
+#include <JANA/Engine/JEventProcessorArrow.h>
+
+#include <rawdataparser/EVIOBlockedEvent.h>
+#include "EVIOBlockedEventSource.h"
+#include "EVIOBlockProcessor.h"
 
 namespace jana {
 
@@ -34,9 +42,6 @@ namespace jana {
         std::string dump_config_file;
     };
 
-    /// Since jana JComponentManager does not support BlockedEventSource yet, we manually manage them now
-    std::vector<std::string> evio_file_sources;
-
     /// Read the user options from the command line and initialize @param options.
     /// If there are certain flags, mark them as true.
     /// Push the evio file source strings to @param options.EVIOFilenames.
@@ -60,15 +65,16 @@ namespace jana {
 
     void PrintFactories(JApplication* app);
 
+    /// Copy the evio filenames from @param options.evio_filenames to @var evio_file_sources.
+    /// New method.
+    void AddBlockedEventSourceFromCli(UserOptions &options, std::vector<std::string> &evio_file_sources);
+
     /// Copy the @param options params (from the cli or the config file) to a JParameterManager @var para_mgr.
     /// Create an empty JApplication @var app.
     /// Add the event sources got from the cli input to @var app, and then return.
     /// @note The cli -Pkey=value pairs are not processed when the function returns. They are processed,
     /// or, added to @var app at calling JApplication::Initialize().
     JApplication* CreateJApplication(UserOptions& options);
-
-    void AddCDAQTopology(JApplication* app);  // new method
-    void AddBlockedEventSourceFromCli(UserOptions &options); // new method
 
     int Execute(JApplication* app, UserOptions& options);
 }
