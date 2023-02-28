@@ -4,6 +4,8 @@
 #include <thread>
 #include <chrono>
 #include <JANA/JEvent.h>
+#include <rawdataparser/EVIOBlockedEvent.h>
+#include <rawdataparser/EVIOBlockedEventParser.h>
 #include <tcp_daq/tcp_thread.h>
 #include <services/log/Log_service.h>
 #include "CDaqRawData.h"
@@ -268,6 +270,14 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
         // Get the rest of DATA
         rc = TcpReadData(m_receive_fd, BUFFER, (header_event_len - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
         //memcpy(wrptr,BUFFER,3*4);  //--- words to bytes
+
+        // Disentangle block into multiple events
+        EVIOBlockedEventParser parser; // TODO: make this persistent
+        EVIOBlockedEvent block;
+        size_t buff_len = (header_event_len - 3) * 4;
+        uint32_t *buff = (uint32_t*)(BUFFER);
+        block.data.insert(block.data.end(), buff, &buff[buff_len]);
+        parser.ParseEVIOBlockedEvent(block, event); // std::vector <std::shared_ptr<JEvent>>
     }
 }
 
