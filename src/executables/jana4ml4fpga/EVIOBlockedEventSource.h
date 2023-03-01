@@ -115,7 +115,7 @@ class EVIOBlockedEventSource : public JBlockedEventSource<EVIOBlockedEvent> {
         }
 
         delete[] m_buff;
-        m_buff = nullptr;
+//        m_buff = nullptr;
         return status;
     }
 
