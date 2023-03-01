@@ -86,14 +86,16 @@ def main():
 
     plugin_dirs = [
         os.path.join(root_dir, "cmake-build-debug/src/plugins/cdaq"),
+        os.path.join(root_dir, "cmake-build-debug/src/plugins/test_cdaq"),
         os.path.join(root_dir, "cmake-build-debug/src/services/log"),
-        os.path.join(root_dir, "cmake-build-debug/src/services/root_output")
+        os.path.join(root_dir, "cmake-build-debug/src/services/root_output"),
     ]
 
     plugins = [
         "log",
         "root_output",
         "cdaq",
+        "test_cdaq"
     ]
 
     for plugin_dir in plugin_dirs:

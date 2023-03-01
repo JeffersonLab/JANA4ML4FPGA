@@ -231,6 +231,8 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
 
         read_data_len += header_event_len * 4;
 
+
+
         unsigned int event_trigger_id = BUFFER[1];
         unsigned int event_mod_id = (BUFFER[0] >> 24) & 0xff;
         unsigned int event_size = BUFFER[2];
@@ -266,10 +268,14 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
             // TODO make it with m_log. Should we throw kERROR here?
         }
 
+        auto cdaq_blob = new CDaqRawData(header_event_len);
+
+        int32_t *buffer_pointer = const_cast<int32_t*>(cdaq_blob->RawData().data());
 
         // Get the rest of DATA
-        rc = TcpReadData(m_receive_fd, BUFFER, (header_event_len - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
+        rc = TcpReadData(m_receive_fd, buffer_pointer, (header_event_len - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
         //memcpy(wrptr,BUFFER,3*4);  //--- words to bytes
+
 
         // Disentangle block into multiple events
         EVIOBlockedEventParser parser; // TODO: make this persistent
@@ -278,6 +284,8 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
         uint32_t *buff = (uint32_t*)(BUFFER);
         block.data.insert(block.data.end(), buff, &buff[buff_len]);
         parser.ParseEVIOBlockedEvent(block, event); // std::vector <std::shared_ptr<JEvent>>
+        //event->Insert(cdaq_blob);
+
     }
 }
 
