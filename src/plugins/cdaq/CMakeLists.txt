@@ -15,4 +15,4 @@ plugin_add(${PLUGIN_NAME} WITH_STATIC_LIBRARY)
 plugin_glob_all(${PLUGIN_NAME})
 
 
-plugin_link_libraries(${PLUGIN_NAME} tcp_daq)
+plugin_link_libraries(${PLUGIN_NAME} tcp_daq rawdataparser)
