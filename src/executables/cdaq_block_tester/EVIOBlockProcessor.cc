@@ -4,7 +4,7 @@
 
 #include "EVIOBlockProcessor.h"
 
-#include "MyObject.h"
+// #include "MyObject.h"
 #include <JANA/JLogger.h>
 
 EVIOBlockProcessor::EVIOBlockProcessor() {
@@ -18,7 +18,14 @@ void EVIOBlockProcessor::Init() {
 
 
 void EVIOBlockProcessor::Process(const std::shared_ptr<const JEvent> &event) {
-    _DBG__;
+    LOG << "EVIOBlockProcessor::Process, Event #" << event->GetEventNumber() << LOG_END;
+
+    // auto objs = event->Get<MyObject>();
+    // std::lock_guard<std::mutex>lock(m_mutex);
+
+    // for (const MyObject* obj : objs) {
+    //     LOG << obj->datum << LOG_END;
+    // }
 }
 
 void EVIOBlockProcessor::Finish() {
