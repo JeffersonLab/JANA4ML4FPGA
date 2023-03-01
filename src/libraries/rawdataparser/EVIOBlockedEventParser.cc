@@ -25,8 +25,33 @@ EVIOBlockedEventParser::~EVIOBlockedEventParser()
 
 //-----------------------------------------
 // ParseEVIOBlockedEvent
+///
+/// This is called when using a JBlockedEventSource which has 
+/// a mechanism for providing the JEventPool object directly.
 //-----------------------------------------
 std::vector <std::shared_ptr<JEvent>> EVIOBlockedEventParser::ParseEVIOBlockedEvent(EVIOBlockedEvent &block, JEventPool &pool)
+{
+	return ParseEVIOBlockedEvent(block, &pool, nullptr);
+}
+
+//-----------------------------------------
+// ParseEVIOBlockedEvent
+///
+/// This is called when using a JEventSource that has been given
+/// a single JEvent object to write the event into.
+//-----------------------------------------
+std::vector <std::shared_ptr<JEvent>> EVIOBlockedEventParser::ParseEVIOBlockedEvent(EVIOBlockedEvent &block, std::shared_ptr<JEvent> &preallocated_event)
+{
+	return ParseEVIOBlockedEvent(block, nullptr, &preallocated_event);
+}
+//-----------------------------------------
+// ParseEVIOBlockedEvent
+//
+/// This should not be called directly but instead should be
+/// called via one of the variants that takes either a JEventPool
+/// or a vector of preallocated JEvents.
+//-----------------------------------------
+std::vector <std::shared_ptr<JEvent>> EVIOBlockedEventParser::ParseEVIOBlockedEvent(EVIOBlockedEvent &block, JEventPool *pool, std::shared_ptr<JEvent> *preallocated_event)
 {
     // Clear our events vector.
     events.clear();
@@ -68,31 +93,25 @@ std::vector <std::shared_ptr<JEvent>> EVIOBlockedEventParser::ParseEVIOBlockedEv
         throw JException(ss.str());
     }
 
-    // Allocate M JEvents from the pool
-    for( uint32_t i=0; i<M; i++ ) {
-        auto event = pool.get(0);
-        event->SetEventNumber( event_num + i ); // should be 0 for BOR and EPICS events
-        events.push_back( event );
-    }
+	if( pool ){
+		// Allocate M JEvents from the pool
+		for( uint32_t i=0; i<M; i++ ) {
+			auto event = pool->get(0);
+			event->SetEventNumber( event_num + i ); // should be 0 for BOR and EPICS events
+			events.push_back( event );
+		}
+	}else if(preallocated_event){
+		// Use event that were preallocated by the caller.
+		if( M > 1 ){
+			_DBG_<<" EVIOBlockedEventParser::ParseEVIOBlockedEvent passed single JEvent for block containing more than 1 event!" << std::endl;
+			throw JException("Multiple events in block when only single JEvent provided to copy them in to.");
+		}
+		events.push_back( *preallocated_event );
+	}else{
+		_DBG_<< "Neither a JEventPool nor a preallocated_events vector was passed to ParseEVIOBlockedEvent.!" << std::endl;
+		throw JException("No JEvents given to parse EVIOEvnetBlock into!");
+	}
     ievent_idx = 0; // start filling events at the beginning
-
-	
-	// // Set indexes for the parsed event objects
-	// // and flag them as being in use.
-	// if( VERBOSE>3 ) cout << "  Creating " << current_parsed_events.size() << " parsed events ..." << endl;
-	// for(auto pe : current_parsed_events){
-	
-	// 	pe->Clear(); // return previous event's objects to pools and clear vectors
-	// 	pe->buff_len     = buff_len;
-	// 	pe->istreamorder = istreamorder;
-	// 	pe->run_number   = run_number_seed;
-	// 	pe->event_number = event_num++;
-	// 	pe->sync_flag    = false;
-	// 	pe->in_use       = true;
-	// 	pe->copied_to_factories = false;
-	// 	pe->event_status_bits   = 0;
-	// 	pe->borptrs      = NULL; // may be set by either ParseBORbank or JEventSource_EVIOpp::GetEvent
-	// }
 
 	// Parse data in buffer to create data objects
     uint32_t *istart = block.data.data();
