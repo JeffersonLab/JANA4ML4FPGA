@@ -1,5 +1,4 @@
 #include "TestCDaqProcessor.h"
-#include "plugins/cdaq/CDaqRawData.h"
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -59,8 +58,7 @@ void TestCDaqProcessor::Process(const std::shared_ptr<const JEvent>& event)
 {
     m_log->trace("TestCDaqProcessor event");
 
-    auto data = event->GetSingle<CDaqRawData>();
-    m_log->info("DataLen: {}", data->RawData().size());
+
 
 }
 

@@ -5,10 +5,9 @@
 #include <chrono>
 #include <JANA/JEvent.h>
 #include <rawdataparser/EVIOBlockedEvent.h>
-#include <rawdataparser/EVIOBlockedEventParser.h>
 #include <tcp_daq/tcp_thread.h>
 #include <services/log/Log_service.h>
-#include "CDaqRawData.h"
+#include <rawdataparser/swap_bank.h>
 
 #define MAXCLNT 32  //--  used 32 bit word   !!!!
 #define MAXMOD  15L      //-- max 15 modules/crates
@@ -155,16 +154,13 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
     // If we are here, a client has connected
 
     // READ 10 bytes block
-    int header_data[10];
+    uint32_t header_data[10];
     int rc = TcpReadData(receive_fd, header_data, sizeof(header_data));
     if (rc < 0) {
         m_log->error("TcpReadData error. Return Code = {}. It is -1, right? Sigh... why this error message...", rc);
         TCP_FLAG = 0;
         throw RETURN_STATUS::kERROR;
     }
-
-    unsigned long int read_data_len = 0;
-    read_data_len += sizeof(header_data);
 
     // We-HaVe-LIkE-tHis-NaMiNGconvEnTIOn-HeEeEerE
     int header_request = header_data[0];
@@ -192,7 +188,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
         header_data[4] = 0;
         header_data[5] = 0;
         header_data[6] = 0;
-        if (tcp_send_th(receive_fd, header_data, sizeof(header_data))) {
+        if (tcp_send_th(receive_fd, (int*)header_data, sizeof(header_data))) {
             perror("send");
             TCP_FLAG = 0;
         }
@@ -219,73 +215,71 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
             throw RETURN_STATUS::kERROR;;
         }
 
-        // First we read only 3 words from header
-        int PACKET[MAXDATA_DC + 10];
-        int *BUFFER = &PACKET[10];
-        rc = TcpReadData(receive_fd, BUFFER, 3 * 4);
+        // First cdaq sends 3 words
+        // Process cdaq_3words;
+        uint32_t cdaq_header[3];
+        rc = TcpReadData(receive_fd, cdaq_header, 3 * 4);
         if (rc < 0) {
-            ThrowOnErrno("TCP receive error");
+            ThrowOnErrno("Error receiving CDaq header (those 3 words)");
         } else if (rc > 0) {
             ThrowOnErrno("Need to get more data");
         }
 
-        read_data_len += header_event_len * 4;
+        
 
+        unsigned int cdaq_trigger_id = cdaq_header[1];
+        unsigned int cdaq_mod_id = (cdaq_header[0] >> 24) & 0xff;
+        unsigned int cdaq_event_size = cdaq_header[2];
 
-
-        unsigned int event_trigger_id = BUFFER[1];
-        unsigned int event_mod_id = (BUFFER[0] >> 24) & 0xff;
-        unsigned int event_size = BUFFER[2];
-
-        if (event_trigger_id == EORE_TRIGGERID ||
-            event_trigger_id == BORE_TRIGGERID) {    //-------------       for memory book          -----------
+        if (cdaq_trigger_id == EORE_TRIGGERID ||
+            cdaq_trigger_id == BORE_TRIGGERID) {    //-------------       for memory book          -----------
             // Who knows what is it? TODO check with Sergey
             printf(" >> RECV:: TriggerID=0x%x (0x%x) evtSize=%d  got Run Number = %d ModID=%d \n", header_trigger_id,
-                   event_trigger_id, event_size, header_run_number, event_mod_id);
+                   cdaq_trigger_id, cdaq_event_size, header_run_number, cdaq_mod_id);
         }
 
-        if (event_trigger_id == BORE_TRIGGERID) {    //-------------         New run           -----------
+        if (cdaq_trigger_id == BORE_TRIGGERID) {    //-------------         New run           -----------
             // New run number?
-            m_log->debug("evtTrigID == BORE_TRIGGERID {} {} {} New run number?", header_trigger_id, event_trigger_id, header_run_number);
+            m_log->debug("evtTrigID == BORE_TRIGGERID {} {} {} New run number?", header_trigger_id, cdaq_trigger_id, header_run_number);
         }
 
-
-//        if (is_verbose || DEBUG_RECV > 0 || TriggerID < 0) {
-//            printf("+++>>> recv::hdr:: TrID=%d(0x%x) ModNr=%d len=%d; evt:: TrgID=%d, ModID=%d, len=%d (%d bytes)\n",
-//                   TriggerID, TriggerID, ModuleID, LENEVENT, evtTrigID, evtModID, evtSize, evtSize * 4);
-//            struct EvtHeader *hdr = (EvtHeader *) BUFFER;
-//            //printf("      header:: EvSize=%d EvType=%d ModID=%d DevType=%d Trigger=%d \n"
-//            //	   , hdr->EventSize, hdr->EventType, hdr->ModuleNo, hdr->DeviceType, hdr->Triggernumber);
-//        }
-
-        if (event_size != header_event_len) {
-            m_log->warn("event_size ({}) != header_event_len ({}), TrigID={}", event_size, header_event_len, event_trigger_id);
+        if (cdaq_event_size != header_event_len) {
+            m_log->warn("event_size ({}) != header_event_len ({}), TrigID={}", cdaq_event_size, header_event_len, cdaq_trigger_id);
             // TODO event_size but header_event_len need renaming
         }
 
         if (header_event_len > MAXDATA) {
-            printf("*****> %c ERROR RECV:: LENEVENT=%d  MAXDATA=%lu  bytes\n", 7, header_event_len, MAXDATA);
-            // TODO make it with m_log. Should we throw kERROR here?
+             m_log->error("Event length exceeds buffer LENEVENT={}  MAXDATA={}\n", header_event_len, MAXDATA);
+            // TODO Should we throw kERROR here?
         }
 
-        auto cdaq_blob = new CDaqRawData(header_event_len);
+        // Finished with cdaq 3 words
 
-        int32_t *buffer_pointer = const_cast<int32_t*>(cdaq_blob->RawData().data());
+        // ---- R E A D I N G   E V E N T ----
+        
+        // bytes to read
+        size_t event_bytes_len = (header_event_len - 3) * 4;
 
-        // Get the rest of DATA
-        rc = TcpReadData(m_receive_fd, buffer_pointer, (header_event_len - 3) * 4);  // <<<<---------------- THIS IS DATA !!!! -----------------------
+        // Create a block and give it a proper size
+        EVIOBlockedEvent block;
+        block.data.resize(event_bytes_len);
+        block.swap_needed = true;
+
+        uint32_t *buffer_pointer = const_cast<uint32_t*>(block.data.data());
+        
+        // Reading the event
+        rc = TcpReadData(m_receive_fd, buffer_pointer, event_bytes_len);  // <<<<---------------- THIS IS DATA !!!! -----------------------
         //memcpy(wrptr,BUFFER,3*4);  //--- words to bytes
 
+        //parser.DumpBinary(swapped_buffer, &swapped_buffer[16], 0, nullptr);
+        auto events = parser.ParseEVIOBlockedEvent(block, event); // std::vector <std::shared_ptr<JEvent>>
 
-        // Disentangle block into multiple events
-        EVIOBlockedEventParser parser; // TODO: make this persistent
-        EVIOBlockedEvent block;
-        size_t buff_len = (header_event_len - 3) * 4;
-        uint32_t *buff = (uint32_t*)(BUFFER);
-        block.data.insert(block.data.end(), buff, &buff[buff_len]);
-        parser.ParseEVIOBlockedEvent(block, event); // std::vector <std::shared_ptr<JEvent>>
-        //event->Insert(cdaq_blob);
-
+        for(auto &parsed_event: events) {
+            m_log->info("Event number = {}", event->GetEventNumber());
+            for(auto factory: event->GetFactorySet()->GetAllFactories()) {
+                m_log->info("  Factory = {}", factory->GetObjectName());
+            }
+        }
     }
 }
 
