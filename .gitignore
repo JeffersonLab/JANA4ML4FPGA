@@ -1,5 +1,11 @@
-# The directory is used to install everything by default
+# The directory is used to build and install everything by default
 build/
+install/
+.vscode/
+
+# Temp folder
+tmp/
+
 
 # Prerequisites
 *.d
