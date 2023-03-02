@@ -225,8 +225,6 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
             ThrowOnErrno("Need to get more data");
         }
 
-        
-
         unsigned int cdaq_trigger_id = cdaq_header[1];
         unsigned int cdaq_mod_id = (cdaq_header[0] >> 24) & 0xff;
         unsigned int cdaq_event_size = cdaq_header[2];
