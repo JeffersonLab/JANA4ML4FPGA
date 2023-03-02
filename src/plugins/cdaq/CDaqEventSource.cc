@@ -258,20 +258,25 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
         // ---- R E A D I N G   E V E N T ----
         
         // bytes to read
-        size_t event_bytes_len = (header_event_len - 3) * 4;
+        size_t event_words_len = (header_event_len - 3);
+        size_t event_bytes_len = event_words_len * 4;
 
         // Create a block and give it a proper size
         EVIOBlockedEvent block;
-        block.data.resize(event_bytes_len);
+        block.data.resize(event_words_len);
         block.swap_needed = true;
 
-        uint32_t *buffer_pointer = const_cast<uint32_t*>(block.data.data());
+        uint32_t receive_buffer[event_words_len];
         
         // Reading the event
-        rc = TcpReadData(m_receive_fd, buffer_pointer, event_bytes_len);  // <<<<---------------- THIS IS DATA !!!! -----------------------
+        rc = TcpReadData(m_receive_fd, receive_buffer, event_bytes_len);  // <<<<---------------- THIS IS DATA !!!! -----------------------
         //memcpy(wrptr,BUFFER,3*4);  //--- words to bytes
 
-        //parser.DumpBinary(swapped_buffer, &swapped_buffer[16], 0, nullptr);
+        uint32_t *event_buffer_ptr = const_cast<uint32_t*>(block.data.data());
+
+        swap_bank(event_buffer_ptr, receive_buffer, event_words_len);
+
+        parser.DumpBinary(event_buffer_ptr, &event_buffer_ptr[24], 0, nullptr);
         auto events = parser.ParseEVIOBlockedEvent(block, event); // std::vector <std::shared_ptr<JEvent>>
 
         for(auto &parsed_event: events) {
