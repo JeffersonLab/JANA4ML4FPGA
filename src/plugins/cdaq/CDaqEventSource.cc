@@ -270,13 +270,17 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
         block.data.resize(event_words_len+2);
         block.swap_needed = true;
     
+        // Add 2 words that would make it a bank of banks in EVIO format
+        // That would allow ParseEVIOBlockedEvent to parse this event
         uint32_t *event_buffer_ptr = const_cast<uint32_t*>(block.data.data());
         swap_bank(&event_buffer_ptr[2], receive_buffer, event_words_len);
-        event_buffer_ptr[0] = event_words_len+1;
-        event_buffer_ptr[1] = 0xFF331001;
+        event_buffer_ptr[0] = event_words_len+1;    // +1 because the length word is not counted in length
+        event_buffer_ptr[1] = 0xFF331001;           // 0xFF33-bank of banks, 10-special, 01-1 event
 
-
+        // >oODebugging output
         parser.DumpBinary(event_buffer_ptr, &event_buffer_ptr[24], 0, nullptr);
+
+        // Parse the block
         auto events = parser.ParseEVIOBlockedEvent(block, event); // std::vector <std::shared_ptr<JEvent>>
 
         for(auto &parsed_event: events) {
