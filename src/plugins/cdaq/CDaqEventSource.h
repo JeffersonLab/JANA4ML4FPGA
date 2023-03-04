@@ -2,6 +2,7 @@
 
 #include <JANA/JEventSource.h>
 #include <JANA/JEventSourceGeneratorT.h>
+#include <rawdataparser/EVIOBlockedEventParser.h>
 #include <spdlog/logger.h>
 #include <extensions/spdlog/SpdlogMixin.h>
 #include <sys/socket.h>
@@ -27,7 +28,7 @@ private:
 
     void ThrowOnErrno (const std::string& comment);
 
-    int32_t TcpReadData(int read_fd, int *data, int data_len) {
+    int32_t TcpReadData(int read_fd, uint32_t *data, int data_len) {
         int bytes_left = data_len;
         auto data_bytes = (char *) data;
         while (bytes_left > 0) {
@@ -47,17 +48,12 @@ private:
 
     void WaitForClient();
 
-
-
-
     int m_port;
     std::string m_remote_host;
-
 
     int m_socket_fd;                            /// Socket file descriptor that is used in all socket C funcs
     std::shared_ptr<spdlog::logger> m_log;      /// logger
     int TCP_FLAG;                               /// 0 failed state, 1 working state
-
 
     // We wait for a client in a separate thread. This thread returns file descriptor that can be used
     // for 'recv' function, to get data from socket. This field is used for:
@@ -66,6 +62,8 @@ private:
     std::atomic<int> m_receive_fd=-1;
     std::thread m_listen_thread;               /// Thread is used to wait for a client to connect
 
+    // EVIO block parser
+    EVIOBlockedEventParser parser; // TODO: make this persistent
 };
 
 template <>
