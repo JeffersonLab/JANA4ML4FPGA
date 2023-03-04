@@ -207,10 +207,9 @@ namespace jana {
         }
     }
 
-    void AddCDAQTopology(JApplication* app) {
+    void AddCDAQTopology(JApplication* app, EVIOBlockedEventSource* source) {
         auto topology = app->GetService<JTopologyBuilder>()->create_empty();
 
-        auto source = new EVIOBlockedEventSource;
         auto processor = new EVIOBlockProcessor;
 
         auto block_queue = new JMailbox<EVIOBlockedEvent *>;
@@ -345,35 +344,56 @@ namespace jana {
         if (options.flags[ShowConfigs]) {
             // Load all plugins, collect all parameters, exit without running anything
             app->Initialize();
-    //            app->GetJParameterManager()->PrintParameters(true);
             PrintConfigParameters(app);
-        } else if (options.flags[DumpConfigs]) {
+            return 0;
+        }
+
+        if (options.flags[DumpConfigs]) {
             // Load all plugins, dump parameters to file, exit without running anything
             app->Initialize();
             std::cout << std::endl << "Writing configuration options to file: " << options.dump_config_file
                       << std::endl;
             app->GetJParameterManager()->WriteConfigFile(options.dump_config_file);
-        } else if (options.flags[ListFactories]) {
+            return 0;
+        }
+
+        if (options.flags[ListFactories]) {
             app->Initialize();
             PrintFactories(app);
-        } else {
-            // Run JANA in normal mode
-            try {
-                JSignalHandler::register_handlers(app);
-                printHeaderIMG();
-                AddCDAQTopology(app);   /// major change
-
-                app->Run(true);
-            }
-            catch (JException &e) {
-                std::cout << "----------------------------------------------------------" << std::endl;
-                std::cout << e << std::endl;
-            }
-            catch (std::runtime_error &e) {
-                std::cout << "----------------------------------------------------------" << std::endl;
-                std::cout << "Exception: " << e.what() << std::endl;
-            }
+            return 0;
         }
+
+        // -----------------------
+        // Run JANA in normal mode
+
+        // Validate input file names:
+        if(options.evio_filenames.empty()) {
+            std::cout << "ERROR! No file names provided. Add file names to the command. Run with '--help' for more info" << std::endl;
+            return 1;
+        }
+
+        if(options.evio_filenames.size() > 1) {
+            std::cout << "WARNING! " << options.evio_filenames.size()<< " file names provided. Only the FIRST will be processed." << std::endl;
+        }
+
+        // Lets go
+        try {
+            JSignalHandler::register_handlers(app);
+            printHeaderIMG();
+            auto source = new EVIOBlockedEventSource(options.evio_filenames[0]);
+            AddCDAQTopology(app, source);   /// major change
+
+            app->Run(true);
+        }
+        catch (JException &e) {
+            std::cout << "----------------------------------------------------------" << std::endl;
+            std::cout << e << std::endl;
+        }
+        catch (std::runtime_error &e) {
+            std::cout << "----------------------------------------------------------" << std::endl;
+            std::cout << "Exception: " << e.what() << std::endl;
+        }
+
         return (int) app->GetExitCode();
     }
 
@@ -456,6 +476,10 @@ namespace jana {
 
                 case ShowDefaultPlugins:
                     options.flags[ShowDefaultPlugins] = true;
+                    break;
+
+                case ShowAvailablePlugins:
+                    options.flags[ShowAvailablePlugins] = true;
                     break;
 
                 case Unknown:
