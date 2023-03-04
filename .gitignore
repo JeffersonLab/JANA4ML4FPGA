@@ -45,3 +45,5 @@ tmp/
 cmake-build-debug/
 
 scripts/eicrecon.root
+
+cmake-build-debug-remote-host/
