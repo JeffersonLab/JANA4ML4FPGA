@@ -4,17 +4,27 @@ from datetime import datetime
 import subprocess
 import os
 import shutil
-from pprint import pprint
+
+class ConsoleRunSink:
+
+    def __init__(self):
+        self.to_show = []
+
+    def add_line(self, line):
+        print(line)
+
+    def done(self):
+        print("Sink done")
+
+    @property
+    def is_displayed(self):
+        return True
 
 
-def _print_path_env(env_str: str, title: str):
-    tokens = env_str.split(":")
-    lines = [f"   {token}" for token in tokens if token]
-    print(title)
-    pprint(lines)
+default_sink = ConsoleRunSink()
 
 
-def run(command, cwd=None, shell=False, retval_raise=False):
+def run(command, sink=default_sink, cwd=None, shell=False, retval_raise=False):
     """Wrapper around subprocess.Popen that returns:
 
     :return retval, start_time, end_time, lines
@@ -23,10 +33,10 @@ def run(command, cwd=None, shell=False, retval_raise=False):
         command = shlex.split(command)
 
     # Pretty header for the command
-    print('=' * 20)
-    print("CWD: " + cwd if cwd else os.getcwd())
-    print("RUN: " + " ".join(command))
-    print('=' * 20)
+    sink.add_line('=' * 20)
+    sink.add_line("CWD: " + cwd if cwd else os.getcwd())
+    sink.add_line("RUN: " + " ".join(command))
+    sink.add_line('=' * 20)
 
     # Record the start time
     start_time = datetime.now()
@@ -45,7 +55,7 @@ def run(command, cwd=None, shell=False, retval_raise=False):
                 if line.endswith('\n'):
                     line = line[:-1]
 
-                print(line)
+                sink.add_line(line)
                 lines.append(line)
 
         # Get return value and finishing time
@@ -53,30 +63,26 @@ def run(command, cwd=None, shell=False, retval_raise=False):
 
     end_time = datetime.now()
 
-    print("------------------------------------------")
-    print(f"RUN DONE. RETVAL: {retval} \n\n")
+    sink.add_line("------------------------------------------")
+    sink.add_line(f"RUN DONE. RETVAL: {retval} \n\n")
     if retval != 0:
-        print(f"ERROR. Retval is not 0. Plese, look at the logs\n")
+        sink.add_line(f"ERROR. Retval is not 0. Plese, look at the logs\n")
 
         if retval_raise:
             raise RuntimeError("ERROR. Retval is not 0. Plese, look at the logs")
+
+    sink.done()
     return retval, start_time, end_time, lines
 
 
 def main():
-
-    # Identify repository root
+    jana_path = shutil.which("jana")
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    print(f"Repo root_dir: {root_dir}")
-
-    # Identify executable to run
-    executable = os.path.join(root_dir, "install/bin/jana4ml4fpga")
-    print(f"Using executable:\n {executable}")
-    print(f"File exists: {os.path.exists(executable)}")
-
-    # Add compiled plugins to JANA_PLUGIN_PATH
     jana_plugin_path_env = os.environ.get("JANA_PLUGIN_PATH", "")
-    _print_path_env(jana_plugin_path_env, "Initial JANA_PLUGIN_PATH")
+
+    print(f"Using JANA2 executable:\n {jana_path}")
+    print(f"root_dir: {root_dir}")
+    print(f"jana_plugin_path_env BEFORE : {jana_plugin_path_env}")
 
     plugin_dirs = [
         os.path.join(root_dir, "cmake-build-debug/src/plugins/cdaq"),
@@ -84,21 +90,7 @@ def main():
         os.path.join(root_dir, "cmake-build-debug/src/services/log"),
         os.path.join(root_dir, "cmake-build-debug/src/services/root_output"),
     ]
-    for plugin_dir in plugin_dirs:
-        jana_plugin_path_env = plugin_dir + ":" + jana_plugin_path_env
-    os.environ["JANA_PLUGIN_PATH"] = jana_plugin_path_env
 
-    _print_path_env(jana_plugin_path_env, "Final JANA_PLUGIN_PATH")
-
-    # Add path for libJANA to where it belongs
-    ld_lib_path_env = os.environ.get("LD_LIBRARY_PATH", "")
-    jana_home_env = os.environ.get("JANA_HOME", "")
-    print(f"JANA_HOME = {jana_home_env}")
-    ld_lib_path_env = f"{jana_home_env}/lib:{ld_lib_path_env}"
-    os.environ["LD_LIBRARY_PATH"] = ld_lib_path_env
-
-
-    # Add plugins
     plugins = [
         "log",
         "root_output",
@@ -106,18 +98,24 @@ def main():
         "test_cdaq"
     ]
 
+    for plugin_dir in plugin_dirs:
+        jana_plugin_path_env = plugin_dir + ":" + jana_plugin_path_env
 
-    command = [
-        executable,
+    print(f"jana_plugin_path_env AFTER : {jana_plugin_path_env}")
+
+    os.environ["JANA_PLUGIN_PATH"] = jana_plugin_path_env
+
+
+    run([
+        jana_path,
         "-Pplugins="+",".join(plugins),
         "-Pjana:debug_plugin_loading=1",
         "-Pcdaq:LogLevel=trace",
         "-Pjana:timeout=0",
-        "/mnt/work/data/2023-03-03-trd-data/hd_rawdata_002531_000.evio"
-    ]
+        "tcp-cdaq-evio"
 
-    # Lets fly
-    run(command, shell=False)
+    ])
+
 
 
 if __name__ == "__main__":

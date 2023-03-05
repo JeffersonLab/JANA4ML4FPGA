@@ -16,7 +16,7 @@ std::vector<std::string> JANA4ML4FPGA_DEFAULT_PLUGINS = {
     "log",
 };
 
-int main( int narg, char **argv) {
+int main( int narg, char *argv[]) {
 
     std::vector<std::string> default_plugins = JANA4ML4FPGA_DEFAULT_PLUGINS;
 
