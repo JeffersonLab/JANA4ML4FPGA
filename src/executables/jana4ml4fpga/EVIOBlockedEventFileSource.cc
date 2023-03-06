@@ -19,11 +19,10 @@ EVIOBlockedEventFileSource::DisentangleBlock(EVIOBlockedEvent &block, JEventPool
 }
 
 void EVIOBlockedEventFileSource::CloseEVIOFile() {
-    LOG_INFO(m_logger) << "Closing EVIO file \"" << cur_file << "\"" << LOG_END;
-
     if (m_hdevio) {
         m_hdevio->PrintStats(); // print status for debugging
-        delete m_hdevio;
+        LOG_INFO(m_logger) << "Closing EVIO file \"" << cur_file << "\"!" << LOG_END;
+        delete m_hdevio; /// FIXME (@davidl): if do not touch HDEVIO destructor, double free or corruption error
     }
 }
 
@@ -42,6 +41,7 @@ void EVIOBlockedEventFileSource::OpenNextEVIOFile() {
 
     cur_file = m_filenames.back();
     m_filenames.pop_back();
+
     m_hdevio = new HDEVIO(cur_file, true, 2);   // 2 for VERBOSE level
     if (!m_hdevio->is_open) {
         cerr << m_hdevio->err_mess.str() << endl;
