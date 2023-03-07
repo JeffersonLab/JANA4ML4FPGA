@@ -3,7 +3,7 @@ project(jana4ml4fpga)
 
 print_header(">>>>   E X E C U T A B L E S : ${PROJECT_NAME}   <<<<")
 
-file(GLOB block_tester_SRC
+file(GLOB jana4ml4fpga_SRC
         *.h
         *.cc
         )
@@ -11,7 +11,7 @@ file(GLOB block_tester_SRC
 message("{JANA_LIB} ${JANA_LIB}")
 message("{{JANA_INCLUDE_DIR}} ${JANA_INCLUDE_DIR}")
 
-add_executable(${PROJECT_NAME} ${block_tester_SRC})
+add_executable(${PROJECT_NAME} ${jana4ml4fpga_SRC})
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR} ${JANA_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${JANA_LIB} evio rawdataparser Threads::Threads dl ${ROOT_LIBRARIES})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME})

@@ -9,9 +9,9 @@
 
 #include <JANA/JBlockedEventSource.h>
 #include <JANA/JLogger.h>
-#include <evio/HDEVIO.h>
 
-#include <rawdataparser/EVIOBlockedEvent.h>
+#include "HDEVIO.h"
+#include "EVIOBlockedEvent.h"
 
 #define DEFAULT_READ_BUFF_LEN 4000000  // number taken from the CDAQtcp example
 

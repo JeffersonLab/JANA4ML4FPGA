@@ -12,8 +12,9 @@
 #include <JANA/Engine/JBlockDisentanglerArrow.h>
 #include <JANA/Engine/JEventProcessorArrow.h>
 
-#include <rawdataparser/EVIOBlockedEvent.h>
-#include "EVIOBlockedEventFileSource.h"
+#include <evio/EVIOBlockedEvent.h>
+#include <evio/EVIOBlockedEventFileSource.h>
+
 #include "EVIOBlockProcessor.h"
 
 namespace jana {

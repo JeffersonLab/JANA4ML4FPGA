@@ -17,7 +17,7 @@ void EVIOBlockProcessor::Init() {
 
 
 void EVIOBlockProcessor::Process(const std::shared_ptr<const JEvent> &event) {
-    _DBG__;
+//    _DBG__;  // comment out this as long as we know it's working
     // auto objs = event->Get<MyObject>();
     // std::lock_guard<std::mutex>lock(m_mutex);
 
