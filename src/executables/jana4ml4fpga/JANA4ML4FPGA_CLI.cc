@@ -49,7 +49,7 @@ namespace jana {
     void PrintUsageExample() {
 
         std::cout << "Example:" << std::endl;
-        std::cout << "    jana4ml4fpga -Pplugins=plugin1,plugin2,plugin3 -Pnthreads=8 evio_filename.evio" << std::endl;
+        std::cout << "    jana4ml4fpga -Pnthreads=8 evio_file_1.evio evio_file_2.evio" << std::endl;
 //        std::cout << "    jana4ml4fpga -Ppodio:print_type_table=1 infile.root" << std::endl << std::endl;
         std::cout << std::endl << std::endl;
     }
@@ -207,9 +207,10 @@ namespace jana {
         }
     }
 
-    void AddCDAQTopology(JApplication* app, EVIOBlockedEventSource* source) {
+    void AddCDAQTopology(JApplication* app, std::vector<std::string> filenames) {
         auto topology = app->GetService<JTopologyBuilder>()->create_empty();
 
+        auto source = new EVIOBlockedEventFileSource(filenames);
         auto processor = new EVIOBlockProcessor;
 
         auto block_queue = new JMailbox<EVIOBlockedEvent *>;
@@ -238,10 +239,18 @@ namespace jana {
         app->SetParameterValue("log:trace", "JWorker");
     }
 
-    void AddBlockedEventSourceFromCli(UserOptions &options, std::vector<std::string> &evio_file_sources) {
-        for (auto src:options.evio_filenames) {
-            evio_file_sources.push_back(src);
+    /**
+     * Copy EVIO filenames from @param options.evio_filenames to @param evio_file_sources.
+     * @return false if there is no evio file in cli option
+     */
+    bool AddBlockedEventFileSourceFromCli(UserOptions &options, std::vector<std::string> &evio_file_sources) {
+        if (options.evio_filenames.empty()) {
+            std::cout << "No evio files given!" << std::endl << std::endl;
+            return false;
         }
+
+        evio_file_sources = options.evio_filenames;
+        return true;
     }
 
     void AddEVIOFileSourceTypeToOptionParams(
@@ -365,23 +374,18 @@ namespace jana {
 
         // -----------------------
         // Run JANA in normal mode
-
-        // Validate input file names:
-        if(options.evio_filenames.empty()) {
-            std::cout << "ERROR! No file names provided. Add file names to the command. Run with '--help' for more info" << std::endl;
-            return 1;
-        }
-
-        if(options.evio_filenames.size() > 1) {
-            std::cout << "WARNING! " << options.evio_filenames.size()<< " file names provided. Only the FIRST will be processed." << std::endl;
-        }
-
-        // Lets go
         try {
             JSignalHandler::register_handlers(app);
             printHeaderIMG();
-            auto source = new EVIOBlockedEventSource(options.evio_filenames[0]);
-            AddCDAQTopology(app, source);   /// major change
+
+            /// Major changes
+            // Since jana JComponentManager does not support BlockedEventSource yet, we manually manage them now
+            std::vector<std::string> evio_file_sources;
+            // Copy the evio filenames from options.evio_filenames to evio_file_sources.
+            if (!AddBlockedEventFileSourceFromCli(options, evio_file_sources)) {
+                return (-1);
+            }
+            AddCDAQTopology(app, evio_file_sources);   /// major change
 
             app->Run(true);
         }
@@ -420,9 +424,9 @@ namespace jana {
 
         // `jana4ml4fpga` has the same effect with `jana4ml4fpga -h`
         /// Comment out temporarily
-//        if (nargs == 1) {
-//            options.flags[ShowUsage] = true;
-//        }
+        if (nargs == 1) {
+            options.flags[ShowUsage] = true;
+        }
 
         for (int i = 1; i < nargs; i++) {
             std::string arg = argv[i];

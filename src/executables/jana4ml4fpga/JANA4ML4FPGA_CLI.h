@@ -13,7 +13,7 @@
 #include <JANA/Engine/JEventProcessorArrow.h>
 
 #include <rawdataparser/EVIOBlockedEvent.h>
-#include "EVIOBlockedEventSource.h"
+#include "EVIOBlockedEventFileSource.h"
 #include "EVIOBlockProcessor.h"
 
 namespace jana {
@@ -68,10 +68,6 @@ namespace jana {
     void AddDefaultPluginsToJApplication(JApplication* app, std::vector<std::string> const& default_plugins);
 
     void PrintFactories(JApplication* app);
-
-    /// Copy the evio filenames from @param options.evio_filenames to @var evio_file_sources.
-    /// New method.
-    void AddBlockedEventSourceFromCli(UserOptions &options, std::vector<std::string> &evio_file_sources);
 
     /// Copy the @param options params (from the cli or the config file) to a JParameterManager @var para_mgr.
     /// Create an empty JApplication @var app.

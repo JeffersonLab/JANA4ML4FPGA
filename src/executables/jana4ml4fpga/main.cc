@@ -20,15 +20,10 @@ int main( int narg, char *argv[]) {
 
     std::vector<std::string> default_plugins = JANA4ML4FPGA_DEFAULT_PLUGINS;
 
-    /// Since jana JComponentManager does not support BlockedEventSource yet, we manually manage them now
-    std::vector<std::string> evio_file_sources;
-
     auto options = jana::GetCliOptions(narg, argv, false);
 
     if (HasPrintOnlyCliOptions(options, default_plugins))
         return 0;
-
-    AddBlockedEventSourceFromCli(options, evio_file_sources); /// @note may not need this in
 
     /// take plugins from both default plugins and cli input
     /// @note: do not search for available plugins at various paths
