@@ -54,6 +54,16 @@ list (APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)   # Find Find<Modules>
 # Add src as a global include directory
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
+
+# Add library directories to rpath so users don't need to use LD_LIBRARY_PATH.
+# (see https://dev.my-gate.net/2021/08/04/understanding-rpath-with-cmake )
+# TODO: detector MacOS and set MACOSX_RPATH to TRUE
+set( CMAKE_SKIP_BUILD_RPATH FALSE )
+set( CMAKE_BUILD_WITH_INSTALL_RPATH FALSE )
+set( CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" )
+set( CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE )
+
+
 # Libraries are a separated objects.
 # We add this include directory so that in code we could use
 # #include <tcp_daq/tcp_event.h> instead of <libraries/tcp_daq/tcp_event.h>
