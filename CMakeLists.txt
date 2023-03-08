@@ -70,8 +70,6 @@ add_subdirectory( src/services )
 add_subdirectory(src/plugins)
 add_subdirectory(src/executables)
 
-
-
 # Print what we had built
 print_header("CMake processed subdirectories:")
 print_subdirectory_tree()
