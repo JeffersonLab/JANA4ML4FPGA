@@ -2,18 +2,25 @@ A4ML4FPGA
 EIC R&amp;D supported project developing ML on FPGA for streaming readout systems
 
 
-## evio reader
+## evio data
 
-The plugin, that can decode evio data and read *.evio files is `src/jana/EVIOParser`
+All DATA is here:
+
+/gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_*.evio
+
+Physics runs:
+-------------
+
+===>  2 crates , 3 detectors : CAL/FA250, GEMTRD/FA125 , GEM/SRS
+
+CODA::  Run_2531 GEMTRD:ok; CAL:ok; SRS:del=0x41; ROSYBC=0x90 3bin; 10APV;OK; TRDpos=100; 5.1M ev  *PHYS* !!!!
+cDAQ::  Run_2543 GEMTRD:ok; CAL:ok; SRS:del=0x41; ROSYBC=0x90 3bin; 10APV;OK; TRDpos=100; 1.1M ev  *PHYS* !!!!
 
 
-```
-# Here are the files in cDAQ format, you can try to parse:
-/gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_002539_*.evio
+===> 1 crate ; 2 detectors : GEMTRD/FA125 ; GEM/SRS
 
-# just for cross checking here are the standard CODA files:
-/gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_002532_*.evio
-```
+CODA::  Run_2548 (CODA) GEMTRD:ok; CAL:No; SRS:del=0x40; ROSYBC=0x70 9bin; 10APV;OK; TRDpos=155; 1.5M ev  *PHYS* !!!!
+cDAQ::  Run_2567 (cDAQ) GEMTRD:ok; CAL:No; SRS:del=0x40; ROSYBC=0x70 9bin; 10APV;OK; TRDpos=155; 3.2M ev  *PHYS* !!!!
 
 Test setup configuration:
 
@@ -44,3 +51,4 @@ tcp_receiver
 # In another terminal/process
 tcp_sender -req=ex -cmd=send -host=localhost:20249
 ```
+

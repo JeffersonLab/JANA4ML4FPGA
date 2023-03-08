@@ -59,11 +59,14 @@ void SingleEvioEventFileSource::GetEvent(std::shared_ptr<JEvent> event) {
         EVIOBlockedEventParser parser; // TODO: make this persistent // (xmei@jlab.org) what does this mean
 
         auto events = parser.ParseEVIOBlockedEvent(block, event);
-        for(auto &parsed_event: events) {
-            std::cout<<"Event number = "<<parsed_event->GetEventNumber()<<std::endl;
-            for(auto factory: parsed_event->GetFactorySet()->GetAllFactories()) {
-                std::cout<<"  Factory = "<<factory->GetObjectName()<<" NumObjects = " << factory->GetNumObjects()<<std::endl;
+        m_log->trace("Parsed block had {} events:", events.size());
 
+        for(size_t i=0; i<events.size(); i++) {
+            auto &parsed_event = events[i];
+            m_log->trace("  Event #{} in block with event-number={}:", i, parsed_event->GetEventNumber());
+
+            for(auto factory: parsed_event->GetFactorySet()->GetAllFactories()) {
+                m_log->trace("    Factory = {:<30}  NumObjects = {}", factory->GetObjectName(), factory->GetNumObjects());
             }
         }
         return;

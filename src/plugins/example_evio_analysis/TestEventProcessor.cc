@@ -57,11 +57,25 @@ void TestEventProcessor::Init()
 // This function is called every event
 void TestEventProcessor::Process(const std::shared_ptr<const JEvent>& event)
 {
-    m_log->trace("TestEventProcessor event");
-    auto data = event->Get<DGEMSRSWindowRawData>();
-    for(auto value: data) {
-        logger()->info("  {} ", value->apv_id, value->channel_apv, value->channel);
+    m_log->debug("new event");
+
+    try {
+        auto data = event->Get<DGEMSRSWindowRawData>();
+        m_log->debug("Got DGEMSRSWindowRawData");
+        if(event->GetEventNumber()==2) {
+            for(auto value: data) {
+                logger()->info("  {} {} {}", value->apv_id, value->channel_apv, value->channel);
+            }
+
+        }
+
     }
+    catch (std::exception &exp) {
+        m_log->trace("Got exception when doing event->Get<DGEMSRSWindowRawData>()");
+        m_log->trace("Exception what()='{}', type='{}'", exp.what(), typeid(exp).name());
+    }
+
+
 }
 
 
