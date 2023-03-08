@@ -102,8 +102,8 @@ def main():
     plugins = [
         "log",
         "root_output",
-        "cdaq",
-        "test_cdaq"
+        #"cdaq",
+        "example_evio_analysis"
     ]
 
 
@@ -113,7 +113,10 @@ def main():
         "-Pjana:debug_plugin_loading=1",
         "-Pcdaq:LogLevel=trace",
         "-Pjana:timeout=0",
-        "/mnt/work/data/2023-03-03-trd-data/hd_rawdata_002531_000.evio"
+        "-Pnthreads=1",
+        "/mnt/work/data/2023-03-03-trd-data/hd_rawdata_002543_000.evio"
+        #"/mnt/work/data/2023-03-03-trd-data/hd_rawdata_002548_000.evio"
+        #"/mnt/work/data/2023-03-03-trd-data/hd_rawdata_002531_000.evio"
     ]
 
     # Lets fly
