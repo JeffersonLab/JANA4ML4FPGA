@@ -5,8 +5,12 @@
 #pragma once
 
 #include <JANA/JEventProcessor.h>
+#include <extensions/spdlog/SpdlogMixin.h>
 
-class EVIOBlockProcessor : public JEventProcessor {
+class EVIOBlockProcessor :
+        public JEventProcessor,
+        public spdlog::extensions::SpdlogMixin<EVIOBlockProcessor>
+{
 
     // Shared state (e.g. histograms, TTrees, TFiles) live
     std::mutex m_mutex;

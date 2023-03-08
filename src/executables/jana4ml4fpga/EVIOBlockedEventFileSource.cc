@@ -4,6 +4,7 @@
 
 #include <rawdataparser/EVIOBlockedEventParser.h>
 #include "EVIOBlockedEventFileSource.h"
+#include <iostream>
 
 using namespace std;
 
@@ -15,7 +16,16 @@ std::vector <std::shared_ptr<JEvent>>
 EVIOBlockedEventFileSource::DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool) {
     // Disentangle block into multiple events
     EVIOBlockedEventParser parser; // TODO: make this persistent // (xmei@jlab.org) what does this mean
-    return parser.ParseEVIOBlockedEvent(block, pool);
+
+    auto events = parser.ParseEVIOBlockedEvent(block, pool);
+    for(auto &parsed_event: events) {
+        std::cout<<"Event number = "<<parsed_event->GetEventNumber()<<std::endl;
+        for(auto factory: parsed_event->GetFactorySet()->GetAllFactories()) {
+            std::cout<<"  Factory = "<<factory->GetObjectName()<<" NumObjects = " << factory->GetNumObjects()<<std::endl;
+
+        }
+    }
+    return events;
 }
 
 void EVIOBlockedEventFileSource::CloseEVIOFile() {
