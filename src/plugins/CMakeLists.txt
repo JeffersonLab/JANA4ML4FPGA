@@ -1,3 +1,4 @@
 add_subdirectory(cdaq)
 add_subdirectory(test_cdaq)
 add_subdirectory(example_evio_analysis)
+add_subdirectory(single_event_evio)
