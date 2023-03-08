@@ -119,6 +119,7 @@ def main():
         #"/mnt/work/data/2023-03-03-trd-data/hd_rawdata_002531_000.evio"
     ]
 
+    print(command)
     # Lets fly
     run(command, shell=False)
 

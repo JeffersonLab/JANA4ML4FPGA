@@ -1,4 +1,5 @@
 #include "TestEventProcessor.h"
+#include "rawdataparser/DGEMSRSWindowRawData.h"
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -57,7 +58,10 @@ void TestEventProcessor::Init()
 void TestEventProcessor::Process(const std::shared_ptr<const JEvent>& event)
 {
     m_log->trace("TestEventProcessor event");
-
+    auto data = event->Get<DGEMSRSWindowRawData>();
+    for(auto value: data) {
+        logger()->info("  {} ", value->apv_id, value->channel_apv, value->channel);
+    }
 }
 
 
