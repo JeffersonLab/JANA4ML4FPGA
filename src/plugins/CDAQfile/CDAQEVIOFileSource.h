@@ -48,7 +48,7 @@ private:
     unique_ptr<HDEVIO> m_hdevio;
 
     uint32_t *m_buff = nullptr;
-    uint32_t static const m_buff_len = DEFAULT_READ_BUFF_LEN;
+    uint32_t m_buff_len = DEFAULT_READ_BUFF_LEN;
     int m_block_number = 1;
 
     void OpenEVIOFile(std::string filename);
