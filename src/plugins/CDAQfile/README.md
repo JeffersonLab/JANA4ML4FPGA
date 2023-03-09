@@ -1,7 +1,7 @@
 # JANA CDAQfile plugin
 
 Create a source plugin by pulling codes from `/rawdataparser`.
-The plugin opens a `*.evio` file and print its file summary.
+The plugin opens a `*.evio` file and parse the events into JEvents.
 
 ### Build
 
@@ -13,6 +13,6 @@ The plugin opens a `*.evio` file and print its file summary.
 cmake -S . -B build -DCMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT=1
 cmake --build build --target install -j16
 
-
-jana -Pplugins=CDAQfile -Pevent_source_type="CDAQEVIOFileSource" /gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_002539_002.evio
+# call it without option "-t"
+jana4ml4fpga -Pplugins=CDAQfile /gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_002539_002.evio
 ```

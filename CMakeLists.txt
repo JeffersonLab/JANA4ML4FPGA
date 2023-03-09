@@ -14,6 +14,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Find packages
 find_package(JANA REQUIRED)
 find_package(ROOT REQUIRED)
+find_package(spdlog REQUIRED)
+find_package(fmt REQUIRED)
 
 # Install to the top directory by default
 if( ${CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT} )
