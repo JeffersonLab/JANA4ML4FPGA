@@ -16,6 +16,8 @@
 #include <string>
 #include <filesystem>
 
+#include "CDAQTopology.h"
+
 #define QUOTE(name) #name
 #define STR(macro) QUOTE(macro)
 
@@ -65,10 +67,7 @@ namespace jana {
         std::cout << std::endl;
 
         std::cout << "Description:" << std::endl;
-        std::cout << "    Command-line interface for running JANA plugins. This can be used to" << std::endl;
-        std::cout << "    read in events and process them. Command-line flags control configuration" << std::endl;
-        std::cout << "    while additional arguments denote input files, which are to be loaded and" << std::endl;
-        std::cout << "    processed by the appropriate EventSource plugin." << std::endl;
+        std::cout << "    A JANA2 extension to load and parse evio files." << std::endl;
         std::cout << std::endl;
 
         PrintUsageOptions();
@@ -207,38 +206,6 @@ namespace jana {
         }
     }
 
-    void AddCDAQTopology(JApplication* app, std::vector<std::string> filenames) {
-        auto topology = app->GetService<JTopologyBuilder>()->create_empty();
-
-        auto source = new EVIOBlockedEventFileSource(filenames);
-        auto processor = new EVIOBlockProcessor;
-
-        auto block_queue = new JMailbox<EVIOBlockedEvent *>;
-        auto event_queue = new JMailbox <std::shared_ptr<JEvent>>;
-
-        block_queue->set_threshold(1); // For debugging, have it call the disentangler right away
-        _DBG_<<"THRESHOLD IS: " << block_queue->get_threshold() << std::endl;
-
-        auto block_source_arrow = new JBlockSourceArrow<EVIOBlockedEvent>("block_source", source, block_queue);
-        auto block_disentangler_arrow = new JBlockDisentanglerArrow<EVIOBlockedEvent>(
-                "block_disentangler", source, block_queue, event_queue, topology->event_pool);
-        auto processor_arrow = new JEventProcessorArrow("processors", event_queue, nullptr, topology->event_pool);
-
-        processor_arrow->add_processor(processor);
-
-        topology->arrows.push_back(block_source_arrow);
-        topology->arrows.push_back(block_disentangler_arrow);
-        topology->arrows.push_back(processor_arrow);
-
-        topology->sources.push_back(block_source_arrow);
-        topology->sinks.push_back(processor_arrow);
-
-        block_source_arrow->attach(block_disentangler_arrow);
-        block_disentangler_arrow->attach(processor_arrow);
-
-        app->SetParameterValue("log:trace", "JWorker");
-    }
-
     /**
      * Copy EVIO filenames from @param options.evio_filenames to @param evio_file_sources.
      * @return false if there is no evio file in cli option
@@ -253,10 +220,9 @@ namespace jana {
         return true;
     }
 
-    void AddEVIOFileSourceTypeToOptionParams(
-            JParameterManager *para_mgr, std::string event_source_type="CDAQEVIOFileSource") {
-        if (para_mgr->FindParameter("jana:timeout") == nullptr) {
-            para_mgr->SetParameter("event_source_type", event_source_type);
+    void AddEventSource(JApplication* app, UserOptions& options) {
+        for (auto event_src : options.evio_filenames) {
+            app->Add(event_src);
         }
     }
 
@@ -289,6 +255,9 @@ namespace jana {
         AddConfigFromFileToOptionParams(para_mgr, options);
 
         auto app = new JApplication(para_mgr);
+
+        if (!options.flags[ReplaceTopology])  // add filenames from cli as normal EventSource
+            jana::AddEventSource(app, options);
 
         return app;
     }
@@ -373,21 +342,24 @@ namespace jana {
         }
 
         // -----------------------
-        // Run JANA in normal mode
         try {
             JSignalHandler::register_handlers(app);
             printHeaderIMG();
 
             /// Major changes
-            // Since jana JComponentManager does not support BlockedEventSource yet, we manually manage them now
-            std::vector<std::string> evio_file_sources;
-            // Copy the evio filenames from options.evio_filenames to evio_file_sources.
-            if (!AddBlockedEventFileSourceFromCli(options, evio_file_sources)) {
-                return (-1);
-            }
-            AddCDAQTopology(app, evio_file_sources);   /// major change
+            if (options.flags[ReplaceTopology]) {
+                // Since jana JComponentManager does not support BlockedEventSource yet, we manually manage them now
+                std::vector<std::string> evio_block_file_sources;
 
-            app->Run(true);
+                // Copy the evio filenames from options.evio_filenames to evio_file_sources.
+                if (not AddBlockedEventFileSourceFromCli(options, evio_block_file_sources)) {
+                    return -1;
+                }
+                // skip this will make everything the same with jana
+                addCDAQTopology(app, evio_block_file_sources);
+            }
+
+            app->Run(true);         // Run JANA in normal mode
         }
         catch (JException &e) {
             std::cout << "----------------------------------------------------------" << std::endl;
@@ -414,6 +386,8 @@ namespace jana {
         tokenizer["--janaversion"] = ShowJANAVersion;
         tokenizer["-c"] = ShowConfigs;
         tokenizer["--configs"] = ShowConfigs;
+        tokenizer["-t"] = ReplaceTopology;
+        tokenizer["--use-cdaq-topology"] = ReplaceTopology;
         tokenizer["-l"] = LoadConfigs;
         tokenizer["--loadconfigs"] = LoadConfigs;
         tokenizer["-d"] = DumpConfigs;
@@ -423,7 +397,6 @@ namespace jana {
         tokenizer["--list-default-plugins"] = ShowDefaultPlugins;
 
         // `jana4ml4fpga` has the same effect with `jana4ml4fpga -h`
-        /// Comment out temporarily
         if (nargs == 1) {
             options.flags[ShowUsage] = true;
         }
@@ -432,6 +405,8 @@ namespace jana {
             std::string arg = argv[i];
             // std::cout << "Found arg " << arg << std::endl;
 
+            // TODO (@xmei): process these source filenames, and pack *evio ones into BlockedEventSource,
+            //      otherwise packed into normal event source.
             if (argv[i][0] != '-') {  // copy filenames to option.evio_filenames
                 options.evio_filenames.push_back(arg);
                 continue;
@@ -440,6 +415,10 @@ namespace jana {
             switch (tokenizer[arg]) {
                 case ShowUsage:
                     options.flags[ShowUsage] = true;
+                    break;
+
+                case ReplaceTopology:
+                    options.flags[ReplaceTopology] = true;
                     break;
 
                 case ShowThisVersion:
