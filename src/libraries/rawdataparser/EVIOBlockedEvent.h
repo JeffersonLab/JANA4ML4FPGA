@@ -6,7 +6,7 @@
 
 #include <cctype>
 #include <cinttypes>
-
+#include <vector>
 
 struct EVIOBlockedEvent {
 
@@ -15,4 +15,3 @@ struct EVIOBlockedEvent {
 
     bool swap_needed = false;  // do we need this?
 };
-
