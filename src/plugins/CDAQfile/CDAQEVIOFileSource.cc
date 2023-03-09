@@ -56,13 +56,14 @@ EVIOBlockedEvent CDAQEVIOFileSource::GetBlockFromBuffer(uint32_t *buffer, uint32
  * Read the evio file with HDEVIO::readNoFileBuff().
  * Handle three cases: read_ok, HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL, HDEVIO::HDEVIO_EOF.
  */
-void CDAQEVIOFileSource::GetEvent(std::shared_ptr <JEvent> event) {
+void CDAQEVIOFileSource::GetEvent(std::shared_ptr<JEvent> event) {
     uint32_t block_counter = 1;
     uint32_t buff_len = DEFAULT_READ_BUFF_LEN;
     uint32_t* buff = new uint32_t[buff_len];
 
     while (m_hdevio->readNoFileBuff(buff, buff_len) || m_hdevio->err_code == HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL) {
         uint32_t cur_len = m_hdevio->last_event_len;
+        m_log->info("Read block {} status: {}", block_counter, m_hdevio->err_code);
 
         //Buffer is too small, enlarge buffer
         if (m_hdevio->err_code == HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL) {
@@ -80,7 +81,7 @@ void CDAQEVIOFileSource::GetEvent(std::shared_ptr <JEvent> event) {
         auto events = parser.ParseEVIOBlockedEvent(cur_block, event);
 
         // Trace events for debugging
-        m_log->trace("Parsed block {} had {} events, swap_needed={}",
+        m_log->info("Parsed block {} had {} events, swap_needed={}",
                      cur_block.block_number, events.size(), cur_block.swap_needed);
         for (size_t i = 0; i < events.size(); i++) {
             auto &parsed_event = events[i];
@@ -104,6 +105,8 @@ void CDAQEVIOFileSource::GetEvent(std::shared_ptr <JEvent> event) {
     } else {
         throw JException("Unhandled EVIO file reading return status " + m_hdevio->err_code, __FILE__, __LINE__);
     }
+
+    m_log->info("Parsed {} blocks from {}", block_counter - 1, m_evio_filename);
 
     // clean buffer
     delete[] buff;
