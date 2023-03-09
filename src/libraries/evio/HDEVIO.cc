@@ -103,8 +103,7 @@ HDEVIO::HDEVIO(string fname, bool read_map_file, int verbose):filename(fname),VE
 HDEVIO::~HDEVIO()
 {
 #ifdef USE_ASYNC_FILEBUF
-    _DBG_ << "Call HDEVIO destructor!" << ifs.std::ios::rdbuf() << std::endl;
-//    delete ifs.std::ios::rdbuf();   /// @davidl
+    delete ifs.std::ios::rdbuf();
 	ifs.std::ios::rdbuf(ifs.rdbuf());
 #endif
 	if(ifs.is_open()) ifs.close();

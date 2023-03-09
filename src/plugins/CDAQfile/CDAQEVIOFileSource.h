@@ -24,6 +24,8 @@
 
 #include <extensions/spdlog/SpdlogMixin.h>
 
+#define DEFAULT_READ_BUFF_LEN 4000000
+
 class CDAQEVIOFileSource :
         public JEventSource,
         public spdlog::extensions::SpdlogMixin<CDAQEVIOFileSource>
@@ -43,12 +45,15 @@ public:
 
 private:
     std::string m_evio_filename = "";
-    HDEVIO *m_hdevio = nullptr;
-    std::shared_ptr<spdlog::logger> m_log;
+    unique_ptr<HDEVIO> m_hdevio;
+
+    uint32_t *m_buff = nullptr;
+    uint32_t static const m_buff_len = DEFAULT_READ_BUFF_LEN;
+    int m_block_number = 1;
 
     void OpenEVIOFile(std::string filename);
 
-    EVIOBlockedEvent GetBlockFromBuffer(uint32_t *buffer, uint32_t event_len);
+    EVIOBlockedEvent GetBlockFromBuffer(uint32_t event_len);
 };
 
 template <>
