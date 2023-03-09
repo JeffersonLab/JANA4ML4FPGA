@@ -26,6 +26,7 @@ CDAQEVIOFileSource::~CDAQEVIOFileSource() {
     m_hdevio.reset();
 
     if( m_buff ) delete[] m_buff;
+
     m_evio_filename = "";
 }
 
