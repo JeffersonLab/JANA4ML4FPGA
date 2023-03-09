@@ -29,11 +29,10 @@ EVIOBlockedEventFileSource::DisentangleBlock(EVIOBlockedEvent &block, JEventPool
 }
 
 void EVIOBlockedEventFileSource::CloseEVIOFile() {
-    if (m_hdevio) {
-        m_hdevio->PrintStats(); // print status for debugging
-        LOG_INFO(m_logger) << "Closing EVIO file \"" << cur_file << "\"!" << LOG_END;
-        delete m_hdevio; /// FIXME (@davidl): if do not touch HDEVIO destructor, double free or corruption error
-    }
+    m_hdevio->PrintStats();
+    m_hdevio.reset();
+
+    LOG_INFO(m_logger) << "Closing EVIO file \"" << cur_file << "\"!" << LOG_END;
 }
 
 EVIOBlockedEventFileSource::~EVIOBlockedEventFileSource() {
@@ -52,7 +51,7 @@ void EVIOBlockedEventFileSource::OpenNextEVIOFile() {
     cur_file = m_filenames.back();
     m_filenames.pop_back();
 
-    m_hdevio = new HDEVIO(cur_file, true, 2);   // 2 for VERBOSE level
+    m_hdevio = std::make_unique<HDEVIO>(cur_file, true, 2);   // 2 for VERBOSE level
     if (!m_hdevio->is_open) {
         cerr << m_hdevio->err_mess.str() << endl;
         throw JException("Failed to open EVIO file: " + cur_file, __FILE__, __LINE__);  // throw exception indicating error
@@ -71,7 +70,7 @@ void EVIOBlockedEventFileSource::Initialize() {
 }
 
 JBlockedEventSource<EVIOBlockedEvent>::Status EVIOBlockedEventFileSource::NextBlock(EVIOBlockedEvent &block) {
-    LOG_INFO(m_logger) <<  "JBlockedEventSource::NextBlock" << LOG_END;
+    LOG_DEBUG(m_logger) <<  "JBlockedEventSource::NextBlock" << LOG_END;
 
     EVIOBlockedEventFileSource::Status status;
     m_buff = new uint32_t[m_buff_len];
@@ -103,7 +102,7 @@ JBlockedEventSource<EVIOBlockedEvent>::Status EVIOBlockedEventFileSource::NextBl
         if (m_hdevio->err_code == HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL) {
             m_buff_len = cur_len;
             status = Status::FailTryAgain;
-            LOG_INFO(m_logger) << "Block \"" << m_block_number << " HDEVIO_USER_BUFFER_TOO_SMALL" << LOG_END;
+            LOG_DEBUG(m_logger) << "Block \"" << m_block_number << " HDEVIO_USER_BUFFER_TOO_SMALL" << LOG_END;
         } else if (m_hdevio->err_code == HDEVIO::HDEVIO_EOF) {
             // Two situations: 1. open another file 2. no more files to open
             LOG_INFO(m_logger) << "No more blocks in \"" << cur_file << "\"!" << LOG_END;
@@ -119,7 +118,7 @@ JBlockedEventSource<EVIOBlockedEvent>::Status EVIOBlockedEventFileSource::NextBl
                 EVIOBlockedEventFileSource::OpenNextEVIOFile();
             }
         } else { // keep it ugly now
-            throw JException("Unhandled EVIO file read return status: " , __FILE__, __LINE__);
+            throw JException("Unhandled EVIO file read return status: ", __FILE__, __LINE__);
         }
     }
 
