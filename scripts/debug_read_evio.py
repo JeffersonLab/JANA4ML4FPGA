@@ -85,8 +85,8 @@ def main():
     print(f"jana_plugin_path_env BEFORE : {jana_plugin_path_env}")
 
     plugin_dirs = [
-        os.path.join(root_dir, "cmake-build-debug/src/plugins/cdaq"),
-        os.path.join(root_dir, "cmake-build-debug/src/plugins/test_cdaq"),
+        os.path.join(root_dir, "cmake-build-debug/src/plugins/single_event_evio"),
+        os.path.join(root_dir, "cmake-build-debug/src/plugins/example_evio_analysis"),
         os.path.join(root_dir, "cmake-build-debug/src/services/log"),
         os.path.join(root_dir, "cmake-build-debug/src/services/root_output"),
     ]
@@ -94,8 +94,8 @@ def main():
     plugins = [
         "log",
         "root_output",
-        "cdaq",
-        "test_cdaq"
+        "single_event_evio",
+        "example_evio_analysis"
     ]
 
     for plugin_dir in plugin_dirs:
@@ -112,9 +112,11 @@ def main():
         "-Pjana:debug_plugin_loading=1",
         "-Pcdaq:LogLevel=trace",
         "-Pjana:timeout=0",
-        "tcp-cdaq-evio"
+        "-Pjana:nevnets=1",
+        "-Pnthreads=1",
+        "/mnt/work/data/2023-03-03-trd-data/hd_rawdata_002543_000.evio"
 
-    ])
+    ], shell=False)
 
 
 

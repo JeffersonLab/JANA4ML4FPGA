@@ -20,9 +20,9 @@ class DGEMSRSWindowRawData:public DDAQAddress{
                 DDAQAddress(rocid, slot, channel, itrigger),apv_id(apv_id),channel_apv(channel_apv){}
 		
 		uint32_t apv_id;           ///< APV Identifier number on the FEC card (0 to 15)
-		//uint32_t fec_id;           ///< FEC Identifier number (always 0?)
+		//uint32_t fec_id;         ///< FEC Identifier number (always 0?)
 		uint32_t channel_apv;      ///< APV physical channels are 0 to 127 
-		vector<uint16_t> samples;  ///< ADC samples 
+		std::vector<uint16_t> samples;  ///< ADC samples
 		
 		// This method is used primarily for pretty printing
 		// the second argument to AddString is printf style format
