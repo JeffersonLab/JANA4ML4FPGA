@@ -28,7 +28,8 @@ namespace jana {
         ShowConfigs,
         LoadConfigs,
         DumpConfigs,
-        ListFactories
+        ListFactories,
+        ReplaceTopology
     };
 
     struct UserOptions {
@@ -75,6 +76,8 @@ namespace jana {
     /// @note The cli -Pkey=value pairs are not processed when the function returns. They are processed,
     /// or, added to @var app at calling JApplication::Initialize().
     JApplication* CreateJApplication(UserOptions& options);
+
+    void AddEventSource(JApplication* app, UserOptions& options);
 
     int Execute(JApplication* app, UserOptions& options);
 }
