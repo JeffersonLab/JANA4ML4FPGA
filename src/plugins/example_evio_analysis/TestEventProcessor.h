@@ -4,6 +4,8 @@
 #include <JANA/JEventProcessorSequentialRoot.h>
 #include <extensions/spdlog/SpdlogMixin.h>
 #include <TDirectory.h>
+#include <TH1F.h>
+#include <TH2F.h>
 
 class JEvent;
 class JApplication;
@@ -46,5 +48,7 @@ private:
 
     /// Directory to store histograms to
     TDirectory *m_dir_main{};
+    TH1F* m_histo_1d;
+    TH2F* m_histo_2d;
 };
 
