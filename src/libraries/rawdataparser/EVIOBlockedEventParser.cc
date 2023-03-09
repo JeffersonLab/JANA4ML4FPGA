@@ -313,9 +313,28 @@ void EVIOBlockedEventParser::ParseControlEvent(uint32_t* &iptr, uint32_t *iend)
 //---------------------------------
 void EVIOBlockedEventParser::ParsePhysicsBank(uint32_t* &iptr, uint32_t *iend)
 {
-    _DBG_<<"Skipping Physics event" << std::endl;
-    ievent_idx++;
-    iptr = iend;
+	uint32_t physics_event_len      = *iptr++;
+	uint32_t *iend_physics_event    = &iptr[physics_event_len];
+	iptr++;
+
+	// Built Trigger Bank
+	uint32_t built_trigger_bank_len  = *iptr;
+	uint32_t *iend_built_trigger_bank = &iptr[built_trigger_bank_len+1];
+	ParseBuiltTriggerBank(iptr, iend_built_trigger_bank);
+	iptr = iend_built_trigger_bank;
+
+	// Loop over Data banks
+	while( iptr < iend_physics_event ) {
+
+		uint32_t data_bank_len = *iptr;
+		uint32_t *iend_data_bank = &iptr[data_bank_len+1];
+
+		ParseDataBank(iptr, iend_data_bank);
+
+		iptr = iend_data_bank;
+	}
+
+	iptr = iend_physics_event;
 }
 
 //---------------------------------
@@ -362,6 +381,113 @@ void EVIOBlockedEventParser::ParseCDAQBank(uint32_t* &iptr, uint32_t *iend)
 	}
 
 	iptr = iend_physics_event;
+}
+
+//---------------------------------
+// ParseBuiltTriggerBank
+//---------------------------------
+void EVIOBlockedEventParser::ParseBuiltTriggerBank(uint32_t* &iptr, uint32_t *iend)
+{
+	if(!PARSE_TRIGGER) return;
+
+	iptr++; // advance past length word
+	uint32_t mask = 0xFF202000;
+	if( ((*iptr) & mask) != mask ){
+		stringstream ss;
+		ss << "Bad header word in Built Trigger Bank: " << hex << *iptr;
+		throw JException(ss.str(), __FILE__, __LINE__);
+	}
+
+	uint32_t tag     = (*iptr)>>16; // 0xFF2X
+	uint32_t Nrocs   = (*iptr++) & 0xFF;
+	uint32_t Mevents = events.size();
+
+	// sanity check: 
+	if(Mevents == 0) {
+		stringstream ss;
+		ss << "EVIOBlockedEventParser::ParseBuiltTriggerBank() called with zero events! "<<endl;
+		throw JException(ss.str(), __FILE__, __LINE__);
+	}
+
+
+	//-------- Common data (64bit)
+	uint32_t common_header64 = *iptr++;
+	uint32_t common_header64_len = common_header64 & 0xFFFF;
+	uint64_t *iptr64 = (uint64_t*)iptr;
+	iptr = &iptr[common_header64_len];
+
+	// First event number
+	uint64_t first_event_num = *iptr64++;
+
+	// Hi and lo 32bit words in 64bit numbers seem to be
+	// switched for events read from ET, but not read from
+	// file. Not sure if this is in the swapping routine
+	//    if(event_source->source_type==event_source->kETSource) first_event_num = (first_event_num>>32) | (first_event_num<<32);
+
+	// Average timestamps
+	uint32_t Ntimestamps = (common_header64_len/2)-1;
+	if(tag & 0x2) Ntimestamps--; // subtract 1 for run number/type word if present
+	vector<uint64_t> avg_timestamps;
+	for(uint32_t i=0; i<Ntimestamps; i++) avg_timestamps.push_back(*iptr64++);
+
+	// run number and run type
+	uint32_t run_number = 0;
+	uint32_t run_type   = 0;
+	if(tag & 0x02){
+		run_number = (*iptr64) >> 32;
+		run_type   = (*iptr64) & 0xFFFFFFFF;
+			iptr64++;
+	}
+
+	//-------- Common data (16bit)
+	uint32_t common_header16 = *iptr++;
+	uint32_t common_header16_len = common_header16 & 0xFFFF;
+	uint16_t *iptr16 = (uint16_t*)iptr;
+	iptr = &iptr[common_header16_len];
+
+	vector<uint16_t> event_types;
+	for(uint32_t i=0; i<Mevents; i++) event_types.push_back(*iptr16++);
+
+	//-------- ROC data (32bit)
+	for(uint32_t iroc=0; iroc<Nrocs; iroc++){
+		uint32_t common_header32 = *iptr++;
+		uint32_t common_header32_len = common_header32 & 0xFFFF;
+		uint32_t rocid = common_header32 >> 24;
+
+		uint32_t Nwords_per_event = common_header32_len/Mevents;
+		for(auto event : events){
+
+			DCODAROCInfo *codarocinfo = new DCODAROCInfo();
+			event->Insert( codarocinfo );
+			codarocinfo->rocid = rocid;
+
+			uint64_t ts_low  = *iptr++;
+			uint64_t ts_high = *iptr++;
+			codarocinfo->timestamp = (ts_high<<32) + ts_low;
+			codarocinfo->misc.clear(); // could be recycled from previous event
+			for(uint32_t i=2; i<Nwords_per_event; i++) codarocinfo->misc.push_back(*iptr++);
+			
+			if(iptr > iend){
+				throw JException("Bad data format in ParseBuiltTriggerBank!", __FILE__, __LINE__);
+			}
+		}
+	}
+
+	//-------- Make DCODAEventInfo objects
+	uint64_t ievent = 0;
+	for(auto event : events){
+
+		event->SetRunNumber( run_number ); // may be overwritten in JEventSource_EVIOpp::GetEvent()
+
+		DCODAEventInfo *codaeventinfo = new DCODAEventInfo();
+		event->Insert( codaeventinfo );
+		codaeventinfo->run_number     = run_number;
+		codaeventinfo->run_type       = run_type;
+		codaeventinfo->event_number   = first_event_num + ievent;
+		codaeventinfo->event_type     = event_types.empty() ? 0:event_types[ievent];
+		codaeventinfo->avg_timestamp  = avg_timestamps.empty() ? 0:avg_timestamps[ievent];
+		ievent++;
+	}
 }
 
 //---------------------------------
@@ -984,8 +1110,8 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
                 break;
             case 4: // Window Raw Data
                 // iptr passed by reference and so will be updated automatically
-                cout << "      FADC250 Window Raw Data"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
-                // if(pe) MakeDf250WindowRawData(pe, rocid, slot, itrigger, iptr);
+                // cout << "      FADC250 Window Raw Data"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+                if(event) MakeDf250WindowRawData(event, rocid, slot, itrigger, iptr);
                 break;
             case 5: // Window Sum
 				{
@@ -1165,6 +1291,54 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
     for(; iptr<iend; iptr++){
         if(((*iptr)&0xf8000000) != 0xf8000000) break;
     }
+}
+
+//----------------
+// MakeDf250WindowRawData
+//----------------
+void EVIOBlockedEventParser::MakeDf250WindowRawData(JEvent *event, uint32_t rocid, uint32_t slot, uint32_t itrigger, uint32_t* &iptr)
+{
+    uint32_t channel = (*iptr>>23) & 0x0F;
+    uint32_t window_width = (*iptr>>0) & 0x0FFF;
+
+    Df250WindowRawData *wrd = new Df250WindowRawData(rocid, slot, channel, itrigger);
+	event->Insert( wrd );
+
+    for(uint32_t isample=0; isample<window_width; isample +=2){
+
+        // Advance to next word
+        iptr++;
+
+        // Make sure this is a data continuation word, if not, stop here
+        if(((*iptr>>31) & 0x1) != 0x0){
+            iptr--; // calling method expects us to point to last word in block
+            break;
+        }
+
+        bool invalid_1 = (*iptr>>29) & 0x1;
+        bool invalid_2 = (*iptr>>13) & 0x1;
+        uint16_t sample_1 = 0;
+        uint16_t sample_2 = 0;
+        if(!invalid_1)sample_1 = (*iptr>>16) & 0x1FFF;
+        if(!invalid_2)sample_2 = (*iptr>>0) & 0x1FFF;
+
+        // Sample 1
+        wrd->samples.push_back(sample_1);
+        wrd->invalid_samples |= invalid_1;
+        wrd->overflow |= (sample_1>>12) & 0x1;
+
+        if(((isample+2) == window_width) && invalid_2)break; // skip last sample if flagged as invalid
+
+        // Sample 2
+        wrd->samples.push_back(sample_2);
+        wrd->invalid_samples |= invalid_2;
+        wrd->overflow |= (sample_2>>12) & 0x1;
+    }
+	 
+	 if(VERBOSE>7) cout << "      FADC250 Window Raw Data: size from header=" << window_width << " Nsamples found=" << wrd->samples.size() << endl;
+	 if( window_width != wrd->samples.size() ){
+	 	jerr <<" FADC250 Window Raw Data number of samples does not match header! (" <<wrd->samples.size() << " != " << window_width << ") for rocid=" << rocid << " slot=" << slot << " channel=" << channel << endl;
+	 }
 }
 
 //-------------------------
