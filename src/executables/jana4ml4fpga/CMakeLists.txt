@@ -15,9 +15,11 @@ target_link_libraries(${PROJECT_NAME} ${JANA_LIB} evio rawdataparser Threads::Th
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 target_include_directories(${PROJECT_NAME} PUBLIC ${fmt_DIR}/../../../include)
-target_link_libraries(${PROJECT_NAME} ${JANA_LIB} spdlog::spdlog fmt::fmt)
+target_link_libraries(${PROJECT_NAME} spdlog::spdlog fmt::fmt)
 
 # install target
+target_link_libraries(${PROJECT_NAME} evio rawdataparser JANA::jana2_static_lib  Threads::Threads dl ${ROOT_LIBRARIES})
+target_link_options(${PROJECT_NAME} PRIVATE -rdynamic)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 install(TARGETS ${PROJECT_NAME}  DESTINATION ${PROGRAM_OUTPUT_DIRECTORY})
 
