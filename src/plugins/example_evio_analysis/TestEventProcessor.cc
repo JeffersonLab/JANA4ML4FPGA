@@ -60,52 +60,35 @@ void TestEventProcessor::Process(const std::shared_ptr<const JEvent> &event) {
     m_log->debug("new event");
 
     std::vector<const Df125WindowRawData *> f125_data;
+    std::vector<const Df125FDCPulse *> f125_pulse_data;
+    std::vector<const DGEMSRSWindowRawData *> sts_data;
 
     try {
-        auto data = event->Get<DGEMSRSWindowRawData>();
-
-//        if(event->GetEventNumber()==2) {
-//            for(auto value: data) {
-//                logger()->info("  {} {} {} {}", value->apv_id, value->channel_apv, value->channel, value->samples.size());
-//            }
-//        }
-
+        sts_data = event->Get<DGEMSRSWindowRawData>();
 
         f125_data = event->Get<Df125WindowRawData>();
         for (auto value: f125_data) {
-            int x = 72*(value->slot - 3) + value->channel;
-            for(int y = 0; y < value->samples.size(); y++) {
-
+            int x = 72 * (value->slot - 3) + value->channel;
+            for (int sample_iter = 0; sample_iter < value->samples.size(); sample_iter++) {
+                int y = sample_iter;
+                m_histo_2d->Fill(x, y, value->samples[sample_iter]);
             }
         }
 
         if (event->GetEventNumber() == 2) {
-
             m_log->debug("Got Df125WindowRawData");
-
-                for (auto value: f125_data) {
-                    logger()->info("  {} {} {} {}", value->rocid, value->slot, value->channel, value->samples.size());
-
-                }
-            }
-
             for (auto value: f125_data) {
                 logger()->info("  {} {} {} {}", value->rocid, value->slot, value->channel, value->samples.size());
-
             }
 
-            auto f125_pulse_data = event->Get<Df125FDCPulse>();
-            if (event->GetEventNumber() == 2) {
-                for (auto value: f125_pulse_data) {
-                    logger()->info("  {} {} {} {} {} {}", value->rocid, value->slot, value->channel,
-                                   value->NPK, value->le_time, value->peak_amp);
-                }
+            f125_pulse_data = event->Get<Df125FDCPulse>();
+            for (auto value: f125_pulse_data) {
+                logger()->info("  {} {} {} {} {} {}", value->rocid, value->slot, value->channel,
+                               value->NPK, value->le_time, value->peak_amp);
             }
-
         }
     }
-    catch (std::exception & exp)
-    {
+    catch (std::exception &exp) {
         m_log->trace("Got exception when doing event->Get<DGEMSRSWindowRawData>()");
         m_log->trace("Exception what()='{}', type='{}'", exp.what(), typeid(exp).name());
     }
@@ -115,8 +98,8 @@ void TestEventProcessor::Process(const std::shared_ptr<const JEvent> &event) {
 //------------------
 // Finish
 //------------------
-    void TestEventProcessor::Finish() {
+void TestEventProcessor::Finish() {
 //    m_log->trace("TestEventProcessor finished\n");
 
-    }
+}
 
