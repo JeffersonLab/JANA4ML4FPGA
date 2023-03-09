@@ -6,8 +6,6 @@
 
 #include "CDAQEVIOFileSource.h"
 
-#define DEFAULT_READ_BUFF_LEN 4000000
-
 using namespace std;
 using namespace std::chrono;
 
@@ -24,17 +22,15 @@ CDAQEVIOFileSource::CDAQEVIOFileSource(std::string resource_name, JApplication *
 CDAQEVIOFileSource::~CDAQEVIOFileSource() {
     m_log->info("Closing EVIO file {}", m_hdevio->filename);
 
-    // Delete HDEVIO and print stats
-    if (m_hdevio) {
-        m_hdevio->PrintStats();
-        delete m_hdevio;
-    }
+    m_hdevio->PrintStats();
+    m_hdevio.reset();
 
+    delete[] m_buff;
     m_evio_filename = "";
 }
 
 void CDAQEVIOFileSource::OpenEVIOFile(std::string filename) {
-    m_hdevio = new HDEVIO(filename, true, 2);  // 2 for VERBOSE level
+    m_hdevio = std::make_unique<HDEVIO>(filename, true, 2);   // 2 for VERBOSE level
     if (!m_hdevio->is_open) {
         cerr <<m_hdevio->err_mess.str() << endl;
         throw JException("Failed to open EVIO file: " + filename, __FILE__, __LINE__);
@@ -43,11 +39,12 @@ void CDAQEVIOFileSource::OpenEVIOFile(std::string filename) {
     m_log->info("Open EVIO file {} successfully", filename);
 }
 
-EVIOBlockedEvent CDAQEVIOFileSource::GetBlockFromBuffer(uint32_t *buffer, uint32_t event_len) {
+EVIOBlockedEvent CDAQEVIOFileSource::GetBlockFromBuffer(uint32_t event_len) {
     EVIOBlockedEvent block;
 
+    block.block_number = m_block_number++;
     block.swap_needed = m_hdevio->swap_needed;
-    block.data.insert(block.data.begin(), buffer, buffer + event_len);
+    block.data.insert(block.data.begin(), m_buff, m_buff + event_len);
 
     return block;
 }
@@ -57,69 +54,49 @@ EVIOBlockedEvent CDAQEVIOFileSource::GetBlockFromBuffer(uint32_t *buffer, uint32
  * Handle three cases: read_ok, HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL, HDEVIO::HDEVIO_EOF.
  */
 void CDAQEVIOFileSource::GetEvent(std::shared_ptr<JEvent> event) {
-    uint32_t block_counter = 1;
-    uint32_t buff_len = DEFAULT_READ_BUFF_LEN;
-    uint32_t* buff = new uint32_t[buff_len];
+    m_buff = new uint32_t[m_buff_len];
+    bool read_ok = m_hdevio->readNoFileBuff(m_buff, m_buff_len);
+    uint32_t cur_len = m_hdevio->last_event_len;
 
-    while (m_hdevio->readNoFileBuff(buff, buff_len) || m_hdevio->err_code == HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL) {
-        uint32_t cur_len = m_hdevio->last_event_len;
-        m_log->info("Read block {} status: {}", block_counter, m_hdevio->err_code);
-
-        //Buffer is too small, enlarge buffer
-        if (m_hdevio->err_code == HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL) {
-            delete[] buff;
-            buff_len = cur_len;
-            buff = new uint32_t[buff_len];
-            continue;
+    // Handle not read_ok
+    if (not read_ok) {
+        if (m_hdevio->err_code == HDEVIO::HDEVIO_EOF) {
+            throw RETURN_STATUS::kNO_MORE_EVENTS;
+        } else if (m_hdevio->err_code == HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL) {
+            m_buff_len = cur_len;
+            delete[] m_buff;
+            throw RETURN_STATUS::kTRY_AGAIN;
+        } else {
+            throw JException("Unhandled EVIO file reading return status " + m_hdevio->err_code, __FILE__, __LINE__);
         }
-
-        EVIOBlockedEvent cur_block = GetBlockFromBuffer(buff, cur_len);
-        cur_block.block_number = block_counter++;
-
-        // Get events from current block
-        EVIOBlockedEventParser parser;
-        auto events = parser.ParseEVIOBlockedEvent(cur_block, event);
-
-        // Trace events for debugging
-        m_log->info("Parsed block {} had {} events, swap_needed={}",
-                     cur_block.block_number, events.size(), cur_block.swap_needed);
-        for (size_t i = 0; i < events.size(); i++) {
-            auto &parsed_event = events[i];
-            m_log->trace("  Event #{} got event-number={}:", i, parsed_event->GetEventNumber());
-
-            for (auto factory: parsed_event->GetFactorySet()->GetAllFactories()) {
-                m_log->trace("    Factory = {:<30}  NumObjects = {}", factory->GetObjectName(),
-                             factory->GetNumObjects());
-            }
-        }
-
-        // Reset buff to prevent memory leakage
-        delete[] buff;
-        buff_len = DEFAULT_READ_BUFF_LEN;
-        buff = new uint32_t[buff_len];
     }
 
-    // Handle HDEVIO::HDEVIO_EOF
-    if (m_hdevio->err_code == HDEVIO::HDEVIO_EOF) {
-        throw RETURN_STATUS::kNO_MORE_EVENTS;
-    } else {
-        throw JException("Unhandled EVIO file reading return status " + m_hdevio->err_code, __FILE__, __LINE__);
+    EVIOBlockedEvent cur_block = GetBlockFromBuffer(cur_len);
+
+    // Get events from current block
+    EVIOBlockedEventParser parser;
+    auto events = parser.ParseEVIOBlockedEvent(cur_block, event);
+    m_log->debug("Parsed block {} had {} events, swap_needed={}",
+                cur_block.block_number, events.size(), cur_block.swap_needed);
+    for (size_t i = 0; i < events.size(); i++) {
+        auto &parsed_event = events[i];
+        m_log->trace("  Event #{} got event-number={}:", i, parsed_event->GetEventNumber());
+
+        for (auto factory: parsed_event->GetFactorySet()->GetAllFactories()) {
+            m_log->trace("    Factory = {:<30}  NumObjects = {}", factory->GetObjectName(),
+                         factory->GetNumObjects());
+        }
     }
 
-    m_log->info("Parsed {} blocks from {}", block_counter - 1, m_evio_filename);
-
-    // clean buffer
-    delete[] buff;
+    // Reset buff to prevent memory leakage
+    delete[] m_buff;
+    m_buff_len = DEFAULT_READ_BUFF_LEN;
 }
 
 void CDAQEVIOFileSource::Open() {
-    JApplication *app = GetApplication();
-
-    m_log = app->GetService<Log_service>()->logger(GetPluginName());  // init spdlog
+    InitLogger("CDAQEVIOFileSource");  // init spdlog
     m_evio_filename = GetResourceName();
-
     m_log->info("GetResourceName() = {}", m_evio_filename);
-
     CDAQEVIOFileSource::OpenEVIOFile(m_evio_filename);
 }
 
@@ -139,6 +116,7 @@ double JEventSourceGeneratorT<CDAQEVIOFileSource>::CheckOpenable(std::string res
     /// Returning a confidence <- {0.0, 1.0} is perfectly OK!
 
     if (resource_name.find(".evio") != std::string::npos) return 0.5;
+    return 0;
 
 //    return (resource_name == "CDAQEVIOFileSource") ? 1.0 : 0.0;
 

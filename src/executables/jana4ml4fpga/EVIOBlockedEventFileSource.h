@@ -51,7 +51,7 @@ private:
     std::vector<std::string> m_filenames;   // filenames to open, copied from cli inputs
     std::string cur_file;                   // current EVIO file to read
 
-    HDEVIO *m_hdevio = nullptr;
+    std::unique_ptr<HDEVIO> m_hdevio;
 
     uint32_t *m_buff = nullptr;             // buff to read EVIO block
     uint32_t m_buff_len = DEFAULT_READ_BUFF_LEN;
