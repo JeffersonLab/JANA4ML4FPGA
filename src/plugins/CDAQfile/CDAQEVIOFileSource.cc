@@ -76,7 +76,7 @@ void CDAQEVIOFileSource::GetEvent(std::shared_ptr<JEvent> event) {
     // Get events from current block
     EVIOBlockedEventParser parser;
     auto events = parser.ParseEVIOBlockedEvent(cur_block, event);
-    m_log->info("Parsed block {} had {} events, swap_needed={}",
+    m_log->debug("Parsed block {} had {} events, swap_needed={}",
                 cur_block.block_number, events.size(), cur_block.swap_needed);
     for (size_t i = 0; i < events.size(); i++) {
         auto &parsed_event = events[i];
