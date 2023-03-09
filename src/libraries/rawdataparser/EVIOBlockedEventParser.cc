@@ -1,9 +1,42 @@
 
 
 #include <sstream>
+#include <thread>
+#include <mutex>
 
 #include <rawdataparser/EVIOBlockedEventParser.h>
+#include <rawdataparser/EVIOFileWriter.h>
 
+
+// The EBEP namespace is used for things related to the optional output EVIO file.
+namespace EBEP{
+
+// The easiest way to capture incoming data to a file and have a way to
+// test it works is to do it when the parser is called. This is used symmetrically
+// by all event sources, file or network.
+//
+// The way the parser is currently used, temporary stack objects are created
+// for each buffer that is parsed. Thus, we need to have some global objects
+// to maintain the state of the output file. 
+
+std::once_flag outfile_initialized;
+std::shared_ptr<EVIOFileWriter> eviowriter;
+
+/// This gets called exactly once, but only if EVIOBlockedEventParser::ParseEVIOBlockedEvent
+/// gets called. It checks the global JApplication (via japp) to see if the 
+/// "EVIO:output_file" config. parameter is set and not an empty string. If so,
+/// An EVIOFileWriter object will be created which will open an output file
+/// and write every block passed into ParseEVIOBlockedEvent into it. 
+///
+/// The EVIOFileWriter object is managed by a global shared_ptr so will be closed
+/// at program exit.
+void InitializeEVIOOutputFile(){
+
+	std::string filename = "";
+	japp->SetDefaultParameter("EVIO:output_file",  filename, "Name of optional EVIO output file to write events to. (leave empty to not to a file)");
+	if( ! filename.empty()) eviowriter = std::make_shared<EVIOFileWriter>(filename);
+}
+} // end EBEP namespace
 
 //-----------------------------------------
 // EVIOBlockedEventParser (Constructor)
@@ -53,6 +86,11 @@ std::vector <std::shared_ptr<JEvent>> EVIOBlockedEventParser::ParseEVIOBlockedEv
 //-----------------------------------------
 std::vector <std::shared_ptr<JEvent>> EVIOBlockedEventParser::ParseEVIOBlockedEvent(EVIOBlockedEvent &block, JEventPool *pool, std::shared_ptr<JEvent> *preallocated_event)
 {
+
+	// Optionally write this to output EVIO file
+	std::call_once( EBEP::outfile_initialized, EBEP::InitializeEVIOOutputFile );
+	if( EBEP::eviowriter.get() ) EBEP::eviowriter->WriteEventBuffer(block);
+
     // Clear our events vector.
     events.clear();
 
