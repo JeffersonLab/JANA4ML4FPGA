@@ -8,7 +8,6 @@ file(GLOB jana4ml4fpga_SRC
         *.cc
         )
 
-
 # get spdlog and fmt
 #find_package(spdlog REQUIRED)
 #find_package(fmt REQUIRED)
