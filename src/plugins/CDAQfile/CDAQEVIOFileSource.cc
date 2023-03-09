@@ -25,7 +25,7 @@ CDAQEVIOFileSource::~CDAQEVIOFileSource() {
     m_hdevio->PrintStats();
     m_hdevio.reset();
 
-    delete[] m_buff;
+    if( m_buff ) delete[] m_buff;
     m_evio_filename = "";
 }
 
@@ -65,6 +65,7 @@ void CDAQEVIOFileSource::GetEvent(std::shared_ptr<JEvent> event) {
         } else if (m_hdevio->err_code == HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL) {
             m_buff_len = cur_len;
             delete[] m_buff;
+            m_buff = nullptr;
             throw RETURN_STATUS::kTRY_AGAIN;
         } else {
             throw JException("Unhandled EVIO file reading return status " + m_hdevio->err_code, __FILE__, __LINE__);
@@ -90,6 +91,7 @@ void CDAQEVIOFileSource::GetEvent(std::shared_ptr<JEvent> event) {
 
     // Reset buff to prevent memory leakage
     delete[] m_buff;
+    m_buff = nullptr;
     m_buff_len = DEFAULT_READ_BUFF_LEN;
 }
 
