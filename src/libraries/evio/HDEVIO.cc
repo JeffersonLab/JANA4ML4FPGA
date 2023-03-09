@@ -103,7 +103,7 @@ HDEVIO::HDEVIO(string fname, bool read_map_file, int verbose):filename(fname),VE
 HDEVIO::~HDEVIO()
 {
 #ifdef USE_ASYNC_FILEBUF
-    delete ifs.std::ios::rdbuf();
+//    delete ifs.std::ios::rdbuf();  /// FIXME: comment out because jana4ml4fpga would not advance after reading one file
 	ifs.std::ios::rdbuf(ifs.rdbuf());
 #endif
 	if(ifs.is_open()) ifs.close();
