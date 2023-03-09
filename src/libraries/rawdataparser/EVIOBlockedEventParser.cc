@@ -19,8 +19,8 @@ namespace EBEP{
 // for each buffer that is parsed. Thus, we need to have some global objects
 // to maintain the state of the output file. 
 
-std::once_flag outfile_initialized;
-std::shared_ptr<EVIOFileWriter> eviowriter;
+static std::once_flag outfile_initialized;
+static std::shared_ptr<EVIOFileWriter> eviowriter;
 
 /// This gets called exactly once, but only if EVIOBlockedEventParser::ParseEVIOBlockedEvent
 /// gets called. It checks the global JApplication (via japp) to see if the 

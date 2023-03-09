@@ -31,11 +31,28 @@ public:
 
     //----------------------------------
     // ~EVIOFileWriter
+    //
+    /// This is called when the global shared_ptr in EVIOBlockedEventParser is
+    /// destroyed at the very end of the program (i.e. after returning from main()).
     //----------------------------------
     ~EVIOFileWriter(){
         if( outfile_ofs.is_open() ){
+
+            LOG_INFO(default_cout_logger) << "Closing EVIO output file: " << m_outfile_name << LOG_END;
          
             // Write EVIO trailer to file
+             uint32_t header[8];
+            uint32_t bitinfo = (1<<9) + (1<<10); //  (1<<9)=Last Event in ET stack, (1<<10)="Physics" payload
+            header[0] = 8; // number of 32bit words in block, including this 8 word header
+            header[1] = ++m_blocks_written;  // Block number
+            header[2] = 8; // Length of block header
+            header[3] = 0; // Event count
+            header[4] = 0; // Reserved 1
+            header[5] = (bitinfo<<8) + 0x4; // 0x4= EVIO version 4
+            header[6] = 0; // Reserved 2
+            header[7] = 0xc0da0100; // Magic number
+
+            outfile_ofs.write((const char*)header, 8*4);
 
             // Close output file
             outfile_ofs.close();
