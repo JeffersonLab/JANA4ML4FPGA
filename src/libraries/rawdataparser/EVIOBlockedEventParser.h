@@ -23,7 +23,7 @@
 #include <rawdataparser/Df250PulseTime.h>
 #include <rawdataparser/Df250PulsePedestal.h>
 #include <rawdataparser/Df250PulseData.h>
-// #include <rawdataparser/Df250WindowRawData.h>
+#include <rawdataparser/Df250WindowRawData.h>
 #include <rawdataparser/Df125Config.h>
 #include <rawdataparser/Df125TriggerTime.h>
 #include <rawdataparser/Df125PulseIntegral.h>
@@ -38,7 +38,7 @@
 // #include <rawdataparser/DF1TDCTriggerTime.h>
 #include <rawdataparser/DCAEN1290TDCConfig.h>
 // #include <rawdataparser/DCAEN1290TDCHit.h>
-// #include <rawdataparser/DCODAEventInfo.h>
+#include <rawdataparser/DCODAEventInfo.h>
 #include <rawdataparser/DCODAControlEvent.h>
 #include <rawdataparser/DCODAROCInfo.h>
 // #include <rawdataparser/Df250Scaler.h>
@@ -86,6 +86,7 @@ public:
     void ParseControlEvent(uint32_t* &iptr, uint32_t *iend);
     void ParsePhysicsBank(uint32_t* &iptr, uint32_t *iend);
     void ParseCDAQBank(uint32_t* &iptr, uint32_t *iend);
+    void ParseBuiltTriggerBank(uint32_t* &iptr, uint32_t *iend);
     void ParseDataBank(uint32_t* &iptr, uint32_t *iend);
 
     void ParseCAEN1190(uint32_t rocid, uint32_t *&iptr, uint32_t *iend);
@@ -100,6 +101,7 @@ public:
 
     void MakeDGEMSRSWindowRawData(JEvent *event, uint32_t rocid, uint32_t slot, uint32_t itrigger, uint32_t apv_id, vector<int>rawData16bits);
     void Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint32_t *iend);
+    void MakeDf250WindowRawData(JEvent *event, uint32_t rocid, uint32_t slot, uint32_t itrigger, uint32_t* &iptr);
     void Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint32_t *iend);
     void MakeDf125WindowRawData(JEvent *event, uint32_t rocid, uint32_t slot, uint32_t itrigger, uint32_t* &iptr);
     void ParseF1TDCBank(uint32_t rocid, uint32_t *&iptr, uint32_t *iend);
