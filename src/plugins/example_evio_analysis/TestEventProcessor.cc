@@ -48,7 +48,7 @@ void TestEventProcessor::Init() {
     logger()->info("TestEventProcessor initialization is done");
 
     m_histo_1d = new TH1F("test_histo", "Test histogram", 100, -10, 10);
-    m_histo_2d = new TH2F("test_histo2d", "Test histogram2d", 100, -10, 10, 100, -10, 10);
+    m_histo_2d = new TH2F("test_histo2d", "Test histogram2d", 400, -0.5, 399.5, 300, -0.5, 299.5);
 }
 
 
@@ -58,62 +58,17 @@ void TestEventProcessor::Init() {
 // This function is called every event
 void TestEventProcessor::Process(const std::shared_ptr<const JEvent> &event) {
     m_log->debug("new event");
-
-    std::vector<const Df125WindowRawData *> f125_data;
-    std::vector<const Df125FDCPulse *> f125_pulse_data;
-    std::vector<const DGEMSRSWindowRawData *> srs_data;
-
     try {
-
-        srs_data = event->Get<DGEMSRSWindowRawData>();
-        for(auto srs_item: srs_data) {
-            logger()->info("  {} {} {} {} {} {}",
-                           srs_item->rocid, srs_item->slot, srs_item->channel, srs_item->apv_id, srs_item->channel_apv, srs_item->samples.size());
-
-            for(auto sample: srs_item->samples) {
-                logger()->info("      {} {:2X}", sample, sample);
+        auto f125_records = event->Get<Df125WindowRawData>();
+        for (auto value: f125_records) {
+            int x = 72 * (value->slot - 3) + value->channel;
+            for (int sample_iter = 0; sample_iter < value->samples.size(); sample_iter++) {
+                m_histo_2d->Fill(x, sample_iter, value->samples[sample_iter]);
             }
         }
-//
-//
-//                   f125_pulse_data = event->Get<Df125FDCPulse>();
-//        for (auto value: f125_pulse_data) {
-//            logger()->info("  {} {} {} {} {} {} {}",
-//                           value->rocid, value->slot, value->channel,
-//                           value->NPK, value->le_time, value->peak_time, value->peak_amp);
-//        }
-
-
-
-//        f125_data = event->Get<Df125WindowRawData>();
-//        for (auto value: f125_data) {
-//            int x = 72 * (value->slot - 3) + value->channel;
-//            for (int sample_iter = 0; sample_iter < value->samples.size(); sample_iter++) {
-//                int y = sample_iter;
-//                m_histo_2d->Fill(x, y, value->samples[sample_iter]);
-//            }
-//        }
-////
-////        if (event->GetEventNumber() == 2) {
-//        {
-//            m_log->debug("Got Df125WindowRawData");
-//            for (auto value: f125_data) {
-//                logger()->info("  {} {} {} {}", value->rocid, value->slot, value->channel, value->samples.size());
-//            }
-//
-//            f125_pulse_data = event->Get<Df125FDCPulse>();
-//            if(f125_pulse_data.size()) {
-//                logger()->info("Got ")
-//            }
-//
-//            for (auto value: f125_pulse_data) {
-//                logger()->info("  {} {} {} {} {} {}", value->rocid, value->slot, value->channel,
-//                               value->NPK, value->le_time, value->peak_amp);
-//            }
-//        }
     }
     catch (std::exception &exp) {
-        m_log->trace("Got exception when doing event->Get<DGEMSRSWindowRawData>()");
+        m_log->trace("Got exception when doing event->Get<Df125WindowRawData>()");
         m_log->trace("Exception what()='{}', type='{}'", exp.what(), typeid(exp).name());
     }
 }
