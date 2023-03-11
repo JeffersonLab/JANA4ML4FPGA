@@ -1546,7 +1546,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 
             case 9: // FDC pulse data-peak (new)  (GlueX-doc-2274-v8)
 				{
-					// Word 1:
+					// Word 1 (info of all peaks):
 					uint32_t word1          = *iptr;
 					uint32_t channel        = (*iptr>>20) & 0x7F;
 					uint32_t pulse_number   = (*iptr>>15) & 0x1F;
@@ -1569,6 +1569,8 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
                             jerr << " Truncated f125 FDC hit (missing continuation word!)" << endl;
                             continue;
                         }
+
+                        // Word2 - each peak information
                         uint32_t word2 = *iptr;
                         uint32_t pulse_peak = (*iptr >> 19) & 0xFFF;
                         uint32_t sum = 0;
