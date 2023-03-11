@@ -54,5 +54,9 @@ private:
     void PrintF125Config(const std::shared_ptr<const JEvent> &shared_ptr);
 
     void PrintF125FDCPulse(const std::shared_ptr<const JEvent> &event);
+
+    void PrintGEMSRSWindowRawData(const std::shared_ptr<const JEvent> &event);
+
+    void PrintF125WindowRawData(const std::shared_ptr<const JEvent> &event);
 };
 
