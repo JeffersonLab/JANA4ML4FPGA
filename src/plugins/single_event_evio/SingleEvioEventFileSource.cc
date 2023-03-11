@@ -61,12 +61,15 @@ void SingleEvioEventFileSource::GetEvent(std::shared_ptr<JEvent> event) {
         auto events = parser.ParseEVIOBlockedEvent(block, event);
         m_log->trace("Parsed block had {} events:", events.size());
 
-        for(size_t i=0; i<events.size(); i++) {
-            auto &parsed_event = events[i];
-            m_log->trace("  Event #{} in block with event-number={}:", i, parsed_event->GetEventNumber());
+        if(m_log->level() <= spdlog::level::trace) {
+            for (size_t i = 0; i < events.size(); i++) {
+                auto &parsed_event = events[i];
+                m_log->trace("  Event #{} in block with event-number={}:", i, parsed_event->GetEventNumber());
 
-            for(auto factory: parsed_event->GetFactorySet()->GetAllFactories()) {
-                m_log->trace("    Factory = {:<30}  NumObjects = {}", factory->GetObjectName(), factory->GetNumObjects());
+                for (auto factory: parsed_event->GetFactorySet()->GetAllFactories()) {
+                    m_log->trace("    Factory = {:<30}  NumObjects = {}", factory->GetObjectName(),
+                                 factory->GetNumObjects());
+                }
             }
         }
         return;
