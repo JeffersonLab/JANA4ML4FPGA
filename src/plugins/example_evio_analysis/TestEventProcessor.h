@@ -49,6 +49,7 @@ private:
     /// Directory to store histograms to
     TDirectory *m_dir_main{};
     TH1F* m_histo_1d;
-    TH2F* m_histo_2d;
+    TH2F* m_trd_integral_h2d;
+    TDirectory *m_dir_event_hists;
 };
 
