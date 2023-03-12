@@ -1546,7 +1546,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 
             case 9: // FDC pulse data-peak (new)  (GlueX-doc-2274-v8)
 				{
-					// Word 1:
+					// Word 1 (info of all peaks):
 					uint32_t word1          = *iptr;
 					uint32_t channel        = (*iptr>>20) & 0x7F;
 					uint32_t pulse_number   = (*iptr>>15) & 0x1F;
@@ -1558,73 +1558,78 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 						cout << "      FADC125 FDC Pulse Data (chan="<<channel<<" pulse="<<pulse_number<<" time="<<pulse_time<<" QF="<<quality_factor<<" OC="<<overflow_count<<")"<<endl;
 					}
 
-					// Word 2:
-					++iptr;
-					if(iptr>=iend){
-						jerr << " Truncated f125 FDC hit (block ends before continuation word!)" << endl;
-						continue;
-					}
-					if( ((*iptr>>31) & 0x1) != 0 ){
-						jerr << " Truncated f125 FDC hit (missing continuation word!)" << endl;
-						continue;
-					}
-					uint32_t word2      = *iptr;
-					uint32_t pulse_peak = (*iptr>>19) & 0xFFF;
-					uint32_t sum        = 0;
-					uint32_t peak_time  = (*iptr>>11) & 0xFF;
-					uint32_t pedestal   = (*iptr>>0 ) & 0x7FF;
-					if(VERBOSE>7){
-						cout << "      FADC125 FDC Pulse Data(peak) word2: " << hex << (*iptr) << dec << endl;
-						cout << "      FADC125 FDC Pulse Data (integral="<<sum<<" time="<<peak_time<<" pedestal="<<pedestal<<")"<<endl;
-					}
+                    // Loop over peaks:
+                    for(size_t i_peak = 0; i_peak < pulse_number; i_peak++) {
+                        ++iptr;
+                        if (iptr >= iend) {
+                            jerr << " Truncated f125 FDC hit (block ends before continuation word!)" << endl;
+                            continue;
+                        }
+                        if (((*iptr >> 31) & 0x1) != 0) {
+                            jerr << " Truncated f125 FDC hit (missing continuation word!)" << endl;
+                            continue;
+                        }
 
-					// Create hit objects
-					uint32_t nsamples_integral = 0;  // must be overwritten later in GetObjects with value from Df125Config value
-					uint32_t nsamples_pedestal = 1;  // The firmware pedestal divided by 2^PBIT where PBIT is a config. parameter
+                        // Word2 - each peak information
+                        uint32_t word2 = *iptr;
+                        uint32_t pulse_peak = (*iptr >> 19) & 0xFFF;
+                        uint32_t sum = 0;
+                        uint32_t peak_time = (*iptr >> 11) & 0xFF;
+                        uint32_t pedestal = (*iptr >> 0) & 0x7FF;
+                        if (VERBOSE > 7) {
+                            cout << "      FADC125 FDC Pulse Data(peak) word2: " << hex << (*iptr) << dec << endl;
+                            cout << "      FADC125 FDC Pulse Data (integral=" << sum << " time=" << peak_time
+                                 << " pedestal=" << pedestal << ")" << endl;
+                        }
 
-					if( event ) {
-					
-						// The following is a temporary fix. In late 2017 the CDC group started
-						// using data type 9 (i.e. FDC pulse peak). This caused many conflicts
-						// with plugins downstream that were built around there being a Df125CDCPulse
-						// object associated with the DCDCDigiHit. In order to quickly solve
-						// the issue as the run was starting, this fix was made to produce Df125CDCPulse
-						// object from this data iff rocid<30 indicating the data came from the
-						// CDC. 
-						if( rocid<30 ){
+                        // Create hit objects
+                        uint32_t nsamples_integral = 0;  // must be overwritten later in GetObjects with value from Df125Config value
+                        uint32_t nsamples_pedestal = 1;  // The firmware pedestal divided by 2^PBIT where PBIT is a config. parameter
 
-							event->Insert(new Df125CDCPulse(rocid, slot, channel, itrigger
-										, pulse_number        // NPK
-										, pulse_time          // le_time
-										, quality_factor      // time_quality_bit
-										, overflow_count      // overflow_count
-										, pedestal            // pedestal
-										, sum                 // integral
-										, pulse_peak          // peak_amp
-										, word1               // word1
-										, word2               // word2
-										, nsamples_pedestal   // nsamples_pedestal
-										, nsamples_integral   // nsamples_integral
-										, false));             // emulated
-						
-						}else{
-					
-							event->Insert(new Df125FDCPulse(rocid, slot, channel, itrigger
-										, pulse_number        // NPK
-										, pulse_time          // le_time
-										, quality_factor      // time_quality_bit
-										, overflow_count      // overflow_count
-										, pedestal            // pedestal
-										, sum                 // integral
-										, pulse_peak          // peak_amp
-										, peak_time           // peak_time
-										, word1               // word1
-										, word2               // word2
-										, nsamples_pedestal   // nsamples_pedestal
-										, nsamples_integral   // nsamples_integral
-										, false));             // emulated
-						}
-					}
+                        if (event) {
+
+                            // The following is a temporary fix. In late 2017 the CDC group started
+                            // using data type 9 (i.e. FDC pulse peak). This caused many conflicts
+                            // with plugins downstream that were built around there being a Df125CDCPulse
+                            // object associated with the DCDCDigiHit. In order to quickly solve
+                            // the issue as the run was starting, this fix was made to produce Df125CDCPulse
+                            // object from this data iff rocid<30 indicating the data came from the
+                            // CDC.
+                            if (rocid < 30) {
+
+                                event->Insert(
+                                        new Df125CDCPulse(rocid, slot, channel, itrigger, pulse_number        // NPK
+                                                , pulse_time          // le_time
+                                                , quality_factor      // time_quality_bit
+                                                , overflow_count      // overflow_count
+                                                , pedestal            // pedestal
+                                                , sum                 // integral
+                                                , pulse_peak          // peak_amp
+                                                , word1               // word1
+                                                , word2               // word2
+                                                , nsamples_pedestal   // nsamples_pedestal
+                                                , nsamples_integral   // nsamples_integral
+                                                , false));             // emulated
+
+                            } else {
+
+                                event->Insert(
+                                        new Df125FDCPulse(rocid, slot, channel, itrigger, pulse_number        // NPK
+                                                , pulse_time          // le_time
+                                                , quality_factor      // time_quality_bit
+                                                , overflow_count      // overflow_count
+                                                , pedestal            // pedestal
+                                                , sum                 // integral
+                                                , pulse_peak          // peak_amp
+                                                , peak_time           // peak_time
+                                                , word1               // word1
+                                                , word2               // word2
+                                                , nsamples_pedestal   // nsamples_pedestal
+                                                , nsamples_integral   // nsamples_integral
+                                                , false));             // emulated
+                            }
+                        }
+                    }
 				}
                 break;
 
