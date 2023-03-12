@@ -10,13 +10,13 @@
 class JEvent;
 class JApplication;
 
-class TestEventProcessor:
+class PrintEvioProcessor:
         public JEventProcessor,
-        public spdlog::extensions::SpdlogMixin<TestEventProcessor>   // this automates proper Log initialization
+        public spdlog::extensions::SpdlogMixin<PrintEvioProcessor>   // this automates proper Log initialization
 {
 public:
-    explicit TestEventProcessor(JApplication *);
-    ~TestEventProcessor() override = default;
+    explicit PrintEvioProcessor(JApplication *);
+    ~PrintEvioProcessor() override = default;
 
     //----------------------------
     // Init
@@ -49,7 +49,14 @@ private:
     /// Directory to store histograms to
     TDirectory *m_dir_main{};
     TH1F* m_histo_1d;
-    TH2F* m_trd_integral_h2d;
-    TDirectory *m_dir_event_hists;
+    TH2F* m_histo_2d;
+
+    void PrintF125Config(const std::shared_ptr<const JEvent> &shared_ptr);
+
+    void PrintF125FDCPulse(const std::shared_ptr<const JEvent> &event);
+
+    void PrintGEMSRSWindowRawData(const std::shared_ptr<const JEvent> &event);
+
+    void PrintF125WindowRawData(const std::shared_ptr<const JEvent> &event);
 };
 
