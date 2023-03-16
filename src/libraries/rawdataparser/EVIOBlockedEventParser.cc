@@ -192,6 +192,7 @@ void EVIOBlockedEventParser::ParseBank(uint32_t *istart, uint32_t *iend)
 
 			default:
 				_DBG_ << "Unknown outer EVIO bank tag: " << std::hex << tag << std::dec << std::endl;
+				DumpBinary(iptr, nullptr, 20, nullptr);
 				iptr = &iptr[event_len+1];
 				if(event_len<1) iptr = iend;		
 		}
