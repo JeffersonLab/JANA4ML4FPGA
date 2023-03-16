@@ -11,6 +11,56 @@
 #include <spdlog/spdlog.h>
 #include <services/root_output/RootFile_service.h>
 
+inline static void FillTrdHistogram(uint64_t event_number,
+                      TDirectory *hists_dir,
+                      std::vector<const Df125WindowRawData *> f125_records,
+                      int slot_shift,
+                      int zero_fill,
+                      int max_x = 250,
+                      int max_y = 300
+                      ) {
+
+    // Crate histogram
+    std::string histo_name = fmt::format("trd_event_{}", event_number);
+    std::string histo_title = fmt::format("TRD event #{} by F125WindowRawData", event_number);
+    auto histo= new TH2F(histo_name.c_str(), histo_title.c_str(), max_x, -0.5, max_x - 0.5, max_y, -0.5, max_y - 0.5);
+    histo->SetDirectory(hists_dir);
+
+    // f125_records has data for only non-zero channels
+    // But we want to fill all channels possible channels with fill_value
+    // So we create an event_table that we fill first, and then fill histogram by its values
+    float event_table[max_x][max_y];
+    // Fill histogram
+    for(size_t x_i=0; x_i<max_x; x_i++) {
+        for(size_t y_i=0; y_i<max_y; y_i++) {
+            event_table[x_i][y_i] = zero_fill;
+        }
+    }
+
+    // Fill data into event_table
+    for (auto record: f125_records) {
+        int x = 72 * (record->slot - slot_shift) + record->channel;
+        for (int sample_i = 0; sample_i < record->samples.size(); sample_i++) {
+            if(x < max_x && sample_i < max_y) {
+                float sample = record->samples[sample_i];
+                if(sample < zero_fill) sample = zero_fill;  // Fill 0 values with zero_fill
+                event_table[x][sample_i] = sample;
+            }
+        }
+    }
+
+    // Fill histogram
+    for(size_t x_i=0; x_i<max_x; x_i++) {
+        for(size_t y_i=0; y_i<max_y; y_i++) {
+            spdlog::info("    event_table[{}][{}]={}", x_i, y_i, event_table[x_i][y_i]);
+            histo->Fill(x_i, y_i, event_table[x_i][y_i]);
+        }
+    }
+
+    // Save histogram
+    histo->Write();
+}
+
 
 //------------------
 // OccupancyAnalysis (Constructor)
@@ -39,6 +89,7 @@ void TestEventProcessor::Init() {
 
     // Create a directory for this plugin. And subdirectories for series of histograms
     m_dir_main = file->mkdir(plugin_name.c_str());
+    m_dir_event_hists = m_dir_main->mkdir("trd_events", "TRD events visualization");
     m_dir_main->cd();
 
     // Get Log level from user parameter or default
@@ -48,7 +99,7 @@ void TestEventProcessor::Init() {
     logger()->info("TestEventProcessor initialization is done");
 
     m_histo_1d = new TH1F("test_histo", "Test histogram", 100, -10, 10);
-    m_histo_2d = new TH2F("test_histo2d", "Test histogram2d", 400, -0.5, 399.5, 300, -0.5, 299.5);
+    m_trd_integral_h2d = new TH2F("trd_integral_events", "TRD events from Df125WindowRawData integral", 250, -0.5, 249.5, 300, -0.5, 299.5);
 }
 
 
@@ -60,10 +111,20 @@ void TestEventProcessor::Process(const std::shared_ptr<const JEvent> &event) {
     m_log->debug("new event");
     try {
         auto f125_records = event->Get<Df125WindowRawData>();
+
+        // Fill TRD event histograms for the first 50 events
+        if(event->GetEventNumber() < 50) {
+            FillTrdHistogram(event->GetEventNumber(), m_dir_event_hists, f125_records, 3, 10);
+        }
+
+        // Fill integral histogram
         for (auto value: f125_records) {
             int x = 72 * (value->slot - 3) + value->channel;
-            for (int sample_iter = 0; sample_iter < value->samples.size(); sample_iter++) {
-                m_histo_2d->Fill(x, sample_iter, value->samples[sample_iter]);
+            for (int sample_i = 0; sample_i < value->samples.size(); sample_i++) {
+                float sample = value->samples[sample_i];
+
+                m_log->trace("    sample x(channel)={} y(sample i)={} value={}", x, sample_i, sample);
+                m_trd_integral_h2d->Fill(x, sample_i, sample);
             }
         }
     }
@@ -81,4 +142,7 @@ void TestEventProcessor::Finish() {
 //    m_log->trace("TestEventProcessor finished\n");
 
 }
+
+
+
 
