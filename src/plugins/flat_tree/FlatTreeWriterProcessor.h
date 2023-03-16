@@ -6,6 +6,8 @@
 #include <TDirectory.h>
 #include <TH1F.h>
 #include <TH2F.h>
+#include <TTree.h>
+#include "SrsRecord.h"
 
 class JEvent;
 class JApplication;
@@ -51,5 +53,14 @@ private:
     TH1F* m_histo_1d;
     TH2F* m_histo_2d;
 
+    // TODO there should be a FlatIO for each worker thread
+    std::recursive_mutex io_mutex;
+    TTree *mEventTree;
+    std::vector<std::reference_wrapper<flatio::AlignedArraysIO>> m_ios;
+    flatio::SrsRecordIO m_srs_record_io;
+
+    std::shared_ptr<JGlobalRootLock> m_glb_root_lock;
+
+    uint16_t findBestSrsSamle(std::vector<uint16_t> samples);
 };
 
