@@ -83,9 +83,8 @@ private:
     /// which will happen the first time GetHistFile is called.
     void CreateHistFile(){
         // Get root file name
-        std::string filename = "eicrecon.root";
-        m_app->SetDefaultParameter("histsfile", filename,
-                                   "Name of root file to be created for plugin histograms/trees");
+        std::string filename = "output.root";
+        m_app->SetDefaultParameter("histsfile", filename, "Name of root file to be created for plugin histograms/trees");
         if (!m_histfile) {
             try {
                 m_histfile = new TFile(filename.c_str(), "RECREATE", "user histograms/trees");
