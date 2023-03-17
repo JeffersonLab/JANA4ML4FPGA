@@ -9,7 +9,10 @@
 namespace flatio {
     struct F125FDCPulseRecord
     {
-        uint32_t NPK;
+        uint32_t roc;
+        uint32_t slot;
+        uint32_t channel;
+        uint32_t npk;
         uint32_t le_time;
         uint32_t time_quality_bit;
         uint32_t overflow_count;
@@ -37,7 +40,10 @@ namespace flatio {
         void bindToTree(TTree *tree) override {
             m_is_bound = true;
             tree->Branch("f125_pulse_count", &m_count, "f125_pulse_count/l");
-            tree->Branch("f125_pulse_NPK", &m_vect_NPK);
+            tree->Branch("f125_pulse_roc", &m_vect_roc);
+            tree->Branch("f125_pulse_slot", &m_vect_slot);
+            tree->Branch("f125_pulse_channel", &m_vect_channel);
+            tree->Branch("f125_pulse_npk", &m_vect_npk);
             tree->Branch("f125_pulse_le_time", &m_vect_le_time);
             tree->Branch("f125_pulse_time_quality_bit", &m_vect_time_quality_bit);
             tree->Branch("f125_pulse_overflow_count", &m_vect_overflow_count);
@@ -61,7 +67,10 @@ namespace flatio {
 
         void clear() override {
             m_count = 0;
-            m_vect_NPK.clear();
+            m_vect_roc.clear();
+            m_vect_slot.clear();
+            m_vect_channel.clear();
+            m_vect_npk.clear();
             m_vect_le_time.clear();
             m_vect_time_quality_bit.clear();
             m_vect_overflow_count.clear();
@@ -88,7 +97,10 @@ namespace flatio {
                 throw std::logic_error("Can't add F125FDCPulseRecord data because F125FDCPulseRecordIO is not bound to tree");
             }
             m_count++;
-            m_vect_NPK.push_back(data.NPK);
+            m_vect_roc.push_back(data.roc);
+            m_vect_slot.push_back(data.slot);
+            m_vect_channel.push_back(data.channel);
+            m_vect_npk.push_back(data.npk);
             m_vect_le_time.push_back(data.le_time);
             m_vect_time_quality_bit.push_back(data.time_quality_bit);
             m_vect_overflow_count.push_back(data.overflow_count);
@@ -115,7 +127,10 @@ namespace flatio {
     private:
         bool m_is_bound = false;
         uint64_t m_count;
-        std::vector<uint32_t> m_vect_NPK;
+        std::vector<uint32_t> m_vect_roc;
+        std::vector<uint32_t> m_vect_slot;
+        std::vector<uint32_t> m_vect_channel;
+        std::vector<uint32_t> m_vect_npk;
         std::vector<uint32_t> m_vect_le_time;
         std::vector<uint32_t> m_vect_time_quality_bit;
         std::vector<uint32_t> m_vect_overflow_count;

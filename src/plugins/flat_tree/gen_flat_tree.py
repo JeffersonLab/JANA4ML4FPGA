@@ -48,7 +48,10 @@ io_classes = [
         name="F125FDCPulseRecord",
         root_name="f125_pulse",
         fields=[
-            FieldInfo('uint32_t', 'NPK',                       'from first word'),
+            FieldInfo('uint32_t', 'roc'),
+            FieldInfo('uint32_t', 'slot'),
+            FieldInfo('uint32_t', 'channel'),
+            FieldInfo('uint32_t', 'npk',                       'from first word'),
             FieldInfo('uint32_t', 'le_time',                   'from first word'),
             FieldInfo('uint32_t', 'time_quality_bit',          'from first word'),
             FieldInfo('uint32_t', 'overflow_count',            'from first word'),

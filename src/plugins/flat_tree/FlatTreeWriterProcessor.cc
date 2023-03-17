@@ -1,5 +1,5 @@
 #include "SrsRecord.h"
-#include "AlignedArraysIO.h"
+
 #include "FlatTreeWriterProcessor.h"
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
@@ -45,6 +45,8 @@ void FlatTreeWriterProcessor::Init() {
         file->cd();
         mEventTree = new TTree("events","jana4ml4fpga_tree_v1");
         m_ios.push_back(m_srs_record_io);
+        m_ios.push_back(m_f125_wraw_io);
+        m_ios.push_back(m_f125_pulse_io);
 
         for(auto &io: m_ios) {
             io.get().bindToTree(mEventTree);
@@ -55,7 +57,7 @@ void FlatTreeWriterProcessor::Init() {
     catch (...) {
         m_glb_root_lock->release_lock();
         // Ideally we'd use the STL read-write lock (std::shared_mutex/lock) intead of the pthreads one.
-        // However for now we are limited to C++14 (we would need C++17).
+        // However, for now we are limited to C++14 (we would need C++17).
         throw;
         // It is important to re-throw exceptions so that the framework can handle them correctly
     }
@@ -89,6 +91,7 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
             }
         }
 
+        // What factories do we have?
         for (auto factory: event->GetFactorySet()->GetAllFactories()) {
 
             // Df125Config
@@ -97,46 +100,18 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
             }
 
             if(factory->GetObjectName() == "Df125FDCPulse" && factory->GetNumObjects() > 0) {
-                // pass
+                auto f125_pulse_records = event->Get<Df125FDCPulse>();
+                SaveF125FDCPulse(f125_pulse_records);
             }
 
             if(factory->GetObjectName() == "Df125WindowRawData" && factory->GetNumObjects() > 0) {
-
-                auto f125_records = event->Get<Df125WindowRawData>();
-                for (auto record: f125_records) {
-                    //record->samples
-                }
-
-
-//                // Fill data into event_table
-//
-//                    int x = 72 * (record->slot - slot_shift) + record->channel;
-//                    for (int sample_i = 0; sample_i < record->samples.size(); sample_i++) {
-//                        if(x < max_x && sample_i < max_y) {
-//                            float sample = record->samples[sample_i];
-//                            if(sample < zero_fill) sample = zero_fill;  // Fill 0 values with zero_fill
-//                            event_table[x][sample_i] = sample;
-//                        }
-//                    }
-//                }
+                auto f125_wraw_records = event->Get<Df125WindowRawData>();
+                SaveF125WindowRawData(f125_wraw_records);
             }
 
             if(factory->GetObjectName() == "DGEMSRSWindowRawData" && factory->GetNumObjects() > 0) {
-
                 auto srs_data = event->Get<DGEMSRSWindowRawData>();
-                m_log->trace("Writing DGEMSRSWindowRawData data items: {} ", srs_data.size());
-
-                for(auto srs_item: srs_data) {
-                    flatio::SrsRecord srs_save;
-                    srs_save.roc = srs_item->rocid;
-                    srs_save.slot = srs_item->slot;
-                    srs_save.channel = srs_item->channel;
-                    srs_save.apv_id = srs_item->apv_id;
-                    srs_save.channel_apv = srs_item->channel_apv;
-                    srs_save.samples = srs_item->samples;
-                    srs_save.best_sample = findBestSrsSamle(srs_item->samples);
-                    m_srs_record_io.add(srs_save);
-                }
+                SaveGEMSRSWindowRawData(srs_data);
             }
         }
 
@@ -152,10 +127,8 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
         // It is important to re-throw exceptions so that the framework can handle them correctly
     }
 
-
     m_log->debug("Event number {}", event->GetEventNumber());
 }
-
 
 //------------------
 // Finish
@@ -170,9 +143,6 @@ void FlatTreeWriterProcessor::Finish() {
         m_glb_root_lock->release_lock();
         throw;
     }
-
-
-
 }
 
 uint16_t FlatTreeWriterProcessor::findBestSrsSamle(std::vector<uint16_t> samples) {
@@ -195,6 +165,65 @@ uint16_t FlatTreeWriterProcessor::findBestSrsSamle(std::vector<uint16_t> samples
         if(sample > best_sample) best_sample = sample;
     }
     return best_sample;
+}
+
+void FlatTreeWriterProcessor::SaveF125FDCPulse(std::vector<const Df125FDCPulse *> records) {
+    for (auto record: records) {
+        flatio::F125FDCPulseRecord save_struct{};
+        save_struct.roc = record->rocid;
+        save_struct.slot = record->slot;
+        save_struct.channel = record->channel;
+        save_struct.npk = record->NPK;
+        save_struct.le_time = record->le_time;
+        save_struct.time_quality_bit = record->time_quality_bit;
+        save_struct.overflow_count = record->overflow_count;
+        save_struct.pedestal = record->pedestal;
+        save_struct.integral = record->integral;
+        save_struct.peak_amp = record->peak_amp;
+        save_struct.peak_time = record->peak_time;
+        save_struct.word1 = record->word1;
+        save_struct.word2 = record->word2;
+        save_struct.nsamples_pedestal = record->nsamples_pedestal;
+        save_struct.nsamples_integral = record->nsamples_integral;
+        save_struct.emulated = record->emulated;
+        save_struct.le_time_emulated = record->le_time_emulated;
+        save_struct.time_quality_bit_emulated = record->time_quality_bit_emulated;
+        save_struct.overflow_count_emulated = record->overflow_count_emulated;
+        save_struct.pedestal_emulated = record->pedestal_emulated;
+        save_struct.integral_emulated = record->integral_emulated;
+        save_struct.peak_amp_emulated = record->peak_amp_emulated;
+        save_struct.peak_time_emulated = record->peak_time_emulated;
+        m_f125_pulse_io.add(save_struct);
+    }
+}
+
+void FlatTreeWriterProcessor::SaveGEMSRSWindowRawData(std::vector<const DGEMSRSWindowRawData *> records) {
+    m_log->trace("Writing DGEMSRSWindowRawData data items: {} ", records.size());
+    for(auto srs_item: records) {
+        flatio::SrsRecord srs_save{};
+        srs_save.roc = srs_item->rocid;
+        srs_save.slot = srs_item->slot;
+        srs_save.channel = srs_item->channel;
+        srs_save.apv_id = srs_item->apv_id;
+        srs_save.channel_apv = srs_item->channel_apv;
+        srs_save.samples = srs_item->samples;
+        srs_save.best_sample = findBestSrsSamle(srs_item->samples);
+        m_srs_record_io.add(srs_save);
+    }
+}
+
+void FlatTreeWriterProcessor::SaveF125WindowRawData(std::vector<const Df125WindowRawData *> records) {
+    for (auto record: records) {
+        flatio::F125WindowRawRecord f125_wraw_save{};
+        f125_wraw_save.roc = record->rocid;
+        f125_wraw_save.slot = record->slot;
+        f125_wraw_save.channel = record->channel;
+        f125_wraw_save.overflow = record->overflow;
+        f125_wraw_save.invalid_samples = record->invalid_samples;
+        f125_wraw_save.itrigger = record->itrigger;
+        f125_wraw_save.samples =  record->samples;
+        m_f125_wraw_io.add(f125_wraw_save);
+    }
 }
 
 

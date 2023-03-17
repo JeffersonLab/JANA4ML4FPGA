@@ -8,6 +8,11 @@
 #include <TH2F.h>
 #include <TTree.h>
 #include "SrsRecord.h"
+#include "F125FDCPulseRecord.h"
+#include "F125WindowRawRecord.h"
+#include "rawdataparser/Df125FDCPulse.h"
+#include "rawdataparser/DGEMSRSWindowRawData.h"
+#include "rawdataparser/Df125WindowRawData.h"
 
 class JEvent;
 class JApplication;
@@ -48,19 +53,23 @@ public:
 
 private:
 
-    /// Directory to store histograms to
-    TDirectory *m_dir_main{};
-    TH1F* m_histo_1d;
-    TH2F* m_histo_2d;
-
     // TODO there should be a FlatIO for each worker thread
     std::recursive_mutex io_mutex;
     TTree *mEventTree;
     std::vector<std::reference_wrapper<flatio::AlignedArraysIO>> m_ios;
+
     flatio::SrsRecordIO m_srs_record_io;
+    flatio::F125WindowRawRecordIO m_f125_wraw_io;
+    flatio::F125FDCPulseRecordIO m_f125_pulse_io;
 
     std::shared_ptr<JGlobalRootLock> m_glb_root_lock;
 
     uint16_t findBestSrsSamle(std::vector<uint16_t> samples);
+
+    void SaveF125FDCPulse(std::vector<const Df125FDCPulse *> records);
+
+    void SaveGEMSRSWindowRawData(std::vector<const DGEMSRSWindowRawData *> records);
+
+    void SaveF125WindowRawData(std::vector<const Df125WindowRawData *> records);
 };
 
