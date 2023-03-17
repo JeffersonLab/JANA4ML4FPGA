@@ -117,8 +117,9 @@ void PrintEvioProcessor::PrintF125FDCPulse(const std::shared_ptr<const JEvent> &
 
 
     for (auto value: f125_pulse_data) {
-        logger()->info("     {:<7} {:<7} {:<9} {:<7} {:<9} {:<11} {:<7}", value->rocid, value->slot, value->channel,
-                       value->NPK, value->le_time, value->peak_time,  value->peak_amp);
+        logger()->info("     {:<7} {:<7} {:<9} {:<7} {:<9} {:<11} {:<7}",
+                       value->rocid, value->slot, value->channel,
+                       value->NPK, value->le_time, value->peak_time, value->peak_amp);
     }
 }
 
@@ -128,7 +129,6 @@ void PrintEvioProcessor::PrintGEMSRSWindowRawData(const std::shared_ptr<const JE
 
     logger()->info("  [rocid] [slot]  [channel] [apv_id] [channel_apv] [samples size:val1,val2,...]");
     for(auto srs_item: srs_data) {
-
         std::string row = fmt::format("{:<7} {:<7} {:<9} {:<8} {:<13} {:<2}: ",
                                       srs_item->rocid, srs_item->slot, srs_item->channel,
                                       srs_item->apv_id, srs_item->channel_apv, srs_item->samples.size());
@@ -138,15 +138,15 @@ void PrintEvioProcessor::PrintGEMSRSWindowRawData(const std::shared_ptr<const JE
         }
 
         logger()->info("   {}", row);
-
     }
 }
 
 void PrintEvioProcessor::PrintF125WindowRawData(const std::shared_ptr<const JEvent> &event) {
     auto f125_data = event->Get<Df125WindowRawData>();
     m_log->info("Df125WindowRawData  data items: {} ", f125_data.size());
+    logger()->info("  [rocid] [slot]  [channel] [invalid_samples] [overflow] [itrigger] [samples count]");
     for (auto value: f125_data) {
-        logger()->info("  {} {} {} {}", value->rocid, value->slot, value->channel, value->samples.size());
+        logger()->info("   {:<7} {:<7} {:<9} {:<17} {:<9} {:<11} {}", value->rocid, value->slot, value->channel, value->invalid_samples, value->overflow, value->itrigger, value->samples.size());
     }
 }
 
