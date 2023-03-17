@@ -65,12 +65,15 @@ tcp_receiver
 tcp_sender -req=ex -cmd=send -host=localhost:20249
 ```
 
-## CDAQ evio example analysis
+## Run flags examples
+
+### CDAQ evio example analysis
 
 
 Run parameters:
 
 ```
+jana4ml4fpga
 -Pplugins=log,root_output,CDAQfile,example_evio_analysis
 -Pjana:debug_plugin_loading=1
 -PSingleEvioEventFileSource:LogLevel=trace
@@ -80,4 +83,37 @@ Run parameters:
 -Pnthreads=1
 -Phistsfile=/home/romanov/eic/JANA4ML4FPGA/cmake-build-debug/test.root
 /mnt/work/data/2023-03-03-trd-data/hd_rawdata_002633_000.evio
+```
+
+### Read EVIO and save to flat root file
+
+```sh
+jana4ml4fpga
+-Pplugins=log,root_output,CDAQfile,flat_tree
+-Pnthreads=1
+-Phistsfile=output_file_name.root
+hd_rawdata_002633_000.evio          # <= input file
+```
+
+### Useful flags
+
+```sh
+
+# Write extended info where plugins are loaded from  
+-Pjana:debug_plugin_loading=1
+
+# <plugin>:LogLevel usually controls verbosity level of a plugin 
+-Pflat_tree:LogLevel=trace
+
+# Switches off jana internal watchdog timer
+# Setting timeout=0 is needed if processing threads stops, 
+# i.e. when pausing on debug breakpoint or waiting for connection, etc. 
+-Pjana:timeout=0
+
+# Set number of events to process
+-Pjana:nevents=10000
+
+# Set number of events to skip
+-Pjana:nskip=10000
+
 ```
