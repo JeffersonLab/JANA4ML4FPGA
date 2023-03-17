@@ -76,7 +76,7 @@ Run parameters:
 jana4ml4fpga
 -Pplugins=log,root_output,CDAQfile,example_evio_analysis
 -Pjana:debug_plugin_loading=1
--PSingleEvioEventFileSource:LogLevel=trace
+-PCDAQEVIOFileSource:LogLevel=trace
 -Pexample_evio_analysis:LogLevel=trace
 -Pjana:timeout=0
 -Pjana:nevents=10
