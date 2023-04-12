@@ -27,19 +27,16 @@ set(INCLUDE_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/include")
 set(LIBRARY_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/lib")
 set(PROGRAM_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/bin")
 
-
 message(STATUS "${CMAKE_PROJECT_NAME}: CMAKE_INSTALL_PREFIX    : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "${CMAKE_PROJECT_NAME}: PLUGIN_OUTPUT_DIRECTORY : ${PLUGIN_OUTPUT_DIRECTORY}")
 message(STATUS "${CMAKE_PROJECT_NAME}: INCLUDE_OUTPUT_DIRECTORY: ${INCLUDE_OUTPUT_DIRECTORY}")
 message(STATUS "${CMAKE_PROJECT_NAME}: LIBRARY_OUTPUT_DIRECTORY: ${LIBRARY_OUTPUT_DIRECTORY}")
 message(STATUS "${CMAKE_PROJECT_NAME}: PROGRAM_OUTPUT_DIRECTORY: ${PROGRAM_OUTPUT_DIRECTORY}")
 
-
 # JANA2
 message(STATUS "${CMAKE_PROJECT_NAME}: JANA2 cmake   : ${JANA_DIR}")
 message(STATUS "${CMAKE_PROJECT_NAME}: JANA2 includes: ${JANA_INCLUDE_DIR}")
 message(STATUS "${CMAKE_PROJECT_NAME}: JANA2 library : ${JANA_LIBRARY}")
-
 
 # CERN ROOT
 message(STATUS "${CMAKE_PROJECT_NAME}: ROOT version  : ${ROOT_VERSION}")
@@ -66,7 +63,6 @@ include_directories(${CMAKE_SOURCE_DIR}/src/libraries)
 print_grand_header("    B U I L D   J A N A 4 M L 4 F P G A   P A R T S    ")
 # ---------------------------------------------------------------------------
 
-
 add_subdirectory( src/libraries )
 add_subdirectory( src/services )
 add_subdirectory(src/plugins)
@@ -85,3 +81,20 @@ message(STATUS "\n-------------------------------")
 # file(GLOB EICRECON_CMAKE_FILES cmake/*.cmake)
 # install(FILES ${EICRECON_CMAKE_FILES} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/EICrecon)
 
+#---------------------------------------------------------------------------
+# Install ml4fpga script
+#---------------------------------------------------------------------------
+# Set the path for your script
+set(SCRIPT_SRC "${CMAKE_CURRENT_SOURCE_DIR}/scripts/ml4fpga.py")
+
+# Set the path where the script will be copied
+set(SCRIPT_DST "${TARGET_BINARY_DIR}/ml4fpga")
+
+
+# Set the target binary directory
+
+# Copy the script during installation
+install(FILES ${SCRIPT_SRC} DESTINATION ${PROGRAM_OUTPUT_DIRECTORY} RENAME ml4fpga )
+
+# Set the permission to executable during installation
+install(CODE "execute_process(COMMAND chmod +x ${PROGRAM_OUTPUT_DIRECTORY}/ml4fpga)")
