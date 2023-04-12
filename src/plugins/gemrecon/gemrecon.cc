@@ -3,7 +3,7 @@
 //
 //
 
-#include "TestEventProcessor.h"
+#include "GEMReconTestProcessor.h"
 
 
 extern "C" {
@@ -13,7 +13,7 @@ extern "C" {
         InitJANAPlugin(app);
 
         // Adds our processor to JANA2 to execute
-        app->Add(new TestEventProcessor(app));
+        app->Add(new GEMReconTestProcessor(app));
     }
 }
     
