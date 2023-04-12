@@ -47,3 +47,5 @@ cmake-build-debug/
 scripts/eicrecon.root
 
 cmake-build-debug-remote-host/
+
+cmake-build-debug-wsl/
