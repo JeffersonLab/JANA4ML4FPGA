@@ -1,30 +1,47 @@
+macro(target_add_common_dependencies _name)
+    # Include JANA by default
+    if(NOT JANA_FOUND)
+        find_package(JANA REQUIRED)
+    endif()
+
+    # include fmt by default
+    if(NOT fmt_FOUND)
+        find_package(fmt REQUIRED)
+    endif()
+
+    # include logging by default
+    if(NOT spdlog_FOUND)
+        find_package(spdlog REQUIRED)
+    endif()
+
+    # include ROOT by default
+    if(NOT ROOT_FOUND)
+        find_package(ROOT REQUIRED)
+    endif()
+
+    target_include_directories(${_name} PUBLIC ${CMAKE_SOURCE_DIR}/src)
+    target_include_directories(${_name} SYSTEM PUBLIC ${JANA_INCLUDE_DIR} )
+    target_include_directories(${_name} SYSTEM PUBLIC ${ROOT_INCLUDE_DIRS} )
+    target_include_directories(${_name} PUBLIC ${fmt_DIR}/../../../include)
+    target_link_libraries(${_name} ${JANA_LIB} spdlog::spdlog fmt::fmt)
+
+endmacro()
+
 # Common macro to add plugins
 macro(plugin_add _name)
     project(${_name}_project)
 
-    # Include JANA by default
-    find_package(JANA REQUIRED)
-
-    # include logging by default
-    find_package(spdlog REQUIRED)
-
-    # include fmt by default
-    find_package(fmt REQUIRED)
-
-    # include ROOT by default
-    find_package(ROOT REQUIRED)
-
     # Define plugin
     add_library(${_name}_plugin SHARED ${PLUGIN_SOURCES})
-    target_include_directories(${_name}_plugin PUBLIC ${CMAKE_SOURCE_DIR}/src)
-    target_include_directories(${_name}_plugin SYSTEM PUBLIC ${JANA_INCLUDE_DIR} )
-    target_include_directories(${_name}_plugin SYSTEM PUBLIC ${ROOT_INCLUDE_DIRS} )
-    target_include_directories(${_name}_plugin PUBLIC ${fmt_DIR}/../../../include)
-    set_target_properties(${_name}_plugin PROPERTIES PREFIX "" OUTPUT_NAME "${_name}" SUFFIX ".so")
-    target_link_libraries(${_name}_plugin ${JANA_LIB} spdlog::spdlog fmt::fmt)
 
-    # Install plugin
+    # Convention: plugins don't have 'lib' prefix
+    set_target_properties(${_name}_plugin PROPERTIES PREFIX "" OUTPUT_NAME "${_name}" SUFFIX ".so")
+
+    # Where to install plugins
     install(TARGETS ${_name}_plugin DESTINATION ${PLUGIN_OUTPUT_DIRECTORY})
+
+    # add common dependencies
+    target_add_common_dependencies(${_name}_plugin)
 endmacro()
 
 
@@ -117,10 +134,10 @@ macro(plugin_add_acts _name)
     endif()
 
     # Add include directories (works same as target_include_directories)
-    plugin_include_directories(${PLUGIN_NAME} SYSTEM PUBLIC ${Acts_INCLUDE_DIRS})
+    plugin_include_directories(${_name}_plugin SYSTEM PUBLIC ${Acts_INCLUDE_DIRS})
 
     # Add libraries (works same as target_include_directories)
-    plugin_link_libraries(${PLUGIN_NAME} ActsCore ActsPluginIdentification ActsPluginTGeo ActsPluginJson ActsPluginDD4hep)
+    plugin_link_libraries(${_name}_plugin ActsCore ActsPluginIdentification ActsPluginTGeo ActsPluginJson ActsPluginDD4hep)
 endmacro()
 
 
