@@ -142,6 +142,252 @@ void GEMReconTestProcessor::Init() {
     fMapping = GemMapping::GetInstance();
     fMapping->LoadMapping(mapping_file.c_str());
     fMapping->PrintMapping();
+
+    InitHistForZeroSup();
+}
+
+
+//=====================================================
+void GEMReconTestProcessor::InitHistForZeroSup() {
+
+    std::string fRunType("SINGLEEVENT");
+    int fNbOfTimeSamples = fConfig.GetNbOfTimeSamples();
+
+    Int_t nbOfPlaneHists = 2 * fMapping->GetNbOfPlane();
+    Int_t driftTime = 25 * fNbOfTimeSamples;
+    int fNbADCBins = 50;
+
+    // PLANES
+    if ((fRunType == "SINGLEEVENT") || (fRunType == "SEARCHEVENTS")) {
+        f1DSingleEventHist = new TH1F *[nbOfPlaneHists];
+        f2DSingleEventHist = new TH2F *[nbOfPlaneHists];
+
+        std::map<TString, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();
+        std::map<TString, Int_t>::const_iterator plane_itr;
+        for (plane_itr = listOfPlanes.begin(); plane_itr != listOfPlanes.end(); ++plane_itr) {
+            TString plane = (*plane_itr).first;
+            Int_t planeId = 2 * fMapping->GetDetectorID(fMapping->GetDetectorFromPlane(plane)) + (*plane_itr).second;
+            Int_t nbOfStrips = 128 * fMapping->GetNbOfAPVsOnPlane((*plane_itr).first);
+            Float_t size = fMapping->GetPlaneSize((*plane_itr).first);
+            Int_t id = fMapping->GetNbOfPlane() + planeId;
+
+            Int_t nbBins = nbOfStrips * fNbOfTimeSamples;
+
+            TString zeroSup = (*plane_itr).first + "_zeroSup";
+            f1DSingleEventHist[planeId] = new TH1F(zeroSup, zeroSup, nbBins, 0, (nbBins - 1));
+            f1DSingleEventHist[planeId]->SetLabelSize(0.04, "X");
+            f1DSingleEventHist[planeId]->SetLabelSize(0.04, "Y");
+
+            TString presZeroSup = (*plane_itr).first + "_pedSub";
+            f1DSingleEventHist[id] = new TH1F(presZeroSup, presZeroSup, nbBins, 0, (nbBins - 1));
+            f1DSingleEventHist[id]->SetLabelSize(0.04, "X");
+            f1DSingleEventHist[id]->SetLabelSize(0.04, "Y");
+
+            zeroSup = (*plane_itr).first + "_SingleHit_vs_timebin_2D";
+            f2DSingleEventHist[planeId] = new TH2F(zeroSup, zeroSup, fNbOfTimeSamples, 0, driftTime, nbOfStrips, 0,
+                                                   (nbOfStrips - 1));
+            f2DSingleEventHist[planeId]->GetXaxis()->SetTitle("drift time");
+            f2DSingleEventHist[planeId]->GetYaxis()->SetTitle("Strip Nb");
+            f2DSingleEventHist[planeId]->GetYaxis()->SetTitleSize(0.05);
+            f2DSingleEventHist[planeId]->GetXaxis()->SetTitleSize(0.05);
+            f2DSingleEventHist[planeId]->GetXaxis()->SetTitleOffset(1.1);
+            f2DSingleEventHist[planeId]->GetYaxis()->SetTitleOffset(1.1);
+
+            f2DSingleEventHist[planeId]->SetLabelSize(0.04, "X");
+            f2DSingleEventHist[planeId]->SetLabelSize(0.04, "Y");
+            printf(" = GemView::InitHistForZeroSup() => Initialize single events histos: plane[%s], nbStrips=%d, nbTimeS=%d, size=%f, to histId[%d]\n",
+                   plane.Data(), nbOfStrips, fNbOfTimeSamples, size, planeId);
+
+            presZeroSup = (*plane_itr).first + "Accu_Hits_vs_timebin_2D";
+            f2DSingleEventHist[id] = new TH2F(presZeroSup, presZeroSup, fNbOfTimeSamples, 0, driftTime, nbOfStrips, 0,
+                                              (nbOfStrips - 1));
+            f2DSingleEventHist[id]->GetXaxis()->SetTitle("drift time");
+            f2DSingleEventHist[id]->GetYaxis()->SetTitle("Strip Nb");
+            f2DSingleEventHist[id]->GetYaxis()->SetTitleSize(0.05);
+            f2DSingleEventHist[id]->GetXaxis()->SetTitleSize(0.05);
+            f2DSingleEventHist[id]->GetYaxis()->SetTitleOffset(1.1);
+            f2DSingleEventHist[id]->GetXaxis()->SetTitleOffset(1.1);
+
+            f2DSingleEventHist[id]->SetLabelSize(0.04, "X");
+            f2DSingleEventHist[id]->SetLabelSize(0.04, "Y");
+            printf(" = GemView::InitHistForZeroSup() => Initialize histos: plane[%s], nbOfStrips=%d, nbOfTimeSamples=%d, size=%f, to histId[%d]\n",
+                   plane.Data(), nbOfStrips, fNbOfTimeSamples, size, id);
+        }
+    }
+
+    if (fRunType == "MULTIEVENTS") {
+        // PLANES
+        fADCHist = new TH1F *[fMapping->GetNbOfPlane()];
+        fHitHist = new TH1F *[nbOfPlaneHists];
+        fClusterHist = new TH1F *[nbOfPlaneHists];
+        fClusterInfoHist = new TH1F *[nbOfPlaneHists];
+        fTimeBinPosHist = new TH2F *[nbOfPlaneHists];
+        fADCTimeBinPosHist = new TH2F *[nbOfPlaneHists];
+
+        std::map<TString, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();
+        std::map<TString, Int_t>::const_iterator plane_itr;
+        for (plane_itr = listOfPlanes.begin(); plane_itr != listOfPlanes.end(); ++plane_itr) {
+            TString plane = (*plane_itr).first;
+            Int_t planeId = 2 * fMapping->GetDetectorID(fMapping->GetDetectorFromPlane(plane)) + (*plane_itr).second;
+            Int_t id = fMapping->GetNbOfPlane() + planeId;
+            Int_t nbOfStrips = 128 * fMapping->GetNbOfAPVsOnPlane((*plane_itr).first);
+            Float_t size = fMapping->GetPlaneSize((*plane_itr).first);
+
+            TString hitCount = (*plane_itr).first + "_stripHitCount";
+            fHitHist[planeId] = new TH1F(hitCount, hitCount, nbOfStrips, -1 * size / 2., size / 2.);
+            fHitHist[planeId]->GetXaxis()->SetTitle("Strip hit position");
+            fHitHist[planeId]->GetYaxis()->SetTitle("Strip hit counts");
+            fHitHist[planeId]->SetLabelSize(0.04, "X");
+            fHitHist[planeId]->SetLabelSize(0.04, "Y");
+
+            TString hitUniformity = (*plane_itr).first + "_HitUniformity";
+            fHitHist[id] = new TH1F(hitUniformity, hitUniformity, nbOfStrips, -1 * size / 2., size / 2.);
+            fHitHist[id]->GetXaxis()->SetTitle("Strip hit position");
+            fHitHist[id]->GetYaxis()->SetTitle("Average strip hit ADC");
+            fHitHist[id]->SetLabelSize(0.04, "X");
+            fHitHist[id]->SetLabelSize(0.04, "Y");
+
+            TString clusterCount = (*plane_itr).first + "_clusterHitCount";
+            fClusterHist[planeId] = new TH1F(clusterCount, clusterCount, nbOfStrips, -1 * size / 2., size / 2.);
+            fClusterHist[planeId]->GetXaxis()->SetTitle("Cluster position");
+            fClusterHist[planeId]->GetYaxis()->SetTitle("Counts");
+            fClusterHist[planeId]->SetLabelSize(0.04, "X");
+            fClusterHist[planeId]->SetLabelSize(0.04, "Y");
+
+            TString clusterUniformity = (*plane_itr).first + "_clusterUniformity";
+            fClusterHist[id] = new TH1F(clusterUniformity, clusterUniformity, nbOfStrips, -1 * size / 2., size / 2.);
+            fClusterHist[id]->GetXaxis()->SetTitle("Cluster's position");
+            fClusterHist[id]->GetYaxis()->SetTitle("Average ADC");
+            fClusterHist[id]->SetLabelSize(0.04, "X");
+            fClusterHist[id]->SetLabelSize(0.04, "Y");
+
+            TString clusterMult = (*plane_itr).first + "_clusterMultiplicity";
+            fClusterInfoHist[planeId] = new TH1F(clusterMult, clusterMult, 21, 0, 20.);
+            fClusterInfoHist[planeId]->GetXaxis()->SetTitle("Nb of clusters");
+            fClusterInfoHist[planeId]->GetYaxis()->SetTitle("Counts");
+            fClusterInfoHist[planeId]->SetLabelSize(0.04, "X");
+            fClusterInfoHist[planeId]->SetLabelSize(0.04, "Y");
+
+            TString clusterSize = (*plane_itr).first + "_clusterSize";
+            fClusterInfoHist[id] = new TH1F(clusterSize, clusterSize, 21, 0, 20.);
+            fClusterInfoHist[id]->GetXaxis()->SetTitle("Nb of hit per cluster");
+            fClusterInfoHist[id]->GetYaxis()->SetTitle("Counts");
+            fClusterInfoHist[id]->SetLabelSize(0.04, "X");
+            fClusterInfoHist[id]->SetLabelSize(0.04, "Y");
+
+            //      Int_t nbADCBins = 500 ;
+            TString adcDist = (*plane_itr).first + "_adcDist";
+            fADCHist[planeId] = new TH1F(adcDist, adcDist, fNbADCBins, fConfig.GetMinADCvalue(),
+                                         fConfig.GetMaxADCvalue());
+            fADCHist[planeId]->GetXaxis()->SetTitle("ADC");
+            fADCHist[planeId]->GetYaxis()->SetTitle("Counts");
+            fADCHist[planeId]->SetLabelSize(0.04, "X");
+            fADCHist[planeId]->SetLabelSize(0.04, "Y");
+
+            Int_t tsbin = (Int_t) (nbOfStrips / 8);
+
+            TString alltimeBin = (*plane_itr).first + "adc_vs_pos_allTimeBin";
+            fADCTimeBinPosHist[planeId] = new TH2F(alltimeBin, alltimeBin, fNbOfTimeSamples, 0, driftTime, tsbin, 0,
+                                                   (nbOfStrips - 1));
+            fADCTimeBinPosHist[planeId]->GetXaxis()->SetTitle("drift time");
+            fADCTimeBinPosHist[planeId]->GetYaxis()->SetTitle("Position (mm)");
+            fADCTimeBinPosHist[planeId]->SetLabelSize(0.04, "X");
+            fADCTimeBinPosHist[planeId]->SetLabelSize(0.04, "Y");
+
+            TString timeBinPeak = (*plane_itr).first + "adc_vs_pos_timeBinPeak";
+            fADCTimeBinPosHist[id] = new TH2F(timeBinPeak, timeBinPeak, fNbOfTimeSamples, 0, driftTime, tsbin, 0,
+                                              (nbOfStrips - 1));
+            fADCTimeBinPosHist[id]->GetXaxis()->SetTitle("drift time");
+            fADCTimeBinPosHist[id]->GetYaxis()->SetTitle("Position (mm)");
+            fADCTimeBinPosHist[id]->SetLabelSize(0.04, "X");
+            fADCTimeBinPosHist[id]->SetLabelSize(0.04, "Y");
+
+            alltimeBin = (*plane_itr).first + "_pos_vs_allTimeBin";
+            fTimeBinPosHist[planeId] = new TH2F(alltimeBin, alltimeBin, fNbOfTimeSamples, 0, driftTime, tsbin, 0,
+                                                (nbOfStrips - 1));
+            fTimeBinPosHist[planeId]->GetXaxis()->SetTitle("drift time");
+            fTimeBinPosHist[planeId]->GetYaxis()->SetTitle("Position (mm)");
+            fTimeBinPosHist[planeId]->SetLabelSize(0.04, "X");
+            fTimeBinPosHist[planeId]->SetLabelSize(0.04, "Y");
+
+            timeBinPeak = (*plane_itr).first + "_pos_vs_timeBinPeak";
+            fTimeBinPosHist[id] = new TH2F(timeBinPeak, timeBinPeak, fNbOfTimeSamples, 0, driftTime, tsbin, 0,
+                                           (nbOfStrips - 1));
+            fTimeBinPosHist[id]->GetXaxis()->SetTitle("drift time");
+            fTimeBinPosHist[id]->GetYaxis()->SetTitle("Position (mm)");
+            fTimeBinPosHist[id]->SetLabelSize(0.04, "X");
+            fTimeBinPosHist[id]->SetLabelSize(0.04, "Y");
+            printf(" = GemView::InitHistForZeroSup() ==> plane[%s] to histId[%d]  \n", plane.Data(), planeId);
+        }
+
+        // DETECTORS
+        f2DPlotsHist = new TH2F *[3 * fMapping->GetNbOfDetectors()];
+        fChargeSharingHist = new TH2F *[fMapping->GetNbOfDetectors()];
+        fChargeRatioHist = new TH1F *[fMapping->GetNbOfDetectors()];
+
+        std::map<Int_t, TString> listOfDetectors = fMapping->GetDetectorFromIDMap();
+        std::map<Int_t, TString>::const_iterator det_itr;
+        for (det_itr = listOfDetectors.begin(); det_itr != listOfDetectors.end(); ++det_itr) {
+            Int_t detId = (*det_itr).first;
+            TString detector = (*det_itr).second;
+
+            Float_t size1 = 0.5 * fMapping->GetPlaneSize(fMapping->GetPlaneListFromDetector(detector).front());
+            Float_t size2 = 0.5 * fMapping->GetPlaneSize(fMapping->GetPlaneListFromDetector(detector).back());
+            //    Int_t nbin1 = 256;
+            //      Int_t nbin2 = 256;
+            Int_t nbin1 = 64;
+            Int_t nbin2 = 64;
+
+            /**
+            if (fMapping->GetReadoutBoardFromDetector(detector) == "UV_ANGLE") {
+          size1 = 0.5 * fMapping->GetPlaneSize(fMapping->GetPlaneListFromDetector(detector).front());
+          size2 = 0.5 * fMapping->GetPlaneSize(fMapping->GetPlaneListFromDetector(detector).back());
+          nbin1 = 25 ;
+          nbin2 = 25 ;
+            }
+            */
+
+            TString hitMap = detector + "_ClusterHitMap";
+            f2DPlotsHist[3 * detId] = new TH2F(hitMap, hitMap, nbin1, -1 * size1, size1, nbin2, -1 * size2, size2);
+            f2DPlotsHist[3 * detId]->GetXaxis()->SetTitle("cluster x-position (mm)");
+            f2DPlotsHist[3 * detId]->GetYaxis()->SetTitle("cluster y-position (mm)");
+            f2DPlotsHist[3 * detId]->SetLabelSize(0.04, "X");
+            f2DPlotsHist[3 * detId]->SetLabelSize(0.04, "Y");
+
+            TString adcMap = detector + "_gain_Uniformity";
+            f2DPlotsHist[3 * detId + 1] = new TH2F(adcMap, adcMap, nbin1, -1 * size1, size1, nbin2, -1 * size2, size2);
+            f2DPlotsHist[3 * detId + 1]->GetXaxis()->SetTitle("cluster x-position (mm)");
+            f2DPlotsHist[3 * detId + 1]->GetYaxis()->SetTitle("cluster y-position (mm)");
+            f2DPlotsHist[3 * detId + 1]->SetLabelSize(0.04, "X");
+            f2DPlotsHist[3 * detId + 1]->SetLabelSize(0.04, "Y");
+
+            TString timingMap = detector + "_timing_Uniformity";
+            f2DPlotsHist[3 * detId + 2] = new TH2F(timingMap, timingMap, nbin1, -1 * size1, size1, nbin2, -1 * size2,
+                                                   size2);
+            f2DPlotsHist[3 * detId + 2]->GetXaxis()->SetTitle("cluster x-position (mm)");
+            f2DPlotsHist[3 * detId + 2]->GetYaxis()->SetTitle("cluster y-position (mm)");
+            f2DPlotsHist[3 * detId + 2]->SetLabelSize(0.04, "X");
+            f2DPlotsHist[3 * detId + 2]->SetLabelSize(0.04, "Y");
+
+            TString chSharing = detector + "_charge_Sharing";
+            fChargeSharingHist[detId] = new TH2F(chSharing, chSharing, 50, fConfig.GetMinADCvalue(),
+                                                 fConfig.GetMaxADCvalue(), 50, fConfig.GetMinADCvalue(),
+                                                 fConfig.GetMaxADCvalue());
+            fChargeSharingHist[detId]->GetXaxis()->SetTitle("ADC in X-strips");
+            fChargeSharingHist[detId]->GetYaxis()->SetTitle("ADC in Y-strips");
+            fChargeSharingHist[detId]->SetLabelSize(0.04, "X");
+            fChargeSharingHist[detId]->SetLabelSize(0.04, "Y");
+
+            TString chRatio = detector + "_charge_Ratio";
+            fChargeRatioHist[detId] = new TH1F(chRatio, chRatio, 31, 0.0, 3.0);
+            fChargeRatioHist[detId]->GetXaxis()->SetTitle("ADC charge ratio x / Y");
+            fChargeRatioHist[detId]->GetYaxis()->SetTitle("ratio");
+            fChargeRatioHist[detId]->SetLabelSize(0.04, "X");
+            fChargeRatioHist[detId]->SetLabelSize(0.04, "Y");
+            printf(" = GemView::InitHistForZeroSup() ==> detector[%s] to histId[%d]  \n", detector.Data(), detId);
+        }
+    }
+    logger()->info(" = GemView::InitHistForZeroSup() ==> Exit Init for zero sup analysis %s run\n", fRunType);
 }
 
 
@@ -213,11 +459,8 @@ void GEMReconTestProcessor::Process(const std::shared_ptr<const JEvent> &event) 
                                         fMinADCvalue, fMinClusterSize, fMaxClusterSize, fMaxClusterMult);
         hit_decoder.ProcessEvent(fCurrentEvent, fPedestal);
 
-        TH1F **hist;
-        TH2F **hist2d;
-        Int_t nbOfPlaneHists = 2 * fMapping->GetNbOfPlane();
-        hist    = new TH1F * [nbOfPlaneHists] ;
-        hist2d    = new TH2F * [nbOfPlaneHists] ;
+        TH1F **hist = f1DSingleEventHist;
+        TH2F **hist2d = f2DSingleEventHist;
 
         hit_decoder.ProcessEvent(fCurrentEvent, fPedestal);
         std::map<TString, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();

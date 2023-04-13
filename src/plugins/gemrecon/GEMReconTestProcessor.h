@@ -56,5 +56,8 @@ private:
     GEMPedestal *fPedestal;
     GemMapping *fMapping;
     GemConfiguration fConfig;
+    TH1F **f1DSingleEventHist, **fADCHist, **fHitHist, **fClusterHist, **fClusterInfoHist, **fChargeRatioHist;
+    TH2F **fTimeBinPosHist, **fADCTimeBinPosHist, **f2DPlotsHist, **f2DSingleEventHist, **fChargeSharingHist;
+    void InitHistForZeroSup();
 };
 
