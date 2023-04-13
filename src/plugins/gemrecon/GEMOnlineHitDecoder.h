@@ -41,9 +41,9 @@ public:
 
 public:
 
-    int GetClusters(TString plane, vector<SFclust> &clust);
+    int GetClusters(TString plane, std::vector<SFclust> &clust);
 
-    void ProcessEvent(map<int, map<int, vector<int> > >, GEMPedestal *);
+    void ProcessEvent(std::map<int, std::map<int, std::vector<int> > >, GEMPedestal *);
 
     void GetListOfClustersFromPlanes();
 
@@ -101,16 +101,16 @@ private:
     Float_t fMinADCvalue, fAPVBaseline;
 
     GemMapping *fMapping;
-    set<int> FECs;
+    std::set<int> FECs;
 
-    map<Int_t, GEMHit *> fListOfHits, fListOfHitsClean;
-    map<TString, list<GEMHit *> > fListOfHitsFromPlane, fListOfHitsCleanFromPlane;
-    map<TString, list<GEMCluster *> > fListOfClustersCleanFromPlane;
-    map<int, map<int, vector<int> > > mSrsSingleEvent;
+    std::map<Int_t, GEMHit *> fListOfHits, fListOfHitsClean;
+    std::map<TString, std::list<GEMHit *> > fListOfHitsFromPlane, fListOfHitsCleanFromPlane;
+    std::map<TString, std::list<GEMCluster *> > fListOfClustersCleanFromPlane;
+    std::map<int, std::map<int, std::vector<int> > > mSrsSingleEvent;
 
-    vector<int> fRawData16bits, fActiveADCchannels;
-    vector<Float_t> fPedestalNoises, fPedestalNoises_1stSet, fPedestalNoises_2ndSet;
-    vector<Float_t> fPedestalOffsets, fPedestalOffsets_1stSet, fPedestalOffsets_2ndSet;
+    std::vector<int> fRawData16bits, fActiveADCchannels;
+    std::vector<Float_t> fPedestalNoises, fPedestalNoises_1stSet, fPedestalNoises_2ndSet;
+    std::vector<Float_t> fPedestalOffsets, fPedestalOffsets_1stSet, fPedestalOffsets_2ndSet;
 
     Bool_t fIsGoodClusterEvent;
 

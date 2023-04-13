@@ -6,6 +6,8 @@
 #include <TDirectory.h>
 #include <TH1F.h>
 #include <TH2F.h>
+#include "GemConfiguration.h"
+#include "GEMPedestal.h"
 
 class JEvent;
 class JApplication;
@@ -51,5 +53,8 @@ private:
     TH1F* m_histo_1d;
     TH2F* m_trd_integral_h2d;
     TDirectory *m_dir_event_hists;
+    GEMPedestal *fPedestal;
+    GemMapping *fMapping;
+    GemConfiguration fConfig;
 };
 

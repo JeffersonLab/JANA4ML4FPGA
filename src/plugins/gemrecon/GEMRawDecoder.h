@@ -25,28 +25,28 @@
 class TH1F;
 class GemMapping;
 
-using namespace std;
+
 
 class GEMRawDecoder
 {
 public:
   GEMRawDecoder();
-  GEMRawDecoder( vector<int> );
+  GEMRawDecoder( std::vector<int> );
   GEMRawDecoder( unsigned int *, int);
   ~GEMRawDecoder();
 
   void SwitchEndianess(unsigned int *, int &);
   void CheckInactiveChannel(int , unsigned int *);
-  void Decode(vector<int> );
+  void Decode(std::vector<int> );
   void Decode(unsigned int *, int);
-  void DecodeFEC(vector<int> );
+  void DecodeFEC(std::vector<int> );
   void DecodeFEC(unsigned int *, int );
-  void FillAPVRaw(vector<int> &, unsigned int);
+  void FillAPVRaw(std::vector<int> &, unsigned int);
 
-  map<int, map<int, vector<int> > > GetDecoded();
-  map<int, map<int, TH1F* > >  GetAPVRawHisto();
-  map<int, vector<int> >  GetFECDecoded();
-  map<int, TH1F* > GetFECAPVRawHisto();
+  std::map<int, std::map<int, std::vector<int> > > GetDecoded();
+  std::map<int, std::map<int, TH1F* > >  GetAPVRawHisto();
+  std::map<int, std::vector<int> >  GetFECDecoded();
+  std::map<int, TH1F* > GetFECAPVRawHisto();
 
   void Word32ToWord16(unsigned int *, unsigned int*, unsigned int*);
 
@@ -65,15 +65,15 @@ private:
   int nadcCh;
   int apvIndex;
 
-  map<int, map<int, vector<int> > > mAPVRawSingleEvent;
-  map<int, map<int, TH1F* > > mAPVRawHisto;
-  map<int, vector<int> > mFecApvEvent;
-  map<int, TH1F* >  mFecApvHisto;
+  std::map<int, std::map<int, std::vector<int> > > mAPVRawSingleEvent;
+  std::map<int, std::map<int, TH1F* > > mAPVRawHisto;
+  std::map<int, std::vector<int> > mFecApvEvent;
+  std::map<int, TH1F* >  mFecApvHisto;
 
 
   GemMapping* mapping;
 
-  vector<int> vActiveAdcChannels;
+    std::vector<int> vActiveAdcChannels;
 };
 
 #endif

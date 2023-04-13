@@ -29,7 +29,7 @@
 
 #endif
 
-using namespace std;
+
 
 class GemMapping /*: public TObject*/ {
 
@@ -69,7 +69,7 @@ public:
 
     void LoadMapping(const char *mappingCfgFilename);
 
-    set<int> GetBankIDSet();
+    std::set<int> GetBankIDSet();
 
     TString GetFECIPFromFECID(Int_t id);
 
@@ -118,59 +118,59 @@ public:
 
     void ComputeActiveADCchannelsMap();
 
-    vector<Int_t> GetActiveADCchannels(Int_t fecID) { return fActiveADCchannelsMap[fecID]; }
+    std::vector<Int_t> GetActiveADCchannels(Int_t fecID) { return fActiveADCchannelsMap[fecID]; }
 
     void Clear();
 
-    map<Int_t, Int_t> GetAPVNoFromIDMap() { return fAPVNoFromIDMap; }
+    std::map<Int_t, Int_t> GetAPVNoFromIDMap() { return fAPVNoFromIDMap; }
 
-    map<Int_t, Int_t> GetAPVIDFromAPVNoMap() { return fAPVIDFromAPVNoMap; }
+    std::map<Int_t, Int_t> GetAPVIDFromAPVNoMap() { return fAPVIDFromAPVNoMap; }
 
-    map<Int_t, Int_t> GetAPVGainFromIDMap() { return fAPVGainFromIDMap; }
+    std::map<Int_t, Int_t> GetAPVGainFromIDMap() { return fAPVGainFromIDMap; }
 
-    map<Int_t, Int_t> GetAPVOrientationFromIDMap() { return fAPVOrientationFromIDMap; }
+    std::map<Int_t, Int_t> GetAPVOrientationFromIDMap() { return fAPVOrientationFromIDMap; }
 
-    map<Int_t, UInt_t> GetAPVHeaderLevelFromIDMap() { return fAPVHeaderLevelFromIDMap; }
+    std::map<Int_t, UInt_t> GetAPVHeaderLevelFromIDMap() { return fAPVHeaderLevelFromIDMap; }
 
-    map<Int_t, Int_t> GetAPVIndexOnPlaneFromIDMap() { return fAPVIndexOnPlaneFromIDMap; }
+    std::map<Int_t, Int_t> GetAPVIndexOnPlaneFromIDMap() { return fAPVIndexOnPlaneFromIDMap; }
 
-    map<Int_t, TString> GetAPVFromIDMap() { return fAPVFromIDMap; }
+    std::map<Int_t, TString> GetAPVFromIDMap() { return fAPVFromIDMap; }
 
-    map<Int_t, TString> GetDetectorFromIDMap() { return fDetectorFromIDMap; }
+    std::map<Int_t, TString> GetDetectorFromIDMap() { return fDetectorFromIDMap; }
 
-    map<Int_t, TString> GetDetectorFromAPVIDMap() { return fDetectorFromAPVIDMap; }
+    std::map<Int_t, TString> GetDetectorFromAPVIDMap() { return fDetectorFromAPVIDMap; }
 
-    map<TString, Int_t> GetPlaneIDFromPlaneMap() { return fPlaneIDFromPlaneMap; }
+    std::map<TString, Int_t> GetPlaneIDFromPlaneMap() { return fPlaneIDFromPlaneMap; }
 
-    map<TString, vector<Float_t> > GetPadDetectorMap() { return fPadDetectorMap; }
+    std::map<TString, std::vector<Float_t> > GetPadDetectorMap() { return fPadDetectorMap; }
 
-    map<TString, vector<Float_t> > GetCartesianPlaneMap() { return fCartesianPlaneMap; }
+    std::map<TString, std::vector<Float_t> > GetCartesianPlaneMap() { return fCartesianPlaneMap; }
 
-    map<TString, list<Int_t> > GetAPVIDListFromDetectorMap() { return fAPVIDListFromDetectorMap; }
+    std::map<TString, std::list<Int_t> > GetAPVIDListFromDetectorMap() { return fAPVIDListFromDetectorMap; }
 
-    map<TString, list<Int_t> > GetAPVIDListFromPlaneMap() { return fAPVIDListFromPlaneMap; }
+    std::map<TString, std::list<Int_t> > GetAPVIDListFromPlaneMap() { return fAPVIDListFromPlaneMap; }
 
-    list<Int_t> GetAPVIDListFromDetector(TString detName) {
+    std::list<Int_t> GetAPVIDListFromDetector(TString detName) {
         fAPVIDListFromDetectorMap[detName].unique();
         return fAPVIDListFromDetectorMap[detName];
     }
 
-    list<Int_t> GetAPVIDListFromPlane(TString planeName) {
+    std::list<Int_t> GetAPVIDListFromPlane(TString planeName) {
         fAPVIDListFromPlaneMap[planeName].unique();
         return fAPVIDListFromPlaneMap[planeName];
     }
 
-    list<Int_t> GetFECIDListFromPlane(TString planeName) {
+    std::list<Int_t> GetFECIDListFromPlane(TString planeName) {
         fFECIDListFromPlaneMap[planeName].unique();
         return fFECIDListFromPlaneMap[planeName];
     }
 
-    list<Int_t> GetAPVIDListFromFECID(Int_t fecId) {
+    std::list<Int_t> GetAPVIDListFromFECID(Int_t fecId) {
         fAPVIDListFromFECIDMap[fecId].unique();
         return fAPVIDListFromFECIDMap[fecId];
     }
 
-    list<TString> GetPlaneListFromDetector(TString detName) {
+    std::list<TString> GetPlaneListFromDetector(TString detName) {
         fPlaneListFromDetectorMap[detName].unique();
         return fPlaneListFromDetectorMap[detName];
     }
@@ -201,13 +201,13 @@ public:
 
     TString GetDetectorFromPlane(TString planeName) { return fDetectorFromPlaneMap[planeName]; }
 
-    vector<Float_t> GetCartesianReadoutMap(TString plane) { return fCartesianPlaneMap[plane]; }
+    std::vector<Float_t> GetCartesianReadoutMap(TString plane) { return fCartesianPlaneMap[plane]; }
 
-    vector<Float_t> GetUVangleReadoutMap(TString plane) { return fUVangleReadoutMap[plane]; }
+    std::vector<Float_t> GetUVangleReadoutMap(TString plane) { return fUVangleReadoutMap[plane]; }
 
-    vector<Float_t> Get1DStripsReadoutMap(TString plane) { return f1DStripsPlaneMap[plane]; }
+    std::vector<Float_t> Get1DStripsReadoutMap(TString plane) { return f1DStripsPlaneMap[plane]; }
 
-    vector<Float_t> GetCMSGEMReadoutMap(TString etaSector) { return fCMSGEMDetectorMap[etaSector]; }
+    std::vector<Float_t> GetCMSGEMReadoutMap(TString etaSector) { return fCMSGEMDetectorMap[etaSector]; }
 
     Int_t GetPlaneID(TString planeName);
 
@@ -227,9 +227,9 @@ public:
 
     TString GetAPV(TString detPlane, Int_t fecId, Int_t adcChannel, Int_t apvNo, Int_t apvIndex);
 
-    vector<Int_t> GetPadChannelsMapping(Int_t apvID) { return fAPVToPadChannelMap[apvID]; }
+    std::vector<Int_t> GetPadChannelsMapping(Int_t apvID) { return fAPVToPadChannelMap[apvID]; }
 
-    map<Int_t, vector<Int_t> > GetPadChannelsMapping() { return fAPVToPadChannelMap; }
+    std::map<Int_t, std::vector<Int_t> > GetPadChannelsMapping() { return fAPVToPadChannelMap; }
 
     Int_t GetNbOfAPVs() { return fAPVNoFromIDMap.size(); }
 
@@ -248,7 +248,7 @@ public:
     Float_t GetTrapezoidDetOuterRadius(TString detector) { return (fUVangleReadoutMap[detector])[2]; }
 
     Bool_t IsAPVIDMapped(Int_t apvID) {
-        map<Int_t, TString>::iterator itr;
+        std::map<Int_t, TString>::iterator itr;
         itr = fAPVFromIDMap.find(apvID);
         if (itr != fAPVFromIDMap.end())
             return kTRUE;
@@ -264,49 +264,49 @@ private:
     static GemMapping *instance;
     Int_t fNbOfAPVs;
 
-    map<Int_t, UInt_t> fAPVHeaderLevelFromIDMap;
-    map<Int_t, Int_t> fAPVNoFromIDMap, fAPVIDFromAPVNoMap, fAPVIndexOnPlaneFromIDMap, fAPVOrientationFromIDMap;
-    map<TString, Int_t> fNbOfAPVsFromDetectorMap;
+    std::map<Int_t, UInt_t> fAPVHeaderLevelFromIDMap;
+    std::map<Int_t, Int_t> fAPVNoFromIDMap, fAPVIDFromAPVNoMap, fAPVIndexOnPlaneFromIDMap, fAPVOrientationFromIDMap;
+    std::map<TString, Int_t> fNbOfAPVsFromDetectorMap;
 
-    map<Int_t, Int_t> fAPVGainFromIDMap;
-    map<TString, Int_t> fAPVIDFromNameMap;
-    map<Int_t, TString> fAPVFromIDMap;
-    map<Int_t, TString> fAPVstatusMap;
+    std::map<Int_t, Int_t> fAPVGainFromIDMap;
+    std::map<TString, Int_t> fAPVIDFromNameMap;
+    std::map<Int_t, TString> fAPVFromIDMap;
+    std::map<Int_t, TString> fAPVstatusMap;
 
-    map<TString, Int_t> fPlaneIDFromPlaneMap;
-    map<Int_t, TString> fPlaneFromAPVIDMap;
+    std::map<TString, Int_t> fPlaneIDFromPlaneMap;
+    std::map<Int_t, TString> fPlaneFromAPVIDMap;
 
-    map<Int_t, TString> fReadoutBoardFromIDMap;
+    std::map<Int_t, TString> fReadoutBoardFromIDMap;
 
-    map<TString, TString> fDetectorTypeFromDetectorMap;
-    map<TString, TString> fReadoutBoardFromDetectorMap;
-    map<TString, Int_t> fDetectorIDFromDetectorMap;
-    map<Int_t, TString> fDetectorFromIDMap;
-    map<Int_t, TString> fDetectorFromAPVIDMap;
-    map<TString, TString> fDetectorFromPlaneMap;
+    std::map<TString, TString> fDetectorTypeFromDetectorMap;
+    std::map<TString, TString> fReadoutBoardFromDetectorMap;
+    std::map<TString, Int_t> fDetectorIDFromDetectorMap;
+    std::map<Int_t, TString> fDetectorFromIDMap;
+    std::map<Int_t, TString> fDetectorFromAPVIDMap;
+    std::map<TString, TString> fDetectorFromPlaneMap;
 
-    map<Int_t, list<Int_t> > fAPVIDListFromFECIDMap;
+    std::map<Int_t, std::list<Int_t> > fAPVIDListFromFECIDMap;
 
-    map<TString, list<Int_t> > fFECIDListFromPlaneMap;
-    map<TString, list<Int_t> > fAPVIDListFromDetectorMap;
-    map<TString, list<Int_t> > fAPVIDListFromPlaneMap;
+    std::map<TString, std::list<Int_t> > fFECIDListFromPlaneMap;
+    std::map<TString, std::list<Int_t> > fAPVIDListFromDetectorMap;
+    std::map<TString, std::list<Int_t> > fAPVIDListFromPlaneMap;
 
-    map<TString, list<TString> > fDetectorListFromDetectorTypeMap;
-    map<TString, list<TString> > fDetectorListFromReadoutBoardMap;
-    map<TString, list<TString> > fPlaneListFromDetectorMap;
+    std::map<TString, std::list<TString> > fDetectorListFromDetectorTypeMap;
+    std::map<TString, std::list<TString> > fDetectorListFromReadoutBoardMap;
+    std::map<TString, std::list<TString> > fPlaneListFromDetectorMap;
 
-    map<Int_t, vector<Int_t> > fAPVToPadChannelMap;
-    map<Int_t, vector<Int_t> > fActiveADCchannelsMap;
+    std::map<Int_t, std::vector<Int_t> > fAPVToPadChannelMap;
+    std::map<Int_t, std::vector<Int_t> > fActiveADCchannelsMap;
 
-    map<TString, vector<Float_t> > fADCchannelsFromFECMap;
-    map<TString, vector<Float_t> > fPadDetectorMap;
-    map<TString, vector<Float_t> > fUVangleReadoutMap;
-    map<TString, vector<Float_t> > f1DStripsPlaneMap;
-    map<TString, vector<Float_t> > fCartesianPlaneMap;
-    map<TString, vector<Float_t> > fCMSGEMDetectorMap;
+    std::map<TString, std::vector<Float_t> > fADCchannelsFromFECMap;
+    std::map<TString, std::vector<Float_t> > fPadDetectorMap;
+    std::map<TString, std::vector<Float_t> > fUVangleReadoutMap;
+    std::map<TString, std::vector<Float_t> > f1DStripsPlaneMap;
+    std::map<TString, std::vector<Float_t> > fCartesianPlaneMap;
+    std::map<TString, std::vector<Float_t> > fCMSGEMDetectorMap;
 
-    map<Int_t, TString> fFECIPFromFECID;
-    map<TString, Int_t> fFECIDFromFECIP;
+    std::map<Int_t, TString> fFECIPFromFECID;
+    std::map<TString, Int_t> fFECIDFromFECIP;
 };
 
 #endif

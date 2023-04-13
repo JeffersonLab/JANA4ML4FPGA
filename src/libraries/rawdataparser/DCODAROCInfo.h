@@ -11,7 +11,7 @@
 
 #include <JANA/JObject.h>
 
-using namespace std;
+
 
 class DCODAROCInfo:public JObject{
 	public:
@@ -19,7 +19,7 @@ class DCODAROCInfo:public JObject{
 		
 		uint32_t rocid;
 		uint64_t timestamp;
-		vector<uint32_t> misc;
+    std::vector<uint32_t> misc;
 		
 		// This method is used primarily for pretty printing
 		// the second argument to AddString is printf style format

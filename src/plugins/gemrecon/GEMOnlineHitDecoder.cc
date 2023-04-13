@@ -1,6 +1,8 @@
 #include "GEMOnlineHitDecoder.h"
 // #include "GemView.h"
 
+using namespace std;
+
 static string trim(const string &str, const string &w = " \t\n\r") {
     const auto strBegin = str.find_first_not_of(w);
     if (strBegin == string::npos) return ""; // no content

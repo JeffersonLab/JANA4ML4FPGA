@@ -45,7 +45,7 @@ public:
 
 private:
     std::string m_evio_filename = "";
-    unique_ptr<HDEVIO> m_hdevio;
+    std::unique_ptr<HDEVIO> m_hdevio;
 
     uint32_t *m_buff = nullptr;
     uint32_t m_buff_len = DEFAULT_READ_BUFF_LEN;

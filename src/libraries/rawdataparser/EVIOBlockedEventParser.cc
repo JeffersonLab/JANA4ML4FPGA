@@ -1,5 +1,3 @@
-
-
 #include <sstream>
 #include <thread>
 #include <mutex>
@@ -7,6 +5,7 @@
 #include <rawdataparser/EVIOBlockedEventParser.h>
 #include <rawdataparser/EVIOFileWriter.h>
 
+using namespace std;
 
 // The EBEP namespace is used for things related to the optional output EVIO file.
 namespace EBEP{

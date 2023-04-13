@@ -2,6 +2,7 @@
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
 #include "rawdataparser/Df125FDCPulse.h"
+#include "GEMOnlineHitDecoder.h"
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -10,6 +11,7 @@
 
 #include <spdlog/spdlog.h>
 #include <services/root_output/RootFile_service.h>
+#include <filesystem>
 
 inline static void FillTrdHistogram(uint64_t event_number,
                       TDirectory *hists_dir,
@@ -95,11 +97,51 @@ void GEMReconTestProcessor::Init() {
     // Get Log level from user parameter or default
     InitLogger(plugin_name);
 
+    m_histo_1d = new TH1F("test_histo", "Test histogram", 100, -10, 10);
+    m_trd_integral_h2d = new TH2F("trd_integral_events", "TRD events from Df125WindowRawData integral", 250, -0.5, 249.5, 300, -0.5, 299.5);
+
+    std::string gem_config = "Config.cfg";
+    app->SetDefaultParameter(plugin_name + ":config", gem_config, "Full path to gem config");
+    logger()->info("Configuration file: {}", gem_config);
+
+    try {
+        fConfig.Load(gem_config);
+    }
+    catch(std::iostream::failure &ex) {
+        logger()->error("std::iostream::failure error opening '{}': {}", gem_config, ex.what());
+        throw;
+    }
+    catch (std::exception& ex) {
+        logger()->error("Error opening '{}': {}", gem_config, ex.what());
+        throw;
+    }
+
+    std::filesystem::path pedestals_file_name = fConfig.GetPedFileName();
+
+    std::filesystem::path relative_file_path(gem_config);
+    // Get the parent directory
+    std::filesystem::path parent_directory = relative_file_path.parent_path();
+    std::filesystem::path pedestals_abs_path = std::filesystem::absolute(parent_directory / pedestals_file_name);
+    logger()->info("Pedestals absolute path: {}", pedestals_abs_path.string());
+
+
+    logger()->info("Creating pedestals: {}", fConfig.GetPedFileName());
+    fPedestal = new GEMPedestal(pedestals_abs_path.c_str(), fConfig.GetNbOfTimeSamples());
+    fPedestal->BookHistos();
+
+    //fHandler->InitPedestal(fPedestal);
+    //printf(" = GemView::InitConfig() ==> Initialisation for a %s Run \n", fRunType.Data());
+
     logger()->info("This plugin name is: " + GetPluginName());
     logger()->info("GEMReconTestProcessor initialization is done");
 
-    m_histo_1d = new TH1F("test_histo", "Test histogram", 100, -10, 10);
-    m_trd_integral_h2d = new TH2F("trd_integral_events", "TRD events from Df125WindowRawData integral", 250, -0.5, 249.5, 300, -0.5, 299.5);
+    std::string mapping_file = "Config.cfg";
+    app->SetDefaultParameter(plugin_name + ":mapping", mapping_file, "Full path to gem config");
+    logger()->info("Mapping file file: {}", mapping_file);
+
+    fMapping = GemMapping::GetInstance();
+    fMapping->LoadMapping(mapping_file.c_str());
+    fMapping->PrintMapping();
 }
 
 
@@ -110,21 +152,97 @@ void GEMReconTestProcessor::Init() {
 void GEMReconTestProcessor::Process(const std::shared_ptr<const JEvent> &event) {
     m_log->debug("new event");
     try {
-        auto f125_records = event->Get<Df125WindowRawData>();
+        auto srs_data = event->Get<DGEMSRSWindowRawData>();
+        m_log->trace("DGEMSRSWindowRawData data items: {} ", srs_data.size());
 
-        // Fill TRD event histograms for the first 50 events
-        if(event->GetEventNumber() < 50) {
-            FillTrdHistogram(event->GetEventNumber(), m_dir_event_hists, f125_records, 3, 10);
+        logger()->trace("  [rocid] [slot]  [channel] [apv_id] [channel_apv] [samples size:val1,val2,...]");
+        for(auto srs_item: srs_data) {
+            std::string row = fmt::format("{:<7} {:<7} {:<9} {:<8} {:<13} {:<2}: ",
+                                          srs_item->rocid, srs_item->slot, srs_item->channel,
+                                          srs_item->apv_id, srs_item->channel_apv, srs_item->samples.size());
+
+            for(auto sample: srs_item->samples) {
+                row+=fmt::format(" {}", sample);
+            }
+
+            logger()->info("   {}", row);
         }
 
-        // Fill integral histogram
-        for (auto value: f125_records) {
-            int x = 72 * (value->slot - 3) + value->channel;
-            for (int sample_i = 0; sample_i < value->samples.size(); sample_i++) {
-                float sample = value->samples[sample_i];
+        std::map<int, std::map<int, std::vector<int> > > fCurrentEvent;
 
-                m_log->trace("    sample x(channel)={} y(sample i)={} value={}", x, sample_i, sample);
-                m_trd_integral_h2d->Fill(x, sample_i, sample);
+        for(auto srs_item: srs_data) {
+
+            // Dumb copy of samples because one is int and the other is uint16_t
+            std::vector<int> samples;
+            for(size_t i=0; i<srs_data.size(); i++) {
+                samples.push_back(srs_item->samples[i]);
+            }
+
+            fCurrentEvent[(int)srs_item->apv_id][(int)srs_item->channel_apv] = samples;
+        }
+
+        unsigned int fSrsStart, fSrsEnd;
+        //  float   fOfflineProgress;
+        TString fIsHitPeakOrSumADCs, fIsCentralOrAllStripsADCs;
+        Float_t fMinADCvalue;
+        int fEventNumber, fLastEvent, fZeroSupCut, fComModeCut, fNbOfTimeSamples, fStopTimeSample, fStartTimeSample;
+        int fMinClusterSize, fMaxClusterSize, fMaxClusterMult;
+
+
+
+        fSrsStart = 0xda000022;
+        fSrsEnd = 0xda0000ff;
+        auto fMapping = GemMapping::GetInstance();
+        fEventNumber = -1;
+        fLastEvent = 0;
+        fMinADCvalue = 50;
+        fZeroSupCut = 10;
+        fComModeCut = 20;
+        fNbOfTimeSamples = 9;
+        fStartTimeSample = 2;
+        fStopTimeSample = 7;
+        fMinClusterSize = 2;
+        fMaxClusterSize = 20;
+        fMaxClusterMult = 5;
+        fIsHitPeakOrSumADCs = "peakADCs";
+        fIsCentralOrAllStripsADCs = "centralStripADCs";
+
+
+        GEMOnlineHitDecoder hit_decoder(fEventNumber, fNbOfTimeSamples, fStartTimeSample, fStopTimeSample,
+                                        fZeroSupCut, fComModeCut, fIsHitPeakOrSumADCs, fIsCentralOrAllStripsADCs,
+                                        fMinADCvalue, fMinClusterSize, fMaxClusterSize, fMaxClusterMult);
+        hit_decoder.ProcessEvent(fCurrentEvent, fPedestal);
+
+        TH1F **hist;
+        TH2F **hist2d;
+        Int_t nbOfPlaneHists = 2 * fMapping->GetNbOfPlane();
+        hist    = new TH1F * [nbOfPlaneHists] ;
+        hist2d    = new TH2F * [nbOfPlaneHists] ;
+
+        hit_decoder.ProcessEvent(fCurrentEvent, fPedestal);
+        std::map<TString, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();
+        std::map<TString, Int_t>::const_iterator plane_itr;
+        int pad = 0;
+        int ncx = 0, ncy = 0;
+        std::vector<SFclust> clustX, clustY;
+        for (plane_itr = listOfPlanes.begin(); plane_itr != listOfPlanes.end(); ++plane_itr) {
+            TString plane = (*plane_itr).first;
+            Int_t i = 2 * fMapping->GetDetectorID(fMapping->GetDetectorFromPlane((*plane_itr).first)) + (*plane_itr).second;
+            Int_t j = fMapping->GetNbOfPlane() + i;
+            // all channels hit
+            hist[j]->Reset();
+            hit_decoder.GetHit((*plane_itr).first, hist[j]);
+            // Zero sup hit
+            hist[i]->Reset();
+            hit_decoder.GetClusterHit((*plane_itr).first, hist[i]);
+            hist2d[i]->Reset();
+            hit_decoder.GetTimeBinClusterHit((*plane_itr).first, hist2d[i]);
+
+            if (plane == "GEM1X") {
+                ncx = hit_decoder.GetClusters((*plane_itr).first, clustX);
+            }
+            if (plane == "GEM1Y") {
+                ncy = hit_decoder.GetClusters((*plane_itr).first, clustY);
             }
         }
     }
