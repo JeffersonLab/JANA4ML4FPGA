@@ -205,7 +205,7 @@ void EVIOBlockedEventParser::ParseBank(uint32_t *istart, uint32_t *iend)
 void EVIOBlockedEventParser::ParseEPICSbank(uint32_t* &iptr, uint32_t *iend)
 {
     _DBG_<<"Parsing EPICS event ..." << std::endl;
-	if(!PARSE_EPICS){ iptr = iend; return; }
+	if(!m_config.PARSE_EPICS){ iptr = iend; return; }
 
 	time_t timestamp=0;
 	
@@ -388,7 +388,7 @@ void EVIOBlockedEventParser::ParseCDAQBank(uint32_t* &iptr, uint32_t *iend)
 //---------------------------------
 void EVIOBlockedEventParser::ParseBuiltTriggerBank(uint32_t* &iptr, uint32_t *iend)
 {
-	if(!PARSE_TRIGGER) return;
+	if(!m_config.PARSE_TRIGGER) return;
 
 	iptr++; // advance past length word
 	uint32_t mask = 0xFF202000;
@@ -518,17 +518,17 @@ void EVIOBlockedEventParser::ParseDataBank(uint32_t* &iptr, uint32_t *iend)
 		switch(det_id){
 
 			case 20:
-				if(VERBOSE>3) _DBG_ << " -- CAEN1190  rocid="<< rocid << std::endl;
+				if(m_config.VERBOSE>3) _DBG_ << " -- CAEN1190  rocid="<< rocid << std::endl;
 				ParseCAEN1190(rocid, iptr, iend_data_block_bank);
 				break;
 
 			case 0x55:
-				if(VERBOSE>3) _DBG_ <<" -- Module Configuration  rocid="<< rocid << std::endl;
+				if(m_config.VERBOSE>3) _DBG_ <<" -- Module Configuration  rocid="<< rocid << std::endl;
 				ParseModuleConfiguration(rocid, iptr, iend_data_block_bank);
 				break;
 
 			case 0x56:
-				if(VERBOSE>3) _DBG_ <<" -- Event Tag  rocid="<< rocid << std::endl;
+				if(m_config.VERBOSE>3) _DBG_ <<" -- Event Tag  rocid="<< rocid << std::endl;
 				ParseEventTagBank(iptr, iend_data_block_bank);
 				break;
 
@@ -538,13 +538,13 @@ void EVIOBlockedEventParser::ParseDataBank(uint32_t* &iptr, uint32_t *iend)
 			case 6:  // flash 250 module, MMD 2014/2/4
 			case 16: // flash 125 module (CDC), DL 2014/6/19
 			case 26: // F1 TDC module (BCAL), MMD 2014-07-31
-				if(VERBOSE>3) _DBG_ <<" -- JLab Module  rocid="<< rocid << std::endl;
+				if(m_config.VERBOSE>3) _DBG_ <<" -- JLab Module  rocid="<< rocid << std::endl;
 				ParseJLabModuleData(rocid, iptr, iend_data_block_bank);
 				break;
 
 			case 0x123:
 			case 0x28:
-				if(VERBOSE>3) _DBG_ <<" -- SSP  rocid="<< rocid << std::endl;
+				if(m_config.VERBOSE>3) _DBG_ <<" -- SSP  rocid="<< rocid << std::endl;
 				ParseSSPBank(rocid, iptr, iend_data_block_bank);
 				break;
 
@@ -554,7 +554,7 @@ void EVIOBlockedEventParser::ParseDataBank(uint32_t* &iptr, uint32_t *iend)
 			// (the first "E" should really be a "1". We just check
 			// other 12 bits here.
 			case 0xE02:
-				if(VERBOSE>3) _DBG_ <<" -- TSscaler  rocid="<< rocid << std::endl;
+				if(m_config.VERBOSE>3) _DBG_ <<" -- TSscaler  rocid="<< rocid << std::endl;
 				ParseTSscalerBank(iptr, iend);
 				break;
 			case 0xE05:
@@ -567,7 +567,7 @@ void EVIOBlockedEventParser::ParseDataBank(uint32_t* &iptr, uint32_t *iend)
 			// The CDAQ system leave the raw trigger info in the Physics event data
 			// bank. Skip it for now.
 			case 0xF11:
-				if(VERBOSE>3) _DBG_ <<"Raw Trigger bank  rocid="<< rocid << std::endl;
+				if(m_config.VERBOSE>3) _DBG_ <<"Raw Trigger bank  rocid="<< rocid << std::endl;
 				ParseRawTriggerBank(rocid, iptr, iend_data_block_bank);
 				break;
 
@@ -620,7 +620,7 @@ void EVIOBlockedEventParser::ParseCAEN1190(uint32_t rocid, uint32_t *&iptr, uint
 // ParseModuleConfiguration
 //---------------------------------
 void EVIOBlockedEventParser::ParseModuleConfiguration(uint32_t rocid, uint32_t *&iptr, uint32_t *iend){
-    if(!PARSE_CONFIG){ iptr = &iptr[(*iptr) + 1]; return; }
+    if(!m_config.PARSE_CONFIG){ iptr = &iptr[(*iptr) + 1]; return; }
 
     /// Parse a bank of module configuration data. These are configuration values
     /// programmed into the module at the beginning of the run that may be needed
@@ -661,7 +661,7 @@ void EVIOBlockedEventParser::ParseModuleConfiguration(uint32_t rocid, uint32_t *
             daq_param_type ptype = (daq_param_type)((*iptr)>>16);
             uint16_t val = (*iptr) & 0xFFFF;
 
-            if(VERBOSE>6) std::cout << "       DAQ parameter of type: 0x" << std::hex << ptype << std::dec << "  found with value: " << val << std::endl;
+            if(m_config.VERBOSE>6) std::cout << "       DAQ parameter of type: 0x" << std::hex << ptype << std::dec << "  found with value: " << val << std::endl;
 
             // Create config object of correct type if needed and copy
             // parameter value into it.
@@ -844,7 +844,7 @@ void EVIOBlockedEventParser::ParseRawTriggerBank(uint32_t rocid, uint32_t *&iptr
     // CDAQ records the raw trigger bank rather than the built trigger bank.
 	// Create DCODAROCInfo objects for each of these. 
 
-	if(!PARSE_TRIGGER) return;
+	if(!m_config.PARSE_TRIGGER) return;
 	
 	// On entry, iptr points to word after the bank header (i.e. word after the one with 0xFF11)
 	
@@ -883,8 +883,8 @@ void EVIOBlockedEventParser::ParseRawTriggerBank(uint32_t rocid, uint32_t *&iptr
 // ParseDGEMSRSBank
 //---------------------------------
 void EVIOBlockedEventParser::ParseDGEMSRSBank(uint32_t rocid, uint32_t *&iptr, uint32_t *iend){
-    if(!PARSE_GEMSRS){ iptr = &iptr[(*iptr) + 1]; return; }
-	if(VERBOSE>3) _DBG_ << "GEMSRS ROC " << rocid << std::endl;
+    if(!m_config.PARSE_GEMSRS){ iptr = &iptr[(*iptr) + 1]; return; }
+	if(m_config.VERBOSE>3) _DBG_ << "GEMSRS ROC " << rocid << std::endl;
 
     auto ievent = ievent_idx;  // start by pointing to first JEvent we should write to
 	// auto event_iter = events.begin();
@@ -915,7 +915,7 @@ void EVIOBlockedEventParser::ParseDGEMSRSBank(uint32_t rocid, uint32_t *&iptr, u
 		if(((*iptr>>8) & 0xffffff) == 0x414443) { // magic key for "Data Header" in ADC format
 
 			if(rawData16bits.size() > 0) {
-				if(VERBOSE>7) std::cout<<"Previous channel: apv_id = "<<apv_id<<" fec_id = "<<fec_id<<" had "<<rawData16bits.size()<<" 16 bit words"<< std::endl;
+				if(m_config.VERBOSE>7) std::cout<<"Previous channel: apv_id = "<<apv_id<<" fec_id = "<<fec_id<<" had "<<rawData16bits.size()<<" 16 bit words"<< std::endl;
 
                 // Seems there can be raw data words before the first header. Ignore these.
                 MakeDGEMSRSWindowRawData(events[ievent].get(), rocid, slot, itrigger, apv_id, rawData16bits);
@@ -933,7 +933,7 @@ void EVIOBlockedEventParser::ParseDGEMSRSBank(uint32_t rocid, uint32_t *&iptr, u
 			iptr++; // next word is "Header Info" (reserved)
 			fec_id = (*iptr>>16) & 0xff; // equivalent to nfecID in GEMRawDecoder::Decode
 
-			if(VERBOSE>7) std::cout<<"Data Header for APV = "<<apv_id<<" FEC = "<<fec_id<< std::endl;
+			if(m_config.VERBOSE>7) std::cout<<"Data Header for APV = "<<apv_id<<" FEC = "<<fec_id<< std::endl;
 
 			// clear vector for raw data from this APV
 			rawData16bits.clear();
@@ -960,7 +960,7 @@ void EVIOBlockedEventParser::ParseDGEMSRSBank(uint32_t rocid, uint32_t *&iptr, u
 			
 			// write last ADC channel out from rawData16bits vector
 			if(rawData16bits.size() > 0) {
-				if(VERBOSE>7) std::cout<<"Previous channel: apv_id = "<<apv_id<<" fec_id = "<<fec_id<<" had "<<rawData16bits.size()<<" 16 bit words"<< std::endl;
+				if(m_config.VERBOSE>7) std::cout<<"Previous channel: apv_id = "<<apv_id<<" fec_id = "<<fec_id<<" had "<<rawData16bits.size()<<" 16 bit words"<< std::endl;
 			
 				MakeDGEMSRSWindowRawData(events[ievent].get(), rocid, slot, itrigger, apv_id, rawData16bits);
 			}
@@ -991,7 +991,7 @@ void EVIOBlockedEventParser::MakeDGEMSRSWindowRawData(JEvent *event, uint32_t ro
 	rawDataTS.clear();
 
 	int32_t fAPVHeaderLevel = 1500;
-	int32_t fNbOfTimeSamples = NSAMPLES_GEMSRS; // hard coded maximum number of time samples
+	int32_t fNbOfTimeSamples = m_config.NSAMPLES_GEMSRS; // hard coded maximum number of time samples
 
 	uint8_t NCH = 128;
 	
@@ -1054,7 +1054,7 @@ void EVIOBlockedEventParser::MakeDGEMSRSWindowRawData(JEvent *event, uint32_t ro
 // Parsef250Bank
 //-------------------------
 void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint32_t *iend){
-    if(!PARSE_F250){ iptr = iend; return; }
+    if(!m_config.PARSE_F250){ iptr = iend; return; }
 
 	int continue_on_format_error = false;
 
@@ -1081,30 +1081,30 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
         switch(data_type){
             case 0: // Block Header
                 slot = (*iptr>>22) & 0x1F;
-                if(VERBOSE>7) cout << "      FADC250 Block Header: slot="<<slot<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+                if(m_config.VERBOSE>7) cout << "      FADC250 Block Header: slot="<<slot<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
                 break;
             case 1: // Block Trailer
                 event = nullptr;
-                if(VERBOSE>7) cout << "      FADC250 Block Trailer"<<" (0x"<<hex<<*iptr<<dec<<")  iptr=0x"<<hex<<iptr<<dec<<endl;
+                if(m_config.VERBOSE>7) cout << "      FADC250 Block Trailer"<<" (0x"<<hex<<*iptr<<dec<<")  iptr=0x"<<hex<<iptr<<dec<<endl;
                 break;
             case 2: // Event Header
                 itrigger = (*iptr>>0) & 0x3FFFFF;
                 event = events[ievent++].get();
 				// pe = *pe_iter++;
-                if(VERBOSE>7) cout << "      FADC250 Event Header: itrigger="<<itrigger<<", rocid="<<rocid<<", slot="<<slot<<")" <<" (0x"<<hex<<*iptr<<dec<<")" <<endl;
+                if(m_config.VERBOSE>7) cout << "      FADC250 Event Header: itrigger="<<itrigger<<", rocid="<<rocid<<", slot="<<slot<<")" <<" (0x"<<hex<<*iptr<<dec<<")" <<endl;
                 break;
             case 3: // Trigger Time
 				{
 					uint64_t t = ((*iptr)&0xFFFFFF)<<0;
-					if(VERBOSE>7) cout << "      FADC250 Trigger time low word="<<(((*iptr)&0xFFFFFF))<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC250 Trigger time low word="<<(((*iptr)&0xFFFFFF))<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
 					iptr++;
 					if(((*iptr>>31) & 0x1) == 0){
 						t += ((*iptr)&0xFFFFFF)<<24; // from word on the street: second trigger time word is optional!!??
-						if(VERBOSE>7) cout << "      FADC250 Trigger time high word="<<(((*iptr)&0xFFFFFF))<<" (0x"<<hex<<*iptr<<dec<<")  iptr=0x"<<hex<<iptr<<dec<<endl;
+						if(m_config.VERBOSE>7) cout << "      FADC250 Trigger time high word="<<(((*iptr)&0xFFFFFF))<<" (0x"<<hex<<*iptr<<dec<<")  iptr=0x"<<hex<<iptr<<dec<<endl;
 					}else{
 						iptr--;
 					}
-					if(VERBOSE>7) cout << "      FADC250 Trigger Time: t="<<t<<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC250 Trigger Time: t="<<t<<endl;
 					if(event) event->Insert(new Df250TriggerTime(rocid, slot, itrigger, t));
 				}
                 break;
@@ -1118,13 +1118,13 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
 					uint32_t channel = (*iptr>>23) & 0x0F;
 					uint32_t sum = (*iptr>>0) & 0x3FFFFF;
 					uint32_t overflow = (*iptr>>22) & 0x1;
-					if(VERBOSE>7) cout << "      FADC250 Window Sum"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC250 Window Sum"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
 					if(event) event->Insert(new Df250WindowSum(rocid, slot, channel, itrigger, sum, overflow));
 				}
                 break;				
             case 6: // Pulse Raw Data
 //                MakeDf250PulseRawData(objs, rocid, slot, itrigger, iptr);
-                if(VERBOSE>7) cout << "      FADC250 Pulse Raw Data"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+                if(m_config.VERBOSE>7) cout << "      FADC250 Pulse Raw Data"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
                 break;
             case 7: // Pulse Integral
 				{
@@ -1135,7 +1135,7 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
 					uint32_t nsamples_integral = 0;  // must be overwritten later in GetObjects with value from Df125Config value
 					uint32_t nsamples_pedestal = 1;  // The firmware returns an already divided pedestal
 					uint32_t pedestal = 0;  // This will be replaced by the one from Df250PulsePedestal in GetObjects
-					if(VERBOSE>7) cout << "      FADC250 Pulse Integral: chan="<<channel<<" pulse_number="<<pulse_number<<" sum="<<sum<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC250 Pulse Integral: chan="<<channel<<" pulse_number="<<pulse_number<<" sum="<<sum<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
 					if(event) event->Insert(new Df250PulseIntegral(rocid, slot, channel, itrigger, pulse_number, quality_factor, sum, pedestal, nsamples_integral, nsamples_pedestal));
 				}
                 break;
@@ -1145,7 +1145,7 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
 					uint32_t pulse_number = (*iptr>>21) & 0x03;
 					uint32_t quality_factor = (*iptr>>19) & 0x03;
 					uint32_t pulse_time = (*iptr>>0) & 0x7FFFF;
-					if(VERBOSE>7) cout << "      FADC250 Pulse Time: chan="<<channel<<" pulse_number="<<pulse_number<<" pulse_time="<<pulse_time<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC250 Pulse Time: chan="<<channel<<" pulse_number="<<pulse_number<<" pulse_time="<<pulse_time<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
 					if(event) event->Insert(new Df250PulseTime(rocid, slot, channel, itrigger, pulse_number, quality_factor, pulse_time));
 				}
 				break;
@@ -1156,7 +1156,7 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
 					uint32_t channel                   = (*iptr>>15) & 0x0F;
 					bool     QF_pedestal               = (*iptr>>14) & 0x01;
 					uint32_t pedestal                  = (*iptr>>0 ) & 0x3FFF;
-					if(VERBOSE>7) cout << "      FADC250 Pulse Data (0x"<<hex<<*iptr<<dec<<") channel=" << channel << " pedestal="<<pedestal << " event within block=" << event_number_within_block <<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC250 Pulse Data (0x"<<hex<<*iptr<<dec<<") channel=" << channel << " pedestal="<<pedestal << " event within block=" << event_number_within_block <<endl;
 					
 					// event_number_within_block=0 indicates error
 					if(event_number_within_block==0){
@@ -1198,7 +1198,7 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
 						bool     QF_overflow               = (*iptr>>10) & 0x01;
 						bool     QF_underflow              = (*iptr>>9 ) & 0x01;
 						uint32_t nsamples_over_threshold   = (*iptr>>0 ) & 0x1FF;
-						if(VERBOSE>7) cout << "      FADC250 Pulse Data word 2(0x"<<hex<<*iptr<<dec<<")  integral="<<integral<<endl;
+						if(m_config.VERBOSE>7) cout << "      FADC250 Pulse Data word 2(0x"<<hex<<*iptr<<dec<<")  integral="<<integral<<endl;
 
 						iptr++;
 						if( (*iptr>>30) != 0x00){
@@ -1218,7 +1218,7 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
 						bool     QF_vpeak_beyond_NSA       = (*iptr>>2 ) & 0x01;
 						bool     QF_vpeak_not_found        = (*iptr>>1 ) & 0x01;
 						bool     QF_bad_pedestal           = (*iptr>>0 ) & 0x01;
-						if(VERBOSE>7) cout << "      FADC250 Pulse Data word 3(0x"<<hex<<*iptr<<dec<<")  course_time="<<course_time<<" fine_time="<<fine_time<<" pulse_peak="<<pulse_peak<<endl;
+						if(m_config.VERBOSE>7) cout << "      FADC250 Pulse Data word 3(0x"<<hex<<*iptr<<dec<<")  course_time="<<course_time<<" fine_time="<<fine_time<<" pulse_peak="<<pulse_peak<<endl;
 
 						// FIRMWARE BUG: If pulse integral was zero, this is an invalid bad pulse;
 						// skip over bogus repeated pulse time repeats, and ignore it altogether.
@@ -1261,7 +1261,7 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
 					uint32_t pulse_number = (*iptr>>21) & 0x03;
 					uint32_t pedestal = (*iptr>>12) & 0x1FF;
 					uint32_t pulse_peak = (*iptr>>0) & 0xFFF;
-					if(VERBOSE>7) cout << "      FADC250 Pulse Pedestal chan="<<channel<<" pulse_number="<<pulse_number<<" pedestal="<<pedestal<<" pulse_peak="<<pulse_peak<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC250 Pulse Pedestal chan="<<channel<<" pulse_number="<<pulse_number<<" pedestal="<<pedestal<<" pulse_peak="<<pulse_peak<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
 					if(event) event->Insert(new Df250PulsePedestal(rocid, slot, channel, itrigger, pulse_number, pedestal, pulse_peak));
 				}
                 break;
@@ -1272,11 +1272,11 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
                 // different behavior for debug mode data as regular data.
             case 14: // Data not valid (empty module)
             case 15: // Filler (non-data) word
-            	if(VERBOSE>7) cout << "      FADC250 Event Trailer, Data not Valid, or Filler word ("<<data_type<<")"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+            	if(m_config.VERBOSE>7) cout << "      FADC250 Event Trailer, Data not Valid, or Filler word ("<<data_type<<")"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
 				break;
 			default:
- 				if(VERBOSE>7) cout << "      FADC250 unknown data type ("<<data_type<<")"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
- 				if(VERBOSE>7) cout << "      FADC250 unknown data type ("<<data_type<<")"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+ 				if(m_config.VERBOSE>7) cout << "      FADC250 unknown data type ("<<data_type<<")"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+ 				if(m_config.VERBOSE>7) cout << "      FADC250 unknown data type ("<<data_type<<")"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
 				jerr << "FADC250 unknown data type (" << data_type << ") (0x" << hex << *iptr << dec << ")" << endl;
 				if (continue_on_format_error) {
 					iptr = iend;
@@ -1335,7 +1335,7 @@ void EVIOBlockedEventParser::MakeDf250WindowRawData(JEvent *event, uint32_t roci
         wrd->overflow |= (sample_2>>12) & 0x1;
     }
 	 
-	 if(VERBOSE>7) cout << "      FADC250 Window Raw Data: size from header=" << window_width << " Nsamples found=" << wrd->samples.size() << endl;
+	 if(m_config.VERBOSE>7) cout << "      FADC250 Window Raw Data: size from header=" << window_width << " Nsamples found=" << wrd->samples.size() << endl;
 	 if( window_width != wrd->samples.size() ){
 	 	jerr <<" FADC250 Window Raw Data number of samples does not match header! (" <<wrd->samples.size() << " != " << window_width << ") for rocid=" << rocid << " slot=" << slot << " channel=" << channel << endl;
 	 }
@@ -1345,7 +1345,7 @@ void EVIOBlockedEventParser::MakeDf250WindowRawData(JEvent *event, uint32_t roci
 // Parsef125Bank
 //-------------------------
 void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint32_t *iend){
-    if(!PARSE_F125){ iptr = &iptr[(*iptr) + 1]; return; }
+    if(!m_config.PARSE_F125){ iptr = &iptr[(*iptr) + 1]; return; }
 
     auto ievent = ievent_idx;
     JEvent *event = nullptr;
@@ -1372,7 +1372,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
         switch(data_type){
             case 0: // Block Header
                 slot = (*iptr>>22) & 0x1F;
-                if(VERBOSE>7) cout << "      FADC125 Block Header: slot="<<slot<<endl;
+                if(m_config.VERBOSE>7) cout << "      FADC125 Block Header: slot="<<slot<<endl;
                 break;
             case 1: // Block Trailer
                 ievent = ievent_idx;
@@ -1385,7 +1385,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
                 itrigger = (*iptr>>0) & 0x3FFFFFF;
                 event = events[ievent++].get();
 				// pe = *pe_iter++;
-                if(VERBOSE>7) cout << "      FADC125 Event Header: itrigger="<<itrigger<<" last_itrigger="<<last_itrigger<<", rocid="<<rocid<<", slot="<<slot <<endl;
+                if(m_config.VERBOSE>7) cout << "      FADC125 Event Header: itrigger="<<itrigger<<" last_itrigger="<<last_itrigger<<", rocid="<<rocid<<", slot="<<slot <<endl;
 				break;
             case 3: // Trigger Time
 				{
@@ -1396,7 +1396,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 					}else{
 						iptr--;
 					}
-					if(VERBOSE>7) cout << "      FADC125 Trigger Time (t="<<t<<")"<<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC125 Trigger Time (t="<<t<<")"<<endl;
 					if(event) event->Insert(new Df125TriggerTime(rocid, slot, itrigger, t));
 				}
                 break;
@@ -1415,7 +1415,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 					uint32_t pulse_time     = (*iptr>>4 ) & 0x7FF;
 					uint32_t quality_factor = (*iptr>>3 ) & 0x1; //time QF bit
 					uint32_t overflow_count = (*iptr>>0 ) & 0x7;
-					if(VERBOSE>7){
+					if(m_config.VERBOSE>7){
 						cout << "      FADC125 CDC Pulse Data word1: " << hex << (*iptr) << dec << endl;
 						cout << "      FADC125 CDC Pulse Data (chan="<<channel<<" pulse="<<pulse_number<<" time="<<pulse_time<<" QF="<<quality_factor<<" OC="<<overflow_count<<")"<<endl;
 					}
@@ -1434,7 +1434,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 					uint32_t pedestal   = (*iptr>>23) & 0xFF;
 					uint32_t sum        = (*iptr>>9 ) & 0x3FFF;
 					uint32_t pulse_peak = (*iptr>>0 ) & 0x1FF;
-					if(VERBOSE>7){
+					if(m_config.VERBOSE>7){
 						cout << "      FADC125 CDC Pulse Data word2: " << hex << (*iptr) << dec << endl;
 						cout << "      FADC125 CDC Pulse Data (pedestal="<<pedestal<<" sum="<<sum<<" peak="<<pulse_peak<<")"<<endl;
 					}
@@ -1469,7 +1469,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 					uint32_t pulse_time     = (*iptr>>4 ) & 0x7FF;
 					uint32_t quality_factor = (*iptr>>3 ) & 0x1; //time QF bit
 					uint32_t overflow_count = (*iptr>>0 ) & 0x7;
-					if(VERBOSE>7){
+					if(m_config.VERBOSE>7){
 						cout << "      FADC125 FDC Pulse Data(integral) word1: " << hex << (*iptr) << dec << endl;
 						cout << "      FADC125 FDC Pulse Data (chan="<<channel<<" pulse="<<pulse_number<<" time="<<pulse_time<<" QF="<<quality_factor<<" OC="<<overflow_count<<")"<<endl;
 					}
@@ -1489,7 +1489,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 					uint32_t sum        = (*iptr>>19) & 0xFFF;
 					uint32_t peak_time  = (*iptr>>11) & 0xFF;
 					uint32_t pedestal   = (*iptr>>0 ) & 0x7FF;
-					if(VERBOSE>7){
+					if(m_config.VERBOSE>7){
 						cout << "      FADC125 FDC Pulse Data(integral) word2: " << hex << (*iptr) << dec << endl;
 						cout << "      FADC125 FDC Pulse Data (integral="<<sum<<" time="<<peak_time<<" pedestal="<<pedestal<<")"<<endl;
 					}
@@ -1518,7 +1518,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 
             case 7: // Pulse Integral
 				{
-					if(VERBOSE>7) cout << "      FADC125 Pulse Integral"<<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC125 Pulse Integral"<<endl;
 					uint32_t channel = (*iptr>>20) & 0x7F;
 					uint32_t sum = (*iptr>>0) & 0xFFFFF;
 					uint32_t quality_factor = 0;
@@ -1534,7 +1534,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
                 break;
             case 8: // Pulse Time
 				{
-					if(VERBOSE>7) cout << "      FADC125 Pulse Time"<<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC125 Pulse Time"<<endl;
 					uint32_t channel = (*iptr>>20) & 0x7F;
 					uint32_t pulse_number = (*iptr>>18) & 0x03;
 					uint32_t pulse_time = (*iptr>>0) & 0xFFFF;
@@ -1553,7 +1553,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 					uint32_t pulse_time     = (*iptr>>4 ) & 0x7FF;
 					uint32_t quality_factor = (*iptr>>3 ) & 0x1; //time QF bit
 					uint32_t overflow_count = (*iptr>>0 ) & 0x7;
-					if(VERBOSE>7){
+					if(m_config.VERBOSE>7){
 						cout << "      FADC125 FDC Pulse Data(peak) word1: " << hex << (*iptr) << dec << endl;
 						cout << "      FADC125 FDC Pulse Data (chan="<<channel<<" pulse="<<pulse_number<<" time="<<pulse_time<<" QF="<<quality_factor<<" OC="<<overflow_count<<")"<<endl;
 					}
@@ -1576,7 +1576,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
                         uint32_t sum = 0;
                         uint32_t peak_time = (*iptr >> 11) & 0xFF;
                         uint32_t pedestal = (*iptr >> 0) & 0x7FF;
-                        if (VERBOSE > 7) {
+                        if (m_config.VERBOSE > 7) {
                             cout << "      FADC125 FDC Pulse Data(peak) word2: " << hex << (*iptr) << dec << endl;
                             cout << "      FADC125 FDC Pulse Data (integral=" << sum << " time=" << peak_time
                                  << " pedestal=" << pedestal << ")" << endl;
@@ -1635,7 +1635,7 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
 
             case 10: // Pulse Pedestal (consistent with Beni's hand-edited version of Cody's document)
 				{
-					if(VERBOSE>7) cout << "      FADC125 Pulse Pedestal"<<endl;
+					if(m_config.VERBOSE>7) cout << "      FADC125 Pulse Pedestal"<<endl;
 					//channel = (*iptr>>20) & 0x7F;
 					uint32_t channel = last_pulse_time_channel; // not enough bits to hold channel number so rely on proximity to Pulse Time in data stream (see "FADC125 dataformat 250 modes.docx")
 					uint32_t pulse_number = (*iptr>>21) & 0x03;
@@ -1649,10 +1649,10 @@ void EVIOBlockedEventParser::Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint
             case 13: // Event Trailer
             case 14: // Data not valid (empty module)
             case 15: // Filler (non-data) word
-                if(VERBOSE>7) cout << "      FADC125 ignored data type: " << data_type <<endl;
+                if(m_config.VERBOSE>7) cout << "      FADC125 ignored data type: " << data_type <<endl;
                 break;
 				default:
- 					if(VERBOSE>7) cout << "      FADC125 unknown data type ("<<data_type<<")"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
+ 					if(m_config.VERBOSE>7) cout << "      FADC125 unknown data type ("<<data_type<<")"<<" (0x"<<hex<<*iptr<<dec<<")"<<endl;
 					throw JException("Unexpected word type in fADC125 block!");
 
         }
