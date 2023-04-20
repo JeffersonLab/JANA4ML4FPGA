@@ -20,12 +20,12 @@ CDAQEVIOFileSource::CDAQEVIOFileSource(std::string resource_name, JApplication *
  * Destructor
  */
 CDAQEVIOFileSource::~CDAQEVIOFileSource() {
-    m_log->info("Closing EVIO file {}", m_hdevio->filename);
+    if(m_hdevio) {
+        m_hdevio->PrintStats();
+        m_hdevio.reset();
+    }
 
-    m_hdevio->PrintStats();
-    m_hdevio.reset();
-
-    if( m_buff ) delete[] m_buff;
+    if(m_buff) delete[] m_buff;
 
     m_evio_filename = "";
 }
