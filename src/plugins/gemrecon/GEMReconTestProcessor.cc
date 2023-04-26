@@ -13,67 +13,17 @@
 #include <services/root_output/RootFile_service.h>
 #include <filesystem>
 
-inline static void FillTrdHistogram(uint64_t event_number,
-                      TDirectory *hists_dir,
-                      std::vector<const Df125WindowRawData *> f125_records,
-                      int slot_shift,
-                      int zero_fill,
-                      int max_x = 250,
-                      int max_y = 300
-                      ) {
 
-    // Crate histogram
-    std::string histo_name = fmt::format("trd_event_{}", event_number);
-    std::string histo_title = fmt::format("TRD event #{} by F125WindowRawData", event_number);
-    auto histo= new TH2F(histo_name.c_str(), histo_title.c_str(), max_x, -0.5, max_x - 0.5, max_y, -0.5, max_y - 0.5);
-    histo->SetDirectory(hists_dir);
-
-    // f125_records has data for only non-zero channels
-    // But we want to fill all channels possible channels with fill_value
-    // So we create an event_table that we fill first, and then fill histogram by its values
-    float event_table[max_x][max_y];
-    // Fill histogram
-    for(size_t x_i=0; x_i<max_x; x_i++) {
-        for(size_t y_i=0; y_i<max_y; y_i++) {
-            event_table[x_i][y_i] = zero_fill;
-        }
-    }
-
-    // Fill data into event_table
-    for (auto record: f125_records) {
-        int x = 72 * (record->slot - slot_shift) + record->channel;
-        for (int sample_i = 0; sample_i < record->samples.size(); sample_i++) {
-            if(x < max_x && sample_i < max_y) {
-                float sample = record->samples[sample_i];
-                if(sample < zero_fill) sample = zero_fill;  // Fill 0 values with zero_fill
-                event_table[x][sample_i] = sample;
-            }
-        }
-    }
-
-    // Fill histogram
-    for(size_t x_i=0; x_i<max_x; x_i++) {
-        for(size_t y_i=0; y_i<max_y; y_i++) {
-            spdlog::info("    event_table[{}][{}]={}", x_i, y_i, event_table[x_i][y_i]);
-            histo->Fill(x_i, y_i, event_table[x_i][y_i]);
-        }
-    }
-
-    // Save histogram
-    histo->Write();
-}
-
-
-//------------------
-// OccupancyAnalysis (Constructor)
-//------------------
+//-------------------------------------
+// GEMReconTestProcessor (Constructor)
+//-------------------------------------
 GEMReconTestProcessor::GEMReconTestProcessor(JApplication *app) :
         JEventProcessor(app) {
 }
 
-//------------------
+//-------------------------------------
 // Init
-//------------------
+//-------------------------------------
 void GEMReconTestProcessor::Init() {
     std::string plugin_name = GetPluginName();
 
@@ -100,9 +50,12 @@ void GEMReconTestProcessor::Init() {
     m_histo_1d = new TH1F("test_histo", "Test histogram", 100, -10, 10);
     m_trd_integral_h2d = new TH2F("trd_integral_events", "TRD events from Df125WindowRawData integral", 250, -0.5, 249.5, 300, -0.5, 299.5);
 
+    // I N I T   C O N F I G
     std::string gem_config = "Config.cfg";
     app->SetDefaultParameter(plugin_name + ":config", gem_config, "Full path to gem config");
+    std::filesystem::path config_path = std::filesystem::canonical(gem_config);
     logger()->info("Configuration file: {}", gem_config);
+    logger()->info("Canonical path: {}", config_path.string());
 
     try {
         fConfig.Load(gem_config);
@@ -116,26 +69,7 @@ void GEMReconTestProcessor::Init() {
         throw;
     }
 
-    std::filesystem::path pedestals_file_name = fConfig.GetPedFileName();
-
-    std::filesystem::path relative_file_path(gem_config);
-    // Get the parent directory
-    std::filesystem::path parent_directory = relative_file_path.parent_path();
-    std::filesystem::path pedestals_abs_path = std::filesystem::absolute(parent_directory / pedestals_file_name);
-    logger()->info("Pedestals absolute path: {}", pedestals_abs_path.string());
-
-
-    logger()->info("Creating pedestals: {}", fConfig.GetPedFileName());
-    fPedestal = new GEMPedestal(pedestals_abs_path.c_str(), fConfig.GetNbOfTimeSamples());
-    fPedestal->BookHistos();
-
-    //fHandler->InitPedestal(fPedestal);
-    //printf(" = GemView::InitConfig() ==> Initialisation for a %s Run \n", fRunType.Data());
-
-    logger()->info("This plugin name is: " + GetPluginName());
-    logger()->info("GEMReconTestProcessor initialization is done");
-
-    std::string mapping_file = "Config.cfg";
+    std::string mapping_file = "mapping.cfg";
     app->SetDefaultParameter(plugin_name + ":mapping", mapping_file, "Full path to gem config");
     logger()->info("Mapping file file: {}", mapping_file);
 
@@ -143,7 +77,36 @@ void GEMReconTestProcessor::Init() {
     fMapping->LoadMapping(mapping_file.c_str());
     fMapping->PrintMapping();
 
+    // I N I T   P E D E S T A L S
+    // Config has pedestals file path. We want it to be executed relative to config file
+    logger()->info("Loading pedestals");
+    logger()->info("Pedestals file set in config: {}", fConfig.GetPedFileName());
+
+    // Get pedestal path, clean it, make canonical
+    std::filesystem::path config_parent_dir = config_path.parent_path();
+    std::filesystem::path pedestals_path = config_parent_dir / fConfig.GetPedFileName();
+    try{
+        pedestals_path = std::filesystem::canonical(std::filesystem::absolute(pedestals_path));
+    }
+    catch(std::exception &ex){
+        m_log->error("Error getting pedestals path: {}", ex.what());
+        throw;
+    }
+
+    logger()->info("Pedestals absolute path: {}", pedestals_path.string());
+
+    // Initialize pedestals
+    fPedestal = new GEMPedestal(pedestals_path.c_str(), fConfig.GetNbOfTimeSamples());
+    fPedestal->BookHistos();
+    fPedestal->LoadPedestal();
+    logger()->info("Loaded pedestals");
+
+
     InitHistForZeroSup();
+
+    //  D O N E
+    logger()->info("This plugin name is: " + GetPluginName());
+    logger()->info("GEMReconTestProcessor initialization is done");
 }
 
 
@@ -162,10 +125,10 @@ void GEMReconTestProcessor::InitHistForZeroSup() {
         f1DSingleEventHist = new TH1F *[nbOfPlaneHists];
         f2DSingleEventHist = new TH2F *[nbOfPlaneHists];
 
-        std::map<TString, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();
-        std::map<TString, Int_t>::const_iterator plane_itr;
+        std::map<std::string, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();
+        std::map<std::string, Int_t>::const_iterator plane_itr;
         for (plane_itr = listOfPlanes.begin(); plane_itr != listOfPlanes.end(); ++plane_itr) {
-            TString plane = (*plane_itr).first;
+            std::string plane = (*plane_itr).first;
             Int_t planeId = 2 * fMapping->GetDetectorID(fMapping->GetDetectorFromPlane(plane)) + (*plane_itr).second;
             Int_t nbOfStrips = 128 * fMapping->GetNbOfAPVsOnPlane((*plane_itr).first);
             Float_t size = fMapping->GetPlaneSize((*plane_itr).first);
@@ -196,7 +159,7 @@ void GEMReconTestProcessor::InitHistForZeroSup() {
             f2DSingleEventHist[planeId]->SetLabelSize(0.04, "X");
             f2DSingleEventHist[planeId]->SetLabelSize(0.04, "Y");
             printf(" = GemView::InitHistForZeroSup() => Initialize single events histos: plane[%s], nbStrips=%d, nbTimeS=%d, size=%f, to histId[%d]\n",
-                   plane.Data(), nbOfStrips, fNbOfTimeSamples, size, planeId);
+                   plane.c_str(), nbOfStrips, fNbOfTimeSamples, size, planeId);
 
             presZeroSup = (*plane_itr).first + "Accu_Hits_vs_timebin_2D";
             f2DSingleEventHist[id] = new TH2F(presZeroSup, presZeroSup, fNbOfTimeSamples, 0, driftTime, nbOfStrips, 0,
@@ -211,7 +174,7 @@ void GEMReconTestProcessor::InitHistForZeroSup() {
             f2DSingleEventHist[id]->SetLabelSize(0.04, "X");
             f2DSingleEventHist[id]->SetLabelSize(0.04, "Y");
             printf(" = GemView::InitHistForZeroSup() => Initialize histos: plane[%s], nbOfStrips=%d, nbOfTimeSamples=%d, size=%f, to histId[%d]\n",
-                   plane.Data(), nbOfStrips, fNbOfTimeSamples, size, id);
+                   plane.c_str(), nbOfStrips, fNbOfTimeSamples, size, id);
         }
     }
 
@@ -224,10 +187,10 @@ void GEMReconTestProcessor::InitHistForZeroSup() {
         fTimeBinPosHist = new TH2F *[nbOfPlaneHists];
         fADCTimeBinPosHist = new TH2F *[nbOfPlaneHists];
 
-        std::map<TString, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();
-        std::map<TString, Int_t>::const_iterator plane_itr;
+        std::map<std::string, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();
+        std::map<std::string, Int_t>::const_iterator plane_itr;
         for (plane_itr = listOfPlanes.begin(); plane_itr != listOfPlanes.end(); ++plane_itr) {
-            TString plane = (*plane_itr).first;
+            auto plane = (*plane_itr).first;
             Int_t planeId = 2 * fMapping->GetDetectorID(fMapping->GetDetectorFromPlane(plane)) + (*plane_itr).second;
             Int_t id = fMapping->GetNbOfPlane() + planeId;
             Int_t nbOfStrips = 128 * fMapping->GetNbOfAPVsOnPlane((*plane_itr).first);
@@ -317,7 +280,7 @@ void GEMReconTestProcessor::InitHistForZeroSup() {
             fTimeBinPosHist[id]->GetYaxis()->SetTitle("Position (mm)");
             fTimeBinPosHist[id]->SetLabelSize(0.04, "X");
             fTimeBinPosHist[id]->SetLabelSize(0.04, "Y");
-            printf(" = GemView::InitHistForZeroSup() ==> plane[%s] to histId[%d]  \n", plane.Data(), planeId);
+            printf(" = GemView::InitHistForZeroSup() ==> plane[%s] to histId[%d]  \n", plane.c_str(), planeId);
         }
 
         // DETECTORS
@@ -325,11 +288,11 @@ void GEMReconTestProcessor::InitHistForZeroSup() {
         fChargeSharingHist = new TH2F *[fMapping->GetNbOfDetectors()];
         fChargeRatioHist = new TH1F *[fMapping->GetNbOfDetectors()];
 
-        std::map<Int_t, TString> listOfDetectors = fMapping->GetDetectorFromIDMap();
-        std::map<Int_t, TString>::const_iterator det_itr;
+        std::map<Int_t, std::string> listOfDetectors = fMapping->GetDetectorFromIDMap();
+        std::map<Int_t, std::string>::const_iterator det_itr;
         for (det_itr = listOfDetectors.begin(); det_itr != listOfDetectors.end(); ++det_itr) {
             Int_t detId = (*det_itr).first;
-            TString detector = (*det_itr).second;
+            std::string detector = (*det_itr).second;
 
             Float_t size1 = 0.5 * fMapping->GetPlaneSize(fMapping->GetPlaneListFromDetector(detector).front());
             Float_t size2 = 0.5 * fMapping->GetPlaneSize(fMapping->GetPlaneListFromDetector(detector).back());
@@ -384,7 +347,7 @@ void GEMReconTestProcessor::InitHistForZeroSup() {
             fChargeRatioHist[detId]->GetYaxis()->SetTitle("ratio");
             fChargeRatioHist[detId]->SetLabelSize(0.04, "X");
             fChargeRatioHist[detId]->SetLabelSize(0.04, "Y");
-            printf(" = GemView::InitHistForZeroSup() ==> detector[%s] to histId[%d]  \n", detector.Data(), detId);
+            printf(" = GemView::InitHistForZeroSup() ==> detector[%s] to histId[%d]  \n", detector.c_str(), detId);
         }
     }
     logger()->info(" = GemView::InitHistForZeroSup() ==> Exit Init for zero sup analysis %s run\n", fRunType);
@@ -401,44 +364,56 @@ void GEMReconTestProcessor::Process(const std::shared_ptr<const JEvent> &event) 
         auto srs_data = event->Get<DGEMSRSWindowRawData>();
         m_log->trace("DGEMSRSWindowRawData data items: {} ", srs_data.size());
 
-        logger()->trace("  [rocid] [slot]  [channel] [apv_id] [channel_apv] [samples size:val1,val2,...]");
-        for(auto srs_item: srs_data) {
-            std::string row = fmt::format("{:<7} {:<7} {:<9} {:<8} {:<13} {:<2}: ",
-                                          srs_item->rocid, srs_item->slot, srs_item->channel,
-                                          srs_item->apv_id, srs_item->channel_apv, srs_item->samples.size());
+        TraceDumpSrsData(srs_data, /*num rows*/ 256);
+        TraceDumpMapping(srs_data, /*num rows*/ 256);
 
-            for(auto sample: srs_item->samples) {
-                row+=fmt::format(" {}", sample);
-            }
-
-            logger()->info("   {}", row);
-        }
-
-        std::map<int, std::map<int, std::vector<int> > > fCurrentEvent;
+        std::map<int, std::map<int, std::vector<int> > > apvid_chan_sampls;
 
         for(auto srs_item: srs_data) {
 
             // Dumb copy of samples because one is int and the other is uint16_t
             std::vector<int> samples;
-            for(size_t i=0; i<srs_data.size(); i++) {
+            for(size_t i=0; i< srs_item->samples.size(); i++) {
                 samples.push_back(srs_item->samples[i]);
             }
 
-            fCurrentEvent[(int)srs_item->apv_id][(int)srs_item->channel_apv] = samples;
+            apvid_chan_sampls[(int)srs_item->apv_id][(int)srs_item->channel_apv] = samples;
+            fMapping->APVchannelCorrection(srs_item->channel_apv);
         }
 
-        unsigned int fSrsStart, fSrsEnd;
+        // Now lets go over this
+        // fec, apv, raw_data
+        std::map<int, std::map<int, std::vector<int> > > fec_apv_raw;
+        for(auto apv_pair: apvid_chan_sampls) {
+            auto apv_id = apv_pair.first;
+            auto apv_channels = apv_pair.second;
+
+            // Crate histogram
+            size_t samples_size = apv_channels[0].size();
+            size_t raw_data_len = samples_size*128;
+            std::vector<int> raw_data(raw_data_len, 0);
+
+            // go over channels
+            for(auto channel_pair: apv_channels) {
+                auto apv_channel = channel_pair.first;
+                auto samples = channel_pair.second;
+                // go over samples
+                for(size_t sample_i=0; sample_i < samples.size(); sample_i++){
+                    int data_index = sample_i*128 + apv_channel;  // + sample_i to make gaps in between samples
+                    raw_data[data_index] = samples[sample_i];
+                }
+            }
+
+            // Fec is always 0,
+            fec_apv_raw[0][apv_id] = raw_data;
+        }
+
         //  float   fOfflineProgress;
         TString fIsHitPeakOrSumADCs, fIsCentralOrAllStripsADCs;
         Float_t fMinADCvalue;
         int fEventNumber, fLastEvent, fZeroSupCut, fComModeCut, fNbOfTimeSamples, fStopTimeSample, fStartTimeSample;
         int fMinClusterSize, fMaxClusterSize, fMaxClusterMult;
 
-
-
-        fSrsStart = 0xda000022;
-        fSrsEnd = 0xda0000ff;
-        auto fMapping = GemMapping::GetInstance();
         fEventNumber = -1;
         fLastEvent = 0;
         fMinADCvalue = 50;
@@ -453,45 +428,63 @@ void GEMReconTestProcessor::Process(const std::shared_ptr<const JEvent> &event) 
         fIsHitPeakOrSumADCs = "peakADCs";
         fIsCentralOrAllStripsADCs = "centralStripADCs";
 
+        this->FillTrdHistogram(event->GetEventNumber(), m_dir_main, srs_data);
 
         GEMOnlineHitDecoder hit_decoder(fEventNumber, fNbOfTimeSamples, fStartTimeSample, fStopTimeSample,
                                         fZeroSupCut, fComModeCut, fIsHitPeakOrSumADCs, fIsCentralOrAllStripsADCs,
                                         fMinADCvalue, fMinClusterSize, fMaxClusterSize, fMaxClusterMult);
-        hit_decoder.ProcessEvent(fCurrentEvent, fPedestal);
-
+//        hit_decoder.ProcessEvent(fec_apv_raw, fPedestal);
+//
         TH1F **hist = f1DSingleEventHist;
         TH2F **hist2d = f2DSingleEventHist;
 
-        hit_decoder.ProcessEvent(fCurrentEvent, fPedestal);
-        std::map<TString, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();
-        std::map<TString, Int_t>::const_iterator plane_itr;
+        hit_decoder.ProcessEvent(fec_apv_raw, fPedestal);
+        std::map<std::string, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();
+        std::map<std::string, Int_t>::const_iterator plane_itr;
         int pad = 0;
         int ncx = 0, ncy = 0;
         std::vector<SFclust> clustX, clustY;
-        for (plane_itr = listOfPlanes.begin(); plane_itr != listOfPlanes.end(); ++plane_itr) {
-            TString plane = (*plane_itr).first;
-            Int_t i = 2 * fMapping->GetDetectorID(fMapping->GetDetectorFromPlane((*plane_itr).first)) + (*plane_itr).second;
-            Int_t j = fMapping->GetNbOfPlane() + i;
+        for (auto plane_itr: listOfPlanes) {
+
+            std::string plane_name(plane_itr.first);
+            int plane_id = plane_itr.second;
+            int i = 2 * fMapping->GetDetectorID(fMapping->GetDetectorFromPlane(plane_name)) + plane_id;
+            int j = fMapping->GetNbOfPlane() + i;
             // all channels hit
             hist[j]->Reset();
-            hit_decoder.GetHit((*plane_itr).first, hist[j]);
+            hit_decoder.GetHit(plane_name, hist[j]);
             // Zero sup hit
             hist[i]->Reset();
-            hit_decoder.GetClusterHit((*plane_itr).first, hist[i]);
+            hit_decoder.GetClusterHit(plane_name, hist[i]);
             hist2d[i]->Reset();
-            hit_decoder.GetTimeBinClusterHit((*plane_itr).first, hist2d[i]);
+            hit_decoder.GetTimeBinClusterHit(plane_name, hist2d[i]);
 
-            if (plane == "GEM1X") {
-                ncx = hit_decoder.GetClusters((*plane_itr).first, clustX);
+            if (plane_name == "GEM1X") {
+                ncx = hit_decoder.GetClusters(plane_name, clustX);
             }
-            if (plane == "GEM1Y") {
-                ncy = hit_decoder.GetClusters((*plane_itr).first, clustY);
+            if (plane_name == "GEM1Y") {
+                ncy = hit_decoder.GetClusters(plane_name, clustY);
+            }
+        }
+
+        if (ncx == ncy) {
+            m_log->info(" OK nx={} ny={} at event {}\n", clustX.size(), clustY.size(), event->GetEventNumber());
+            for (int ic = 0; ic < ncx; ic++) {
+                printf("cl=%d  x=%f  E=%f A=%f N=%d  \n", ic, clustX[ic].x, clustX[ic].E, clustX[ic].A, clustX[ic].N);
+                printf("cl=%d  y=%f  E=%f A=%f N=%d  \n", ic, clustY[ic].x, clustY[ic].E, clustY[ic].A, clustY[ic].N);
+
+                SFclust cl;
+                cl.x = clustX[ic].x;
+                cl.y = clustY[ic].x;
+                cl.E = clustX[ic].E + clustY[ic].E;
+                cl.A = clustX[ic].A + clustY[ic].A;
+                //TODO gemclust.push_back(cl);
             }
         }
     }
     catch (std::exception &exp) {
-        m_log->trace("Got exception when doing event->Get<Df125WindowRawData>()");
-        m_log->trace("Exception what()='{}', type='{}'", exp.what(), typeid(exp).name());
+        m_log->error("Error during process");
+        m_log->error("Exception what()='{}', type='{}'", exp.what(), typeid(exp).name());
     }
 }
 
@@ -502,6 +495,201 @@ void GEMReconTestProcessor::Process(const std::shared_ptr<const JEvent> &event) 
 void GEMReconTestProcessor::Finish() {
 //    m_log->trace("GEMReconTestProcessor finished\n");
 
+}
+
+void GEMReconTestProcessor::TraceDumpSrsData(std::vector<const DGEMSRSWindowRawData *> srs_data, size_t print_rows) {
+    logger()->trace("  [rocid] [slot]  [channel] [apv_id] [channel_apv] [samples size:val1,val2,...]");
+
+    auto rows_to_display = std::min(srs_data.size(), print_rows);
+
+    for(size_t i=0; i < rows_to_display; i++) {
+        auto &srs_item = srs_data[i];
+        std::string row = fmt::format("{:<7} {:<7} {:<9} {:<8} {:<13} {:<2}: ",
+                                      srs_item->rocid, srs_item->slot, srs_item->channel,
+                                      srs_item->apv_id, srs_item->channel_apv, srs_item->samples.size());
+
+        for(auto sample: srs_item->samples) {
+            row+=fmt::format(" {}", sample);
+        }
+
+        logger()->trace("   {}", row);
+    }
+}
+
+void GEMReconTestProcessor::FillTrdHistogram(uint64_t event_number, TDirectory *hists_dir, std::vector<const DGEMSRSWindowRawData *> srs_data, int max_x, int max_y) {
+
+    // check srs data is valid. At least assertions of what we have
+    assert(srs_data.size() > 0);
+    assert(srs_data[0]->samples.size() > 0);
+    assert(srs_data[0]->samples.size() == srs_data[srs_data.size()-1]->samples.size());  // At least some test of samples size consistency
+
+    int samples_size = srs_data[0]->samples.size();
+    int nbins = samples_size * 128 + (samples_size-1);
+
+    // This is going to be map<apvId, map<channelNum, vector<samples>>>
+    std::map<int, std::map<int, std::vector<int> > > event_map;
+
+    for(auto srs_item: srs_data) {
+
+        // Dumb copy of samples because one is int and the other is uint16_t
+        std::vector<int> samples;
+        for(size_t i=0; i< srs_item->samples.size(); i++) {
+            samples.push_back(srs_item->samples[i]);
+        }
+
+        event_map[(int)srs_item->apv_id][(int)srs_item->channel_apv] = samples;
+        fMapping->APVchannelCorrection(srs_item->channel_apv);
+    }
+
+    // Now lets go over this
+    for(auto apvPair: event_map) {
+        auto apv_id = apvPair.first;
+        auto apv_channels = apvPair.second;
+
+        // Crate histogram
+        std::string histo_name = fmt::format("evt_{}_{}", event_number, fMapping->GetAPVFromID(apv_id));
+        std::string histo_title = fmt::format("SRS Raw Window data for Event# {} APV {}", event_number, apv_id);
+
+        auto histo= new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
+        histo->SetDirectory(hists_dir);
+
+        // go over channels
+        for(auto channel_pair: apv_channels) {
+            auto apv_channel = channel_pair.first;
+            auto samples = channel_pair.second;
+            // go over samples
+            for(size_t sample_i=0; sample_i < samples.size(); sample_i++){
+                int bin_index = sample_i*128 + sample_i + fMapping->APVchannelCorrection(apv_channel);  // + sample_i to make gaps in between samples
+                histo->SetBinContent(bin_index, samples[sample_i]);
+            }
+        }
+
+        histo->Write();
+    }
+}
+
+void GEMReconTestProcessor::TraceDumpMapping(std::vector<const DGEMSRSWindowRawData *> srs_data, size_t print_rows) {
+
+    logger()->trace("  [rocid] [slot]  [channel] [apv_id] [channel_apv] [apv map]");
+
+    auto rows_to_display = std::min(srs_data.size(), print_rows);
+
+    for(size_t i=0; i < rows_to_display; i++) {
+        auto &srs_item = srs_data[i];
+        std::string row = fmt::format("{:<7} {:<7} {:<9} {:<8} {:<13} {:<2} ",
+                                      srs_item->rocid, srs_item->slot, srs_item->channel,
+                                      srs_item->apv_id, srs_item->channel_apv, fMapping->APVchannelCorrection(srs_item->channel));
+
+
+
+
+
+        logger()->trace("   {}", row);
+    }
+
+}
+
+GemApvDecodingResult GEMReconTestProcessor::DecodeApv(int apv_id, std::vector<std::vector<int>> raw_data) {
+    //===========================================================================================================
+    // BLOCK WHERE COMMON MODE CORRECTION FOR ALL APV25 TIME BINS IS COMPUTED
+    //===========================================================================================================
+    static const int NCH = 128;
+
+    auto fPedestalOffsets = fPedestal->GetAPVOffsets(apv_id);
+    auto fPedestalNoises = fPedestal->GetAPVNoises(apv_id);
+    int fComModeCut = 20; // TODO parameter
+    double fZeroSupCut = 10; // TODO parameter
+    int fAPVBaseline = 2500;
+    int time_bins_size = raw_data.size();
+    assert(time_bins_size>0);
+    assert(raw_data[0].size() == NCH);
+    assert(fPedestalOffsets.size() == NCH);
+
+    std::vector<double> commonModeOffsets(time_bins_size, 0);
+    std::vector<double> rawDataZS(time_bins_size, 0);
+    std::map<int, GEMHit*> fListOfHits;
+    std::map<int, GEMHit*> fListOfHitsClean;
+
+    for (Int_t timebin = 0; timebin < time_bins_size; timebin++) {
+        std::vector<int> raw_channel_values = raw_data[timebin];
+
+        // PERFORM APV25 PEDESTAL OFFSET CORRECTION FOR A GIVEN TIME BIN
+        std::vector<double> channel_values;
+        for(size_t i; i < raw_channel_values.size(); i++) {
+            channel_values[i] = raw_channel_values[i] - fPedestalOffsets[i];
+        }
+
+        std::map<double, int> values_index_map;
+        for (int i = 0; i < NCH; i++) {
+            values_index_map[channel_values[i]] = i;
+        }
+
+        // Select only N channels with lowest adc
+        std::vector<double> dataTest = channel_values;
+        std::sort(dataTest.begin(), dataTest.end());
+        assert(fComModeCut < 28);
+        for (int i = 0; i < fComModeCut; i++) {
+            //     if(fAPVID == 0) printf("\n Enter  GEMHitDecoder::APVEventDecoder()=>BF: data[%d]=%f \n",timebin,dataTest[i]) ;
+            dataTest[i] = -fPedestalOffsets[values_index_map[dataTest[i]]] + fAPVBaseline;
+            //     if(fAPVID == 0) printf(" Enter  GEMHitDecoder::APVEventDecoder()=>AF: data[%d]=%f \n",  timebin,dataTest[i]) ;
+        }
+
+        // COMPUTE COMMON MODE FOR A GIVEN APV AND TIME BIN
+        double commonMode = std::accumulate(dataTest.begin(), dataTest.end(), 0.0) / NCH;
+        commonModeOffsets.push_back(commonMode);
+        //    if(fAPVID == 0) printf(" Enter  GEMHitDecoder::APVEventDecoder(), timebin = %d, commonMode = %d \n",  timebin, commonMode) ;
+
+        // PERFORM COMMON MODE CORRECTION FOR A GIVEN TIME BIN
+        std::transform(channel_values.begin(), channel_values.end(), channel_values.begin(), std::bind2nd(std::minus<Float_t>(), commonMode));
+
+        //  ADC SUM OVER ALL TIME BINS USE AS THE TEST CRITERIA FOR ZERO SUPPRESSION
+        for(int i=0; i < rawDataZS.size(); i++) {
+            rawDataZS[i] += channel_values[i];
+        }
+    }
+
+    // ADC AVERAGE OVER ALL TIME BINS USE AS THE TEST CRITERIA FOR ZERO SUPPRESSION
+    for(int i=0; i < rawDataZS.size(); i++) {
+        rawDataZS[i] = rawDataZS[i]/time_bins_size;
+    }
+
+    //if (isCommonModeTooLarge) return;
+
+    for (size_t timebin = 0; timebin < raw_data.size(); timebin++) {
+        // EXTRACT APV25 DATA FOR A GIVEN TIME BIN
+        std::vector<int> rawDataTS = raw_data[timebin];
+        for (int chNo = 0; chNo < NCH; chNo++) {
+            int hitID = (apv_id << 8) | chNo;
+            Float_t data = -(rawDataTS[chNo] - fPedestalOffsets[chNo] - commonModeOffsets[timebin]);
+            Float_t avgdata = -rawDataZS[chNo];
+
+            //   if (fAPVID % 2 == 1) data = 1.2 * data ;
+
+            // NO ZERO SUPPRESSION
+            if (!fListOfHits[hitID]) {
+                GEMHit *hit = new GEMHit(hitID, apv_id, chNo, 0, "peakADCs", time_bins_size, /**StopTimeSamples**/time_bins_size, /**StartTimeSamples**/0);
+                fListOfHits[hitID] = hit;
+            }
+            fListOfHits[hitID]->AddTimeBinADCs(timebin, data,  fPedestalNoises[chNo]);
+            TString planename = fListOfHits[hitID]->GetPlane();
+
+//            // ZERO SUPPRESSION
+//            if (avgdata > (fZeroSupCut * fPedestalNoises[chNo])) {
+//                if (!fListOfHitsClean[hitID]) {
+//                    GEMHit *hit = new GEMHit(hitID, apv_id, chNo, fZeroSupCut, fIsHitMaxOrTotalADCs, fNbOfTimeSamples, fStopTimeSamples, fStartTimeSamples);
+//                    fListOfHitsClean[hitID] = hit;
+//                }
+//                fListOfHitsClean[hitID]->AddTimeBinADCs(timebin, data, fPedestalNoises[chNo]);
+//            }
+        }
+    }
+    GemApvDecodingResult result;
+    result.RawData = raw_data;
+    result.PedestalOffsets = fPedestalOffsets;
+    result.PedestalNoises = fPedestalNoises;
+    result.CommonModeOffsets = commonModeOffsets;
+    result.RawDataAverage = rawDataZS;
+    return result;
 }
 
 

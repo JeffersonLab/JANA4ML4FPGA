@@ -4,7 +4,9 @@
 
 #include <rawdataparser/EVIOBlockedEventParser.h>
 
+
 #include "CDAQEVIOFileSource.h"
+
 
 using namespace std;
 using namespace std::chrono;
@@ -12,8 +14,8 @@ using namespace std::chrono;
 /**
  * Constructor
  */
-CDAQEVIOFileSource::CDAQEVIOFileSource(std::string resource_name, JApplication *app) : JEventSource(
-        resource_name, app) {
+CDAQEVIOFileSource::CDAQEVIOFileSource(std::string resource_name, JApplication *app) : JEventSource(resource_name, app)
+{
     SetTypeName(NAME_OF_THIS); // Provide JANA with class name
 }
 /**
@@ -77,16 +79,15 @@ void CDAQEVIOFileSource::GetEvent(std::shared_ptr<JEvent> event) {
 
     // Get events from current block
     EVIOBlockedEventParser parser;
+    parser.Configure(m_parser_config);
     auto events = parser.ParseEVIOBlockedEvent(cur_block, event);
-    m_log->debug("Parsed block {} had {} events, swap_needed={}",
-                cur_block.block_number, events.size(), cur_block.swap_needed);
+    m_log->debug("Parsed block {} had {} events, swap_needed={}", cur_block.block_number, events.size(), cur_block.swap_needed);
     for (size_t i = 0; i < events.size(); i++) {
         auto &parsed_event = events[i];
         m_log->trace("  Event #{} got event-number={}:", i, parsed_event->GetEventNumber());
 
         for (auto factory: parsed_event->GetFactorySet()->GetAllFactories()) {
-            m_log->trace("    Factory = {:<30}  NumObjects = {}", factory->GetObjectName(),
-                         factory->GetNumObjects());
+            m_log->trace("    Factory = {:<30}  NumObjects = {}", factory->GetObjectName(), factory->GetNumObjects());
         }
     }
 
@@ -101,6 +102,11 @@ void CDAQEVIOFileSource::Open() {
     m_evio_filename = GetResourceName();
     m_log->info("GetResourceName() = {}", m_evio_filename);
     CDAQEVIOFileSource::OpenEVIOFile(m_evio_filename);
+
+    GetApplication()->SetDefaultParameter(
+            GetPluginName() + ":srs_nsamples",
+            m_parser_config.NSAMPLES_GEMSRS,
+            "Number of GEM SRS time samples per APV");
 }
 
 std::string CDAQEVIOFileSource::GetDescription() {
@@ -110,18 +116,13 @@ std::string CDAQEVIOFileSource::GetDescription() {
 
 template<>
 double JEventSourceGeneratorT<CDAQEVIOFileSource>::CheckOpenable(std::string resource_name) {
-
     /// CheckOpenable() decides how confident we are that this EventSource can handle this resource.
     ///    0.0        -> 'Cannot handle'
     ///    (0.0, 1.0] -> 'Can handle, with this confidence level'
 
-    /// To determine confidence level, feel free to open up the file and check for magic bytes or metadata.
-    /// Returning a confidence <- {0.0, 1.0} is perfectly OK!
-
+    // To determine confidence level, feel free to open up the file and check for magic bytes or metadata.
+    // Returning a confidence <- {0.0, 1.0} is perfectly OK!
     if (resource_name.find(".evio") != std::string::npos) return 0.5;
     return 0;
-
-//    return (resource_name == "CDAQEVIOFileSource") ? 1.0 : 0.0;
-
 }
 

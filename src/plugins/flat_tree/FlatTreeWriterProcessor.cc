@@ -206,8 +206,11 @@ void FlatTreeWriterProcessor::SaveGEMSRSWindowRawData(std::vector<const DGEMSRSW
         srs_save.channel = srs_item->channel;
         srs_save.apv_id = srs_item->apv_id;
         srs_save.channel_apv = srs_item->channel_apv;
-        srs_save.samples = srs_item->samples;
         srs_save.best_sample = findBestSrsSamle(srs_item->samples);
+
+        for(auto sample: srs_item->samples) {
+            srs_save.samples.push_back(sample);
+        }
         m_srs_record_io.add(srs_save);
     }
 }

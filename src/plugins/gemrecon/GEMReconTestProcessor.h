@@ -8,9 +8,20 @@
 #include <TH2F.h>
 #include "GemConfiguration.h"
 #include "GEMPedestal.h"
+#include "rawdataparser/DGEMSRSWindowRawData.h"
+#include "GEMHit.h"
 
 class JEvent;
 class JApplication;
+
+class GemApvDecodingResult {
+public:
+    std::vector<float> PedestalOffsets;
+    std::vector<float> PedestalNoises;
+    std::vector<std::vector<int>> RawData;
+    std::vector<double> CommonModeOffsets;
+    std::vector<double> RawDataAverage;
+};
 
 class GEMReconTestProcessor:
         public JEventProcessor,
@@ -59,5 +70,11 @@ private:
     TH1F **f1DSingleEventHist, **fADCHist, **fHitHist, **fClusterHist, **fClusterInfoHist, **fChargeRatioHist;
     TH2F **fTimeBinPosHist, **fADCTimeBinPosHist, **f2DPlotsHist, **f2DSingleEventHist, **fChargeSharingHist;
     void InitHistForZeroSup();
+
+    void TraceDumpSrsData(std::vector<const DGEMSRSWindowRawData *> srs_data, size_t print_rows=10);
+    void TraceDumpMapping(std::vector<const DGEMSRSWindowRawData *> srs_data, size_t print_rows=10);
+    void FillTrdHistogram(uint64_t event_number, TDirectory *hists_dir, std::vector<const DGEMSRSWindowRawData *> srs_data, int max_x = 250, int max_y = 300);
+    GemApvDecodingResult DecodeApv(int apv_id, std::vector<std::vector<int>> raw_data);
 };
+
 

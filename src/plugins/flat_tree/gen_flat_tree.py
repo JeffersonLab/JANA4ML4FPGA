@@ -28,7 +28,7 @@ io_classes = [
             FieldInfo('uint32_t', 'apv_id'),
             FieldInfo('uint32_t', 'channel_apv'),
             FieldInfo('uint16_t', 'best_sample'),
-            FieldInfo('std::vector<uint16_t>', 'samples'),
+            FieldInfo('uint16_t', 'raw_samples'),
         ]),
 
     ClassInfo(

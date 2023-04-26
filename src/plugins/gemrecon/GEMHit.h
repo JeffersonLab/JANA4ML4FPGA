@@ -34,8 +34,7 @@ public:
 
     GEMHit();
 
-    GEMHit(Int_t hitID, Int_t apvID, Int_t chNo, Int_t zeroSupCut, TString isPeakOrSum, Int_t nbOfTB, Int_t stopTB,
-           Int_t startTB);
+    GEMHit(Int_t hitID, Int_t apvID, Int_t chNo, Int_t zeroSupCut, TString isPeakOrSum, Int_t nbOfTB, Int_t stopTB, Int_t startTB);
 
     ~GEMHit();
 
@@ -113,7 +112,7 @@ private:
     Int_t fAPVID, fHitID, fAPVChNo, fStripNo, fAbsoluteStripNo;
 
     Float_t fHitADCs, fPeakADCs, fSumADCs, fStripPosition, fPlaneSize, fHitPedestalNoise;
-    TString fPlane, fReadoutBoard, fDetectorType, fDetector, fIsHitPeakOrSumADCs;
+    std::string fPlane, fReadoutBoard, fDetectorType, fDetector, fIsHitPeakOrSumADCs;
 
     //ClassDef(GEMHit,2)
 };

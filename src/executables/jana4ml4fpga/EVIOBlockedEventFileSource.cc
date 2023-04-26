@@ -15,14 +15,13 @@ using namespace std;
 std::vector <std::shared_ptr<JEvent>>
 EVIOBlockedEventFileSource::DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool) {
     // Disentangle block into multiple events
-    EVIOBlockedEventParser parser; // TODO: make this persistent // (xmei@jlab.org) what does this mean
+    EVIOBlockedEventParser parser;      // TODO: make this persistent // (xmei@jlab.org) what does this mean
 
     auto events = parser.ParseEVIOBlockedEvent(block, pool);
     for(auto &parsed_event: events) {
         std::cout<<"Event number = "<<parsed_event->GetEventNumber()<<std::endl;
         for(auto factory: parsed_event->GetFactorySet()->GetAllFactories()) {
             std::cout<<"  Factory = "<<factory->GetObjectName()<<" NumObjects = " << factory->GetNumObjects()<<std::endl;
-
         }
     }
     return events;
@@ -61,6 +60,7 @@ void EVIOBlockedEventFileSource::OpenNextEVIOFile() {
 
 void EVIOBlockedEventFileSource::Initialize() {
     LOG_INFO(m_logger) << "Initializing EVIOBlockedEventFileSource" << LOG_END;
+
 
     // Open file.
     // n.b. his is not fully integrated into the standard JANA

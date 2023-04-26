@@ -99,7 +99,7 @@ void GEMHit::AddTimeBinADCs(Int_t timebin, Float_t charges, Float_t pedestal) {
 //============================================================================================
 void GEMHit::ComputePosition() {
     Float_t pitch = fPlaneSize / (NCH * fNbOfAPVsOnPlane);
-    if ((fDetectorType == "PRADGEM") && (fPlane.Contains("X"))) {
+    if ((fDetectorType == "PRADGEM") && (fPlane.find("X") != std::string::npos)) {
         pitch = 0.40000;
         fStripPosition = -0.5 * (fPlaneSize - pitch) + (pitch * fStripNo);
     } else {
@@ -111,7 +111,7 @@ void GEMHit::ComputePosition() {
 //============================================================================================
 void GEMHit::SetStripNo() {
     fAbsoluteStripNo = StripMapping(fAPVChNo);
-    if ((fDetectorType == "PRADGEM") && (fPlane.Contains("X"))) {
+    if ((fDetectorType == "PRADGEM") && (fPlane.find("X") != std::string::npos)) {
         Int_t nbAPVsOnPlane = fNbOfAPVsOnPlane - 1;
         if (fAPVIndexOnPlane > fNbOfAPVsOnPlane) fStripNo = -100000000;
         if (fAPVOrientation == 0) fAbsoluteStripNo = 127 - fAbsoluteStripNo;
@@ -147,7 +147,7 @@ Int_t GEMHit::APVchannelCorrection(Int_t chNo) {
 //=====================================================
 Int_t GEMHit::PRadStripMapping(Int_t chNo) {
     printf("   GEMHit::PRadStripMapping ==>\n");
-    if ((fDetectorType == "PRADGEM") && (fPlane.Contains("X")) && (fAPVIndexOnPlane == 11)) {
+    if ((fDetectorType == "PRADGEM") && ((fPlane.find("X") != std::string::npos)) && (fAPVIndexOnPlane == 11)) {
         if (chNo % 2 == 0) chNo = (chNo / 2) + 48;
         else if (chNo < 96) chNo = (95 - chNo) / 2;
         else chNo = 127 + (97 - chNo) / 2;

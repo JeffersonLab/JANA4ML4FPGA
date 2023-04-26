@@ -15,7 +15,7 @@ namespace flatio {
         uint32_t apv_id;
         uint32_t channel_apv;
         uint16_t best_sample;
-        std::vector<uint16_t> samples;
+        std::vector<int> samples;
     };
     
     class SrsRecordIO: public AlignedArraysIO
@@ -69,6 +69,6 @@ namespace flatio {
         std::vector<uint32_t> m_vect_apv_id;
         std::vector<uint32_t> m_vect_channel_apv;
         std::vector<uint16_t> m_vect_best_sample;
-        std::vector<std::vector<uint16_t>> m_vect_samples;
+        std::vector<std::vector<int>> m_vect_samples;
     };
 }

@@ -1,5 +1,6 @@
 #include "GEMOnlineHitDecoder.h"
 // #include "GemView.h"
+#include <spdlog/fmt/fmt.h>
 
 using namespace std;
 
@@ -129,8 +130,18 @@ void GEMOnlineHitDecoder::ProcessEvent(map<int, map<int, vector<int> > > srsSing
                 fAPVStatus = fMapping->GetAPVstatus(fAPVID);
                 string apv_status = fAPVStatus.Data();
                 apv_status = trim(apv_status);
-                TString detectorType = fMapping->GetDetectorTypeFromDetector(
-                        fMapping->GetDetectorFromAPVIDMap()[fAPVID]);
+                auto apvMap = fMapping->GetDetectorFromAPVIDMap();
+
+                fmt::print("    fMapping->GetDetectorFromAPVIDMap().size {:<10}", apvMap.size());
+                for(auto mapItem: apvMap) {
+                    int id = mapItem.first;
+                    std::string name(mapItem.second);
+                    fmt::print("    {:<10} {:<10}", id, name);
+                }
+                auto detNameTsrt = fMapping->GetDetectorFromAPVIDMap()[fAPVID];
+                std::string detectorName(detNameTsrt);
+                std::string detectorType(fMapping->GetDetectorTypeFromDetector(detectorName));
+
 
                 fPedestalNoises.clear();
                 fPedestalOffsets.clear();
@@ -189,7 +200,7 @@ void GEMOnlineHitDecoder::APVEventDecoder() {
 
     // COMPUTE APV25 COMMON MODE CORRECTION
     //if (fIsNewFECdataFlag) {
-    if (1) {
+    if (0) {
         for (idata = 0; idata < size; idata++) {
             if (fRawData16bits[idata] < fAPVHeaderLevel) {
                 idata++;
@@ -228,10 +239,8 @@ void GEMOnlineHitDecoder::APVEventDecoder() {
         assert(dataTest.size() == NCH);
 
         // PERFORM APV25 PEDESTAL OFFSET CORRECTION  FOR A GIVEN TIME BIN
-        std::transform(rawDataTS.begin(), rawDataTS.end(), fPedestalOffsets.begin(), rawDataTS.begin(),
-                       std::minus<Float_t>());
-        std::transform(dataTest.begin(), dataTest.end(), fPedestalOffsets.begin(), dataTest.begin(),
-                       std::minus<Float_t>());
+        std::transform(rawDataTS.begin(), rawDataTS.end(), fPedestalOffsets.begin(), rawDataTS.begin(), std::minus<Float_t>());
+        std::transform(dataTest.begin(), dataTest.end(), fPedestalOffsets.begin(), dataTest.begin(), std::minus<Float_t>());
 
         map<Float_t, Int_t> rawdatamap;
         for (int j = 0; j < NCH; j++) {
@@ -262,7 +271,7 @@ void GEMOnlineHitDecoder::APVEventDecoder() {
         std::transform(rawDataZS.begin(), rawDataZS.end(), rawDataTS.begin(), rawDataZS.begin(), std::plus<Float_t>());
 
         // PROCEED TO NEXT TIME BIN
-        firstdata = lastdata + 12;
+        firstdata = lastdata;
         lastdata = firstdata + NCH;
 
         // CLEAR EVERYTHING
@@ -284,10 +293,10 @@ void GEMOnlineHitDecoder::APVEventDecoder() {
     for (Int_t timebin = 0; timebin < fNbOfTimeSamples; timebin++) {
         if (fabs(commonModeOffsets[timebin]) > 200) {
             isCommonModeTooLarge = kTRUE;
-            continue;
+            break;
         }
     }
-    if (isCommonModeTooLarge) return;
+    //if (isCommonModeTooLarge) return;
 
     for (Int_t timebin = 0; timebin < fNbOfTimeSamples; timebin++) {
         // EXTRACT APV25 DATA FOR A GIVEN TIME BIN
@@ -318,7 +327,7 @@ void GEMOnlineHitDecoder::APVEventDecoder() {
                 fListOfHitsClean[hitID]->AddTimeBinADCs(timebin, data, fPedestalNoises[chNo]);
             }
         }
-        firstdata = lastdata + 12;
+        firstdata = lastdata;
         lastdata = firstdata + NCH;
         rawDataTS.clear();
     }
@@ -852,10 +861,8 @@ void GEMOnlineHitDecoder::Fill2DClusterHistos(TString detector, TH2F *pos2DHist,
                                               TH2F *chargeSharingHist, TH1F *chargeRatioHist) {
     // printf(" Enter  GEMOnlineHitDecoder::Fill2DClusterHistos() \n") ;
 
-    list<GEMCluster *> listOfClustersX = fListOfClustersCleanFromPlane[fMapping->GetPlaneListFromDetector(
-            detector).front()];
-    list<GEMCluster *> listOfClustersY = fListOfClustersCleanFromPlane[fMapping->GetPlaneListFromDetector(
-            detector).back()];
+    list<GEMCluster *> listOfClustersX = fListOfClustersCleanFromPlane[fMapping->GetPlaneListFromDetector(detector.Data()).front()];
+    list<GEMCluster *> listOfClustersY = fListOfClustersCleanFromPlane[fMapping->GetPlaneListFromDetector(detector.Data()).back()];
 
     Int_t clusterMultiplicityX = listOfClustersX.size();
     Int_t clusterMultiplicityY = listOfClustersY.size();
@@ -881,16 +888,16 @@ void GEMOnlineHitDecoder::Fill2DClusterHistos(TString detector, TH2F *pos2DHist,
         Float_t adcCount2 = ((GEMCluster *) clusterListY->At(k))->GetClusterADCs();
         Float_t timing1 = ((GEMCluster *) clusterListX->At(k))->GetClusterPeakTimeBin();
         Float_t timing2 = ((GEMCluster *) clusterListY->At(k))->GetClusterPeakTimeBin();
-        xpos = fMapping->GetPlaneOrientation(fMapping->GetPlaneListFromDetector(detector).front()) * xpos;
-        ypos = fMapping->GetPlaneOrientation(fMapping->GetPlaneListFromDetector(detector).back()) * ypos;
+        xpos = fMapping->GetPlaneOrientation(fMapping->GetPlaneListFromDetector(detector.Data()).front()) * xpos;
+        ypos = fMapping->GetPlaneOrientation(fMapping->GetPlaneListFromDetector(detector.Data()).back()) * ypos;
 
         Float_t clusterPos1 = xpos;
         Float_t clusterPos2 = ypos;
 
-        if (fMapping->GetReadoutBoardFromDetector(detector) == "UV_ANGLE") {
-            Float_t trapezoidDetLength = fMapping->GetUVangleReadoutMap(detector)[0];
-            Float_t trapezoidDetInnerRadius = fMapping->GetUVangleReadoutMap(detector)[1];
-            Float_t trapezoidDetOuterRadius = fMapping->GetUVangleReadoutMap(detector)[2];
+        if (fMapping->GetReadoutBoardFromDetector(detector.Data()) == "UV_ANGLE") {
+            Float_t trapezoidDetLength = fMapping->GetUVangleReadoutMap(detector.Data())[0];
+            Float_t trapezoidDetInnerRadius = fMapping->GetUVangleReadoutMap(detector.Data())[1];
+            Float_t trapezoidDetOuterRadius = fMapping->GetUVangleReadoutMap(detector.Data())[2];
             Float_t uvAngleCosineDirection =
                     (trapezoidDetOuterRadius - trapezoidDetInnerRadius) / (2 * trapezoidDetLength);
             xpos = 0.5 * (trapezoidDetLength + ((clusterPos1 - clusterPos2) / uvAngleCosineDirection));
@@ -898,8 +905,8 @@ void GEMOnlineHitDecoder::Fill2DClusterHistos(TString detector, TH2F *pos2DHist,
         }
 
         if ((adcCount1 == 0) || (adcCount2 == 0)) {
-            fListOfClustersCleanFromPlane[(fMapping->GetPlaneListFromDetector(detector)).front()].clear();
-            fListOfClustersCleanFromPlane[(fMapping->GetPlaneListFromDetector(detector)).back()].clear();
+            fListOfClustersCleanFromPlane[(fMapping->GetPlaneListFromDetector(detector.Data())).front()].clear();
+            fListOfClustersCleanFromPlane[(fMapping->GetPlaneListFromDetector(detector.Data())).back()].clear();
             continue;
         }
 
