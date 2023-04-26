@@ -21,7 +21,7 @@
 #include <evio/HDEVIO.h>
 #include <evio/DModuleType.h>
 #include <rawdataparser/EVIOBlockedEvent.h>
-
+#include <rawdataparser/EVIOBlockedEventParserConfig.h>
 #include <extensions/spdlog/SpdlogMixin.h>
 
 #define DEFAULT_READ_BUFF_LEN 4000000
@@ -45,15 +45,19 @@ public:
 
 private:
     std::string m_evio_filename = "";
-    unique_ptr<HDEVIO> m_hdevio;
+    std::unique_ptr<HDEVIO> m_hdevio;
+    EVIOBlockedEventParserConfig m_parser_config;
 
     uint32_t *m_buff = nullptr;
     uint32_t m_buff_len = DEFAULT_READ_BUFF_LEN;
     int m_block_number = 1;
 
+
     void OpenEVIOFile(std::string filename);
 
     EVIOBlockedEvent GetBlockFromBuffer(uint32_t event_len);
+
+
 };
 
 template <>

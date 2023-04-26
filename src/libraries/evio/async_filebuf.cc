@@ -186,7 +186,7 @@ std::streampos async_filebuf::seekpos(std::streampos pos, std::ios::openmode whi
    if (pos < std::streampos(0))
       pos = std::streampos(0);
    std::streampos curpos = getpos();
-   if (abs(pos - curpos) > segment_lookback * segment_size) {
+   if (std::abs(pos - curpos) > segment_lookback * segment_size) {
       if (readloop_active)
          readloop_terminate();
       return this->std::filebuf::seekpos(pos, which);

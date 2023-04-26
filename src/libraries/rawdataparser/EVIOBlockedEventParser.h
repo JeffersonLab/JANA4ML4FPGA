@@ -55,26 +55,22 @@
 // #include <rawdataparser/DDIRCADCHit.h>
 #include <rawdataparser/DGEMSRSWindowRawData.h>
 // #include <rawdataparser/DBORptrs.h>
+#include "EVIOBlockedEventParserConfig.h"
 
 class EVIOBlockedEventParser{
 
     std::vector <std::shared_ptr<JEvent>> events;
     size_t ievent_idx; // keeps track of the next event in the "events" vector to use while parsing
 
-    int VERBOSE = 1;
-    bool PARSE_EPICS = true;
-    bool PARSE_TRIGGER = true;
-    bool PARSE_CONFIG = true;
-    bool PARSE_GEMSRS = true;
-    bool PARSE_F250 = true;
-    bool PARSE_F125 = true;
-
-    const int32_t NSAMPLES_GEMSRS     = 9;
+    EVIOBlockedEventParserConfig m_config;
 
 public:
 
     EVIOBlockedEventParser();
     ~EVIOBlockedEventParser();
+
+    EVIOBlockedEventParserConfig GetConfigCopy() { return m_config; }
+    void Configure(EVIOBlockedEventParserConfig config) { m_config = config; }
 
     std::vector <std::shared_ptr<JEvent>> ParseEVIOBlockedEvent(EVIOBlockedEvent &block, JEventPool &pool);
     std::vector <std::shared_ptr<JEvent>> ParseEVIOBlockedEvent(EVIOBlockedEvent &block, std::shared_ptr<JEvent> &preallocated_event);
@@ -99,7 +95,7 @@ public:
     void ParseRawTriggerBank(uint32_t rocid, uint32_t *&iptr, uint32_t *iend);
     void ParseDGEMSRSBank(uint32_t rocid, uint32_t *&iptr, uint32_t *iend);
 
-    void MakeDGEMSRSWindowRawData(JEvent *event, uint32_t rocid, uint32_t slot, uint32_t itrigger, uint32_t apv_id, vector<int>rawData16bits);
+    void MakeDGEMSRSWindowRawData(JEvent *event, uint32_t rocid, uint32_t slot, uint32_t itrigger, uint32_t apv_id, std::vector<int> rawData16bits);
     void Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint32_t *iend);
     void MakeDf250WindowRawData(JEvent *event, uint32_t rocid, uint32_t slot, uint32_t itrigger, uint32_t* &iptr);
     void Parsef125Bank(uint32_t rocid, uint32_t *&iptr, uint32_t *iend);

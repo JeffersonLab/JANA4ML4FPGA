@@ -3,7 +3,7 @@
 
 #include <JANA/JObject.h>
 
-using namespace std;
+
 
 class Df250AsyncPedestal : public JObject {
 public:

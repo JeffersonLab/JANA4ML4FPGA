@@ -6,21 +6,27 @@
 #include <stdio.h>
 #include <TCanvas.h>
 #include <iostream>
+#include <filesystem>
+#include <gem/constants.h>
 
 using namespace std;
 
 //=========================================================================================================================
-GEMPedestal::GEMPedestal(TString pedFileName, int nbOfTimeSamples) {
+GEMPedestal::GEMPedestal(std::string pedFileName, int nbOfTimeSamples) {
     printf("   GEMPedestal::GEMPedestal() ==> Start init \n");
-    fPedFileName = pedFileName;
+    printf("   GEMPedestal::GEMPedestal() ==> nbOfTimeSamples %i \n", nbOfTimeSamples);
     printf("   GEMPedestal::GEMPedestal() ==> pedestal file %s\n", fPedFileName.Data());
 
+    fPedFileName = pedFileName;
     fRawPedestal = new GEMRawPedestal(nbOfTimeSamples);
     mapping = GemMapping::GetInstance();
-    NCH = 128;
     nNbofAPVs = mapping->GetNbOfAPVs();
     FECs.clear();
     FECs = mapping->GetBankIDSet();
+
+    printf("   GEMPedestal::GEMPedestal() ==> NCH %i \n", gem::ChannelsCount);
+    printf("   GEMPedestal::GEMPedestal() ==> nNbofAPVs %i \n", nNbofAPVs);
+    printf("   GEMPedestal::GEMPedestal() ==> FECs.size() %i \n", FECs.size());
     printf("   GEMPedestal::GEMPedestal() ==> End init \n");
 
 }
@@ -68,10 +74,10 @@ void GEMPedestal::BookHistos() {
         stringstream out;
         out << apvKey;
         TString outStr = out.str();
-        vApvPedestalOffset.push_back(
-                new TH1F(GetHistoName(apvKey, "offset", ""), GetHistoName(apvKey, "offset", ""), 128, -0.5, 127.5));
-        vApvPedestalNoise.push_back(
-                new TH1F(GetHistoName(apvKey, "noise", ""), GetHistoName(apvKey, "noise", ""), 128, -0.5, 127.5));
+        std::string hist_name = GetHistoName(apvKey, "offset", "");
+        vApvPedestalOffset.push_back(new TH1F(hist_name.c_str(), hist_name.c_str(), 128, -0.5, 127.5));
+        hist_name = GetHistoName(apvKey, "noise", "");
+        vApvPedestalNoise.push_back(new TH1F(hist_name.c_str(), hist_name.c_str(), 128, -0.5, 127.5));
     }
 
     // book histograms for overall distribution
@@ -82,11 +88,11 @@ void GEMPedestal::BookHistos() {
 }
 
 //=========================================================================================================================
-TString GEMPedestal::GetHistoName(Int_t apvKey, TString dataType, TString dataNb) {
+std::string GEMPedestal::GetHistoName(Int_t apvKey, TString dataType, TString dataNb) {
     Int_t apvID = mapping->GetAPVIDFromAPVNo(apvKey);
     TString apvName = mapping->GetAPVFromID(apvID);
     TString histoName = dataType + dataNb + "_" + apvName;
-    return histoName;
+    return histoName.Data();
 }
 
 
@@ -148,23 +154,28 @@ void GEMPedestal::SavePedestalFile() {
 //=========================================================================================================================
 void GEMPedestal::LoadPedestal() {
     printf("   GEMPedestal::LoadPedestal() ==> Loading pedestal file %s\n", fPedFileName.Data());
-    TFile *_file = new TFile(fPedFileName.Data(), "READ");
-    if (_file->IsZombie()) {
-        cout << "#### Cannot Load pedestal file... ####" << endl;
-        return;
+
+    if (!std::filesystem::exists(fPedFileName.Data())) {
+        throw std::runtime_error(std::string("Pedestal file not found: ") + fPedFileName.Data());
+    }
+    TFile file(fPedFileName.Data(), "READ");
+    if (file.IsZombie()) {
+        std::string message = std::string("Pedestal file IsZombie") + fPedFileName.Data();
+        throw std::runtime_error(std::string("Pedestal file not found: ") + fPedFileName.Data());
     }
     Int_t nAPVs = mapping->GetNbOfAPVs();
     for (int i = 0; i < nAPVs; i++) {
         stringstream out;
         out << i;
         TString outStr = out.str();
-        vApvPedestalOffset.push_back((TH1F *) _file->Get(GetHistoName(i, "offset", "")));
+        vApvPedestalOffset.push_back((TH1F *) file.Get(GetHistoName(i, "offset", "").c_str()));
         vApvPedestalOffset[i]->SetDirectory(0);
-        vApvPedestalNoise.push_back((TH1F *) _file->Get(GetHistoName(i, "noise", "")));
+        vApvPedestalNoise.push_back((TH1F *) file.Get(GetHistoName(i, "noise", "").c_str()));
         vApvPedestalNoise[i]->SetDirectory(0);
+        printf("   GEMPedestal::LoadPedestal() ==> Got data for APV %i NBins offset: %i NBins noise: %i \n", i, vApvPedestalOffset[i]->GetNbinsX(), vApvPedestalNoise[i]->GetNbinsY());
     }
     // Cannot close file while pedestal histograms are still being used...
-    _file->Close();
+    file.Close();
 }
 
 //=========================================================================================================================

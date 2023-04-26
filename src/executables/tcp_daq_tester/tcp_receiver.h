@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 
-using namespace std;
+
 const int HOST_NAME_LEN=128;
 
 struct network_host_t {

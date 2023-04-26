@@ -10,6 +10,8 @@
 #include <TH1F.h>
 #include <TFile.h>
 
+#include <gem/constants.h>
+
 class GEMRawDecoder;
 
 class GemMapping;
@@ -18,7 +20,9 @@ class GEMRawPedestal;
 
 class GEMPedestal {
 public:
-    GEMPedestal(TString pedFileName, int nbOfTimeSamples);
+    const int NCH = gem::ChannelsCount;     // Number of channels, which is 128 everywhere
+
+    GEMPedestal(std::string pedFileName, int nbOfTimeSamples);
 
     ~GEMPedestal();
 
@@ -32,7 +36,7 @@ public:
 
     void LoadPedestal();
 
-    TString GetHistoName(Int_t apvKey, TString dataType, TString dataNb);
+    std::string GetHistoName(Int_t apvKey, TString dataType, TString dataNb);
 
     void Delete();
 
@@ -42,7 +46,7 @@ public:
 
 private:
     std::set<int> FECs;
-    int NCH;
+
     int nNbofAPVs;
 
     TString fPedFileName;

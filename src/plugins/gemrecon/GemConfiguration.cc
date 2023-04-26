@@ -1,19 +1,17 @@
 #include "GemConfiguration.h"
 //ClassImp(GemConfiguration);
+using namespace std;
 
 GemConfiguration::GemConfiguration() {
-    Init();
+    SetDefaults();
 }
 
-GemConfiguration::GemConfiguration(const char *file) {
-    Init(file);
-}
 
 GemConfiguration::~GemConfiguration() {
 }
 
-bool GemConfiguration::FileExists(const char *name) const {
-    ifstream f(gSystem->ExpandPathName(name));
+bool GemConfiguration::FileExists(const std::string& name) const {
+    ifstream f(gSystem->ExpandPathName(name.c_str()));
     if (f.good()) {
         f.close();
         return true;
@@ -56,22 +54,6 @@ GemConfiguration &GemConfiguration::operator=(const GemConfiguration &rhs) {
 }
 
 //============================================================================================
-void GemConfiguration::Init(const char *file) {
-    printf("config file = %s \n", file);
-    if (!file) {
-        //Warning("Init", "conf file not specified. Setting defaults." );
-        cerr << "conf file not specified. Setting defaults." << endl;
-        SetDefaults();
-    } else {
-        if (!Load(file)) {
-            //Warning("Init", "Cannot open conf file. Setting defaults." );
-            cerr << "Cannot open conf file. Setting defaults." << endl;
-            SetDefaults();
-        }
-    }
-}
-
-//============================================================================================
 void GemConfiguration::SetDefaults() {
     fCycleWait = 20; //sec
     fETIPAddress = "129.57.167.225";
@@ -102,11 +84,11 @@ void GemConfiguration::SetDefaults() {
 }
 
 //============================================================================================
-void GemConfiguration::Save(const char *filename) const {
+void GemConfiguration::Save(const std::string& filename) const {
 #ifdef DEBUG
     cout << "saving conf in " << gSystem->ExpandPathName(filename) << endl;
 #endif
-    ofstream file(gSystem->ExpandPathName(filename));
+    ofstream file(gSystem->ExpandPathName(filename.c_str()));
     file << "CYCLEWAIT " << fCycleWait << endl;
     file << "ETIPADDRESS " << fETIPAddress << endl;
     file << "ETSTATIONNAME" << fETStationName << endl;
@@ -138,25 +120,29 @@ void GemConfiguration::Save(const char *filename) const {
 }
 
 //============================================================================================
-Bool_t GemConfiguration::Load(const char *filename) {
-    printf("  GemConfiguration::Load() ==> Loading cfg from %s\n", gSystem->ExpandPathName(filename));
+void GemConfiguration::Load(const std::string& filename) {
+    printf("  GemConfiguration::Load() ==> Loading cfg from %s\n", gSystem->ExpandPathName(filename.c_str()));
     //  ifstream file (gSystem->ExpandPathName(filename), ifstream::in);
 
     ifstream file;
-    if (FileExists(gSystem->ExpandPathName(filename))) {
-        try {
-            file.open(gSystem->ExpandPathName(filename), ifstream::in);
-        } catch (ifstream::failure e) {
-            std::cerr << gSystem->ExpandPathName(filename) << ": File does not exist or cannot be opened!\n";
-        } catch (...) {
-            std::cerr << "Non-processed exception!\n";
-        }
-        if (!file.is_open()) {
-            return kFALSE;
-        }
-    } else {
-        return kFALSE;
+    if(!FileExists(gSystem->ExpandPathName(filename.c_str()))) {
+        throw std::runtime_error(std::string(gSystem->ExpandPathName(filename.c_str()) ) + ": File does not exist or cannot be opened!\n");
     }
+
+
+    try {
+        file.open(gSystem->ExpandPathName(filename.c_str()), std::ifstream::in);
+    } catch (ifstream::failure e) {
+        std::cerr << "Error opening file" << gSystem->ExpandPathName(filename.c_str()) << std::endl ;
+        throw;
+    } catch (...) {
+        std::cerr << "Non-processed exception!\n";
+        throw;
+    }
+    if (!file.is_open()) {
+        throw std::runtime_error("IDK why, but the file is not opened. !file.is_open()\n");
+    }
+
 
     TString line;
     while (line.ReadLine(file)) {
@@ -276,7 +262,6 @@ Bool_t GemConfiguration::Load(const char *filename) {
         }
     }
     Dump();
-    return kTRUE;
 }
 
 void GemConfiguration::Dump() const {

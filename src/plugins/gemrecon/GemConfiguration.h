@@ -17,17 +17,16 @@
 #endif
 
 // Class containing all configuration parameters for configuration from file(s)
-using namespace std;
+
 
 class GemConfiguration/* : public TObject */{
 
  public:
   GemConfiguration();
-  GemConfiguration(const char * file);
   ~GemConfiguration();
 
-  void Init(const char * file = 0);
-  bool FileExists(const char* name) const;
+
+  bool FileExists(const std::string& name) const;
 
   int GetCycleWait() const { return fCycleWait; }
   void SetCycleWait(int time) { fCycleWait = time; }
@@ -110,8 +109,8 @@ class GemConfiguration/* : public TObject */{
   int GetLastEvent() const { return fLastEvent; }
   void SetLastEvent(int set) { fLastEvent = set; }
 
-  Bool_t Load(const char * filename);
-  void Save(const char * filename) const; 
+  void Load(const std::string& filename);
+  void Save(const std::string& filename) const;
   void Dump() const;
 
   GemConfiguration & operator=(const GemConfiguration &rhs);
