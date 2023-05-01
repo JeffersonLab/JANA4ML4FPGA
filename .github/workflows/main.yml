@@ -58,7 +58,6 @@ jobs:
           echo "timestamp=$(date --iso-8601=minutes)" >> $GITHUB_OUTPUT
       - uses: cvmfs-contrib/github-action-cvmfs@v3
       - name: Build and install
-        uses: eic/run-cvmfs-osg-eic-shell@main
         run: |
           # install this repo
           CC=${{ matrix.CC }} CXX=${{ matrix.CXX }} cmake -B build -S . -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=${{ matrix.CMAKE_BUILD_TYPE }}
