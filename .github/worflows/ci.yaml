@@ -1,0 +1,80 @@
+name: Build against eic-shell
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+    strategy:
+      matrix:
+        include:
+          - CC: gcc
+            CXX: g++
+            CMAKE_BUILD_TYPE: Release
+          - CC: clang
+            CXX: clang++
+            CMAKE_BUILD_TYPE: Release
+          - CC: gcc
+            CXX: g++
+            CMAKE_BUILD_TYPE: Debug
+    steps:
+      - uses: actions/checkout@v3
+      - name: Prepare ccache timestamp
+        id: ccache_cache_timestamp
+        run: |
+          echo "timestamp=$(date --iso-8601=minutes)" >> $GITHUB_OUTPUT
+      - name: Retrieve ccache cache files
+        uses: actions/cache@v3
+        with:
+          path: .ccache
+          key: ccache-${{ matrix.CC }}-${{ matrix.CMAKE_BUILD_TYPE }}-${{ github.ref_name }}-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+          restore-keys: |
+            ccache-${{ matrix.CC }}-${{ matrix.CMAKE_BUILD_TYPE }}-${{ github.ref_name }}-
+            ccache-${{ matrix.CC }}-${{ matrix.CMAKE_BUILD_TYPE }}-
+            ccache-${{ matrix.CC }}-
+            ccache-
+      - name: Configure ccache
+        run: |
+          mkdir -p ~/.ccache/
+          echo "cache_dir=${{ github.workspace }}/.ccache" > ~/.ccache/ccache.conf
+          echo "max_size=500MB" >> ~/.ccache/ccache.conf
+          echo "compression=true" >> ~/.ccache/ccache.conf
+      - uses: cvmfs-contrib/github-action-cvmfs@v3
+      - name: Build and install
+        uses: eic/run-cvmfs-osg-eic-shell@main
+        with:
+          platform-release: "jug_xl:nightly"
+          run: |
+            # install this repo
+            CC=${{ matrix.CC }} CXX=${{ matrix.CXX }} cmake -B build -S . -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=${{ matrix.CMAKE_BUILD_TYPE }}
+            cmake --build build -- -j 2 install
+      - uses: actions/upload-artifact@v3
+        with:
+          name: install-${{ matrix.CC }}-eic-shell-${{ matrix.CMAKE_BUILD_TYPE }}
+          path: |
+            .
+            !src/
+            !build/
+            !apt_cache/
+            !.git/
+            !.ccache/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.CC }}-eic-shell-${{ matrix.CMAKE_BUILD_TYPE }}
+          path: |
+            build/
+          if-no-files-found: error
