@@ -103,8 +103,8 @@ jobs:
           echo "valgrind suppression"
           ls -la /usr/local/etc/root/valgrind-root.supp
           echo "doing valgrind"
-          valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log --suppressions=/usr/local/etc/root/valgrind-root.supp $PWD/install/bin/jana4ml4fpga --help || cat valgrind-memcheck-jana4ml4fpga.log
-
+          valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log $PWD/install/bin/jana4ml4fpga --help || cat valgrind-memcheck-jana4ml4fpga.log
+          echo "done valgrind"
       - uses: actions/upload-artifact@v3
         with:
           name: valgrind-memcheck-jana4ml4fpga.log
