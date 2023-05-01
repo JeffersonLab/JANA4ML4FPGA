@@ -52,11 +52,6 @@ jobs:
           echo "cache_dir=${{ github.workspace }}/.ccache" > ~/.ccache/ccache.conf
           echo "max_size=500MB" >> ~/.ccache/ccache.conf
           echo "compression=true" >> ~/.ccache/ccache.conf
-      - name: Build JANA4ML4FPGA
-        id: build_jana4ml4fpga
-        run: |
-          echo "timestamp=$(date --iso-8601=minutes)" >> $GITHUB_OUTPUT
-      - uses: cvmfs-contrib/github-action-cvmfs@v3
       - name: Build and install
         run: |
           # install this repo
