@@ -57,9 +57,14 @@ jobs:
           # install this repo
           pwd
           ls -latrh /
-          source /entrypoint.sh
+          export JANA_HOME="/container/app/jana2/jana2-master"
+          export JANA_PLUGIN_PATH=${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
+          export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
+          export LD_LIBRARY_PATH=/container/app/jana2/jana2-master/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+          export CMAKE_PREFIX_PATH=/container/app/jana2/jana2-master/lib/cmake/JANA${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}  
           CC=${{ matrix.CC }} CXX=${{ matrix.CXX }} cmake -B build -S . -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=${{ matrix.CMAKE_BUILD_TYPE }}
           cmake --build build -- -j 2 install
+          source /environment.sh
       - uses: actions/upload-artifact@v3
         with:
           name: install-${{ matrix.CC }}-eic-shell-${{ matrix.CMAKE_BUILD_TYPE }}
