@@ -94,9 +94,9 @@ jobs:
         run: |
           pwd
           ls
-          export JANA_PLUGIN_PATH=$PWD/plugins${JANA_PLUGIN_PATH:+:${JANA_PLUGIN_PATH}}
-          chmod a+x bin/*
-          valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log --suppressions=/usr/local/etc/root/valgrind-root.supp $PWD/bin/jana4ml4fpga -Pplugins=CDAQfile,root_output -Pjana:timeout=0 -Pjana:warmup_timeout=0
+          export JANA_PLUGIN_PATH=$PWD/install/plugins${JANA_PLUGIN_PATH:+:${JANA_PLUGIN_PATH}}
+          chmod a+x install/bin/*
+          valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log --suppressions=/usr/local/etc/root/valgrind-root.supp $PWD/install/bin/jana4ml4fpga -Pplugins=CDAQfile,root_output -Pjana:timeout=0 -Pjana:warmup_timeout=0
       - uses: actions/upload-artifact@v3
         with:
           name: valgrind-memcheck-jana4ml4fpga.log
