@@ -1,4 +1,4 @@
-name: Build against eic-shell
+name: Build and run in ml4fpga container
 
 on:
   push:
@@ -96,9 +96,12 @@ jobs:
         run: |
           pwd
           ls
+          ll install/bin
           export JANA_PLUGIN_PATH=$PWD/install/plugins${JANA_PLUGIN_PATH:+:${JANA_PLUGIN_PATH}}
+          echo "doing chmod"
           chmod a+x install/bin/*
-          valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log --suppressions=/usr/local/etc/root/valgrind-root.supp $PWD/install/bin/jana4ml4fpga -Pplugins=CDAQfile,root_output -Pjana:timeout=0 -Pjana:warmup_timeout=0
+          echo "doing valgrind"
+          valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log --suppressions=/usr/local/etc/root/valgrind-root.supp $PWD/install/bin/jana4ml4fpga --help
       - uses: actions/upload-artifact@v3
         with:
           name: valgrind-memcheck-jana4ml4fpga.log
