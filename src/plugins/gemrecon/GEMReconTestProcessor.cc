@@ -53,7 +53,15 @@ void GEMReconTestProcessor::Init() {
     // I N I T   C O N F I G
     std::string gem_config = "Config.cfg";
     app->SetDefaultParameter(plugin_name + ":config", gem_config, "Full path to gem config");
-    std::filesystem::path config_path = std::filesystem::canonical(gem_config);
+    std::filesystem::path config_path;
+    try {
+        config_path = std::filesystem::canonical(gem_config);
+    }
+    catch (std::exception& ex) {
+        logger()->error("Error getting access to gem_config='{}' path. Exception message: {}", gem_config, ex.what());
+        throw new JException(ex.what());
+    }
+
     logger()->info("Configuration file: {}", gem_config);
     logger()->info("Canonical path: {}", config_path.string());
 
