@@ -23,13 +23,22 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         )
 
 target_link_libraries(${PROJECT_NAME}
-        JANA::jana2_static_lib
+        ${JANA_LIB}
         spdlog::spdlog fmt::fmt
         evio rawdataparser Threads::Threads dl ${ROOT_LIBRARIES}
         )
+
 
 target_link_options(${PROJECT_NAME} PRIVATE -rdynamic)
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 install(TARGETS ${PROJECT_NAME}  DESTINATION ${PROGRAM_OUTPUT_DIRECTORY})
 
-remove_definitions()
+
+# Add CERN ROOT
+if(NOT ROOT_FOUND)
+    find_package(ROOT REQUIRED)
+endif()
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${ROOT_INCLUDE_DIRS} )
+target_link_libraries(${PROJECT_NAME} ${ROOT_LIBRARIES})
+
+#remove_definitions()

@@ -189,9 +189,9 @@ macro(plugin_add_cern_root _name)
     endif()
 
     # Add include directories
-    plugin_include_directories(${PLUGIN_NAME} SYSTEM PUBLIC ${ROOT_INCLUDE_DIRS} )
+    plugin_include_directories(${_name} SYSTEM PUBLIC ${ROOT_INCLUDE_DIRS} )
 
     # Add libraries
     #plugin_link_libraries(${PLUGIN_NAME} ${ROOT_LIBRARIES} EDM4EIC::edm4eic algorithms_digi_library algorithms_tracking_library ROOT::EG)
-    plugin_link_libraries(${PLUGIN_NAME} ${ROOT_LIBRARIES} ROOT::EG)
+    plugin_link_libraries(${_name} ${ROOT_LIBRARIES} ROOT::EG)
 endmacro()
