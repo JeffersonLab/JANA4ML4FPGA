@@ -84,6 +84,8 @@ jobs:
 
   valgrind-memcheck-jana4ml4fpga-gcc:
     runs-on: ubuntu-latest
+    container:
+      image: eicdev/ml4fpga-pre:latest
     needs:
       - build
     steps:
