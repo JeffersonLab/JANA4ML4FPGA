@@ -91,7 +91,6 @@ jobs:
         with:
           name: install-gcc-jana4ml4fpga-Debug
       - name: Run JANA4ML4FPGA under valgrind
-        uses: eic/run-cvmfs-osg-eic-shell@main
         run: |
           pwd
           ls
