@@ -42,10 +42,8 @@ tmp/
 
 .idea/
 
-cmake-build-debug/
+# root files accidentally created by scripts
+scripts/*.root
 
-scripts/eicrecon.root
-
-cmake-build-debug-remote-host/
-
-cmake-build-debug-wsl/
+# CLion cmake build directories
+cmake-build-*/
