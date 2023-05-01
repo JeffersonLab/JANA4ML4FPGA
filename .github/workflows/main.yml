@@ -96,7 +96,7 @@ jobs:
         run: |
           pwd
           ls
-          ll install/bin
+          ls -la install/bin
           export JANA_PLUGIN_PATH=$PWD/install/plugins${JANA_PLUGIN_PATH:+:${JANA_PLUGIN_PATH}}
           echo "doing chmod"
           chmod a+x install/bin/*
