@@ -55,6 +55,7 @@ jobs:
       - name: Build and install
         run: |
           # install this repo
+          source /entrypoint.sh
           CC=${{ matrix.CC }} CXX=${{ matrix.CXX }} cmake -B build -S . -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=${{ matrix.CMAKE_BUILD_TYPE }}
           cmake --build build -- -j 2 install
       - uses: actions/upload-artifact@v3
