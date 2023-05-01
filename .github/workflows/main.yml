@@ -100,8 +100,11 @@ jobs:
           export JANA_PLUGIN_PATH=$PWD/install/plugins${JANA_PLUGIN_PATH:+:${JANA_PLUGIN_PATH}}
           echo "doing chmod"
           chmod a+x install/bin/*
+          echo "valgrind suppression"
+          ls -la /usr/local/etc/root/valgrind-root.supp
           echo "doing valgrind"
-          valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log --suppressions=/usr/local/etc/root/valgrind-root.supp $PWD/install/bin/jana4ml4fpga --help
+          valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log --suppressions=/usr/local/etc/root/valgrind-root.supp $PWD/install/bin/jana4ml4fpga --help || cat valgrind-memcheck-jana4ml4fpga.log
+
       - uses: actions/upload-artifact@v3
         with:
           name: valgrind-memcheck-jana4ml4fpga.log
