@@ -150,9 +150,9 @@ jobs:
           echo "$GEMRECON_CONFIG"
           echo "$GEMRECON_MAPPING"
           echo "$INPUT_EVIO"
-          $PWD/install/bin/jana4ml4fpga -Pplugins=CDAQfile,flat_tree,root_output,gemrecon -Pjana:nevents=10 -Pgemrecon:config=$GEMRECON_CONFIG $INPUT_EVIO
+          $PWD/install/bin/jana4ml4fpga -Pplugins=CDAQfile,flat_tree,root_output,gemrecon -Phistsfile=output.hists.root -Pjana:nevents=10 -Pgemrecon:config=$GEMRECON_CONFIG -Pgemrecon:mapping=$GEMRECON_MAPPING $INPUT_EVIO
       - uses: actions/upload-artifact@v3
         with:
-          name: valgrind-memcheck-jana4ml4fpga.log
-          path: valgrind-memcheck-jana4ml4fpga.log
+          name: output.hists.root
+          path: output.hists.root
           if-no-files-found: error
