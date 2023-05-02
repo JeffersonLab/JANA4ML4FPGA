@@ -99,6 +99,8 @@ jobs:
           export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
           export LD_LIBRARY_PATH=/container/app/jana2/jana2-master/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
           export CMAKE_PREFIX_PATH=/container/app/jana2/jana2-master/lib/cmake/JANA${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}  
+          echo "doing chmod"
+          chmod a+x install/bin/*          
           echo "doing valgrind"
           valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log $PWD/install/bin/jana4ml4fpga --help || cat valgrind-memcheck-jana4ml4fpga.log
           echo "done valgrind"
