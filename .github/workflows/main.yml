@@ -94,12 +94,11 @@ jobs:
           name: install-gcc-jana4ml4fpga-Debug
       - name: Run JANA4ML4FPGA under valgrind
         run: |
-          pwd
-          ls
-          ls -la install/bin
-          export JANA_PLUGIN_PATH=$PWD/install/plugins${JANA_PLUGIN_PATH:+:${JANA_PLUGIN_PATH}}
-          echo "doing chmod"
-          chmod a+x install/bin/*          
+          export JANA_HOME="/container/app/jana2/jana2-master"
+          export JANA_PLUGIN_PATH=${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
+          export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
+          export LD_LIBRARY_PATH=/container/app/jana2/jana2-master/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+          export CMAKE_PREFIX_PATH=/container/app/jana2/jana2-master/lib/cmake/JANA${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}  
           echo "doing valgrind"
           valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log $PWD/install/bin/jana4ml4fpga --help || cat valgrind-memcheck-jana4ml4fpga.log
           echo "done valgrind"
