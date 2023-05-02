@@ -109,3 +109,45 @@ jobs:
           name: valgrind-memcheck-jana4ml4fpga.log
           path: valgrind-memcheck-jana4ml4fpga.log
           if-no-files-found: error
+
+  run-10-evio-events-gemrecon:
+    runs-on: ubuntu-latest
+    container:
+      image: eicdev/ml4fpga-pre:latest
+    strategy:
+      matrix:
+        include:
+          - CC: gcc
+            CXX: g++
+            CMAKE_BUILD_TYPE: Release
+          - CC: clang
+            CXX: clang++
+            CMAKE_BUILD_TYPE: Release
+    needs:
+      - build
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: build-${{ matrix.CC }}-jana4ml4fpga-${{ matrix.CMAKE_BUILD_TYPE }}
+      - name: Run 10 evio events
+        run: |
+          export JANA_HOME="/container/app/jana2/jana2-master"
+          export JANA_PLUGIN_PATH=${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
+          export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
+          export LD_LIBRARY_PATH=/container/app/jana2/jana2-master/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+          export CMAKE_PREFIX_PATH=/container/app/jana2/jana2-master/lib/cmake/JANA${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}  
+          echo "doing chmod"
+          chmod a+x install/bin/*          
+          echo "running jana"
+          export GEMRECON_CONFIG=$PWD/src/plugins/gemrecon/db/Config.cfg
+          export GEMRECON_MAPPING=$PWD/src/plugins/gemrecon/db/2019_mapping_GEMTRK.cfg
+          export INPUT_EVIO=$PWD/resources/test_data/rawdata_001068_10evt.evio
+          echo "$GEMRECON_CONFIG"
+          echo "$GEMRECON_MAPPING"
+          echo "$INPUT_EVIO"
+          $PWD/install/bin/jana4ml4fpga -Pplugins=CDAQfile,flat_tree,root_output,gemrecon -Pjana:nevents=10 -Pgemrecon:config=$GEMRECON_CONFIG $INPUT_EVIO
+      - uses: actions/upload-artifact@v3
+        with:
+          name: valgrind-memcheck-jana4ml4fpga.log
+          path: valgrind-memcheck-jana4ml4fpga.log
+          if-no-files-found: error
