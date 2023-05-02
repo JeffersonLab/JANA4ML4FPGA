@@ -135,10 +135,9 @@ jobs:
           echo "where we are"
           pwd
           ls -latrh
-          echo "one up"
-          ls -latrh ..
+          echo "one up"          
           export JANA_HOME="/container/app/jana2/jana2-master"
-          export JANA_PLUGIN_PATH=${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
+          export JANA_PLUGIN_PATH=$PWD/install/plugins:${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
           export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
           export LD_LIBRARY_PATH=/container/app/jana2/jana2-master/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
           export CMAKE_PREFIX_PATH=/container/app/jana2/jana2-master/lib/cmake/JANA${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}  
