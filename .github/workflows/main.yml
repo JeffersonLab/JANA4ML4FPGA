@@ -126,14 +126,17 @@ jobs:
     needs:
       - build
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
-          name: build-${{ matrix.CC }}-jana4ml4fpga-${{ matrix.CMAKE_BUILD_TYPE }}
+          name: install-${{ matrix.CC }}-jana4ml4fpga-${{ matrix.CMAKE_BUILD_TYPE }}
       - name: Run 10 evio events
         run: |
           echo "where we are"
           pwd
           ls -latrh
+          echo "one up"
+          ls -latrh ..
           export JANA_HOME="/container/app/jana2/jana2-master"
           export JANA_PLUGIN_PATH=${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
           export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
