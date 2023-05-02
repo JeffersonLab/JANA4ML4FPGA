@@ -146,10 +146,11 @@ jobs:
           echo "running jana"
           export GEMRECON_CONFIG=$PWD/src/plugins/gemrecon/db/Config.cfg
           export GEMRECON_MAPPING=$PWD/src/plugins/gemrecon/db/2019_mapping_GEMTRK.cfg
-          export INPUT_EVIO=$PWD/resources/test_data/rawdata_001068_10evt.evio
+          export INPUT_EVIO=resources/test_data/rawdata_001068_10evt.evio
           echo "$GEMRECON_CONFIG"
           echo "$GEMRECON_MAPPING"
-          echo "$INPUT_EVIO"
+          echo "INPUT_EVIO $INPUT_EVIO"
+          ls -latrh $INPUT_EVIO
           $PWD/install/bin/jana4ml4fpga -Pplugins=CDAQfile,flat_tree,root_output,gemrecon -Phistsfile=output.hists.root -Pjana:nevents=10 -Pgemrecon:config=$GEMRECON_CONFIG -Pgemrecon:mapping=$GEMRECON_MAPPING $INPUT_EVIO
       - uses: actions/upload-artifact@v3
         with:
