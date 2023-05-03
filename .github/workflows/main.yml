@@ -1,0 +1,165 @@
+name: Build and run in ml4fpga container
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: eicdev/ml4fpga-pre:latest
+    strategy:
+      matrix:
+        include:
+          - CC: gcc
+            CXX: g++
+            CMAKE_BUILD_TYPE: Release
+          - CC: clang
+            CXX: clang++
+            CMAKE_BUILD_TYPE: Release
+          - CC: gcc
+            CXX: g++
+            CMAKE_BUILD_TYPE: Debug
+    steps:
+      - uses: actions/checkout@v3
+      - name: Prepare ccache timestamp
+        id: ccache_cache_timestamp
+        run: |
+          echo "timestamp=$(date --iso-8601=minutes)" >> $GITHUB_OUTPUT
+      - name: Retrieve ccache cache files
+        uses: actions/cache@v3
+        with:
+          path: .ccache
+          key: ccache-${{ matrix.CC }}-${{ matrix.CMAKE_BUILD_TYPE }}-${{ github.ref_name }}-${{ steps.ccache_cache_timestamp.outputs.timestamp }}
+          restore-keys: |
+            ccache-${{ matrix.CC }}-${{ matrix.CMAKE_BUILD_TYPE }}-${{ github.ref_name }}-
+            ccache-${{ matrix.CC }}-${{ matrix.CMAKE_BUILD_TYPE }}-
+            ccache-${{ matrix.CC }}-
+            ccache-
+      - name: Configure ccache
+        run: |
+          mkdir -p ~/.ccache/
+          echo "cache_dir=${{ github.workspace }}/.ccache" > ~/.ccache/ccache.conf
+          echo "max_size=500MB" >> ~/.ccache/ccache.conf
+          echo "compression=true" >> ~/.ccache/ccache.conf
+      - name: Build and install
+        run: |
+          # install this repo
+          pwd
+          ls -latrh /
+          ls -latrh /entrypoint.sh
+          export JANA_HOME="/container/app/jana2/jana2-master"
+          export JANA_PLUGIN_PATH=${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
+          export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
+          export LD_LIBRARY_PATH=/container/app/jana2/jana2-master/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+          export CMAKE_PREFIX_PATH=/container/app/jana2/jana2-master/lib/cmake/JANA${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}  
+          CC=${{ matrix.CC }} CXX=${{ matrix.CXX }} cmake -B build -S . -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=${{ matrix.CMAKE_BUILD_TYPE }}
+          cmake --build build -- -j 2 install
+      - uses: actions/upload-artifact@v3
+        with:
+          name: install-${{ matrix.CC }}-jana4ml4fpga-${{ matrix.CMAKE_BUILD_TYPE }}
+          path: |
+            .
+            !src/
+            !build/
+            !apt_cache/
+            !.git/
+            !.ccache/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.CC }}-jana4ml4fpga-${{ matrix.CMAKE_BUILD_TYPE }}
+          path: |
+            build/
+          if-no-files-found: error
+
+  valgrind-memcheck-jana4ml4fpga-gcc:
+    runs-on: ubuntu-latest
+    container:
+      image: eicdev/ml4fpga-pre:latest
+    needs:
+      - build
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: install-gcc-jana4ml4fpga-Debug
+      - name: Run JANA4ML4FPGA under valgrind
+        run: |
+          export JANA_HOME="/container/app/jana2/jana2-master"
+          export JANA_PLUGIN_PATH=${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
+          export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
+          export LD_LIBRARY_PATH=/container/app/jana2/jana2-master/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+          export CMAKE_PREFIX_PATH=/container/app/jana2/jana2-master/lib/cmake/JANA${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}  
+          echo "doing chmod"
+          chmod a+x install/bin/*          
+          echo "doing valgrind"
+          valgrind --tool=memcheck --track-origins=yes --leak-check=full --log-file=valgrind-memcheck-jana4ml4fpga.log $PWD/install/bin/jana4ml4fpga --help || cat valgrind-memcheck-jana4ml4fpga.log
+          echo "done valgrind"
+      - uses: actions/upload-artifact@v3
+        with:
+          name: valgrind-memcheck-jana4ml4fpga.log
+          path: valgrind-memcheck-jana4ml4fpga.log
+          if-no-files-found: error
+
+  run-10-evio-events-gemrecon:
+    runs-on: ubuntu-latest
+    container:
+      image: eicdev/ml4fpga-pre:latest
+    strategy:
+      matrix:
+        include:
+          - CC: gcc
+            CXX: g++
+            CMAKE_BUILD_TYPE: Release
+          - CC: clang
+            CXX: clang++
+            CMAKE_BUILD_TYPE: Release
+    needs:
+      - build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: install-${{ matrix.CC }}-jana4ml4fpga-${{ matrix.CMAKE_BUILD_TYPE }}
+      - name: Run 10 evio events
+        run: |
+          echo "where we are"
+          pwd
+          ls -latrh
+          echo ">resources"
+          ls -latrh resources
+          echo ">resources/test_data"
+          ls -latrh resources/test_data
+          echo ">resources/test_data"
+          export JANA_HOME="/container/app/jana2/jana2-master"
+          export JANA_PLUGIN_PATH=$PWD/install/plugins:${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
+          export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
+          export LD_LIBRARY_PATH=$PWD/install/lib:/container/app/jana2/jana2-master/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+          export CMAKE_PREFIX_PATH=/container/app/jana2/jana2-master/lib/cmake/JANA${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}          
+          echo "doing chmod"
+          chmod a+x install/bin/*          
+          echo "running jana"
+          export GEMRECON_CONFIG=$PWD/src/plugins/gemrecon/db/Config.cfg
+          export GEMRECON_MAPPING=$PWD/src/plugins/gemrecon/db/2019_mapping_GEMTRK.cfg
+          export INPUT_EVIO=resources/test_data/rawdata_001068_10evt.evio
+          echo "$GEMRECON_CONFIG"
+          echo "$GEMRECON_MAPPING"
+          echo "INPUT_EVIO $INPUT_EVIO"
+          ls -latrh $PWD/resources/test_data/rawdata_001068_10evt.evio
+          $PWD/install/bin/jana4ml4fpga -Pplugins=CDAQfile,flat_tree,root_output,gemrecon -Phistsfile=output.hists.root -Pjana:nevents=10 -Pgemrecon:config=$GEMRECON_CONFIG -Pgemrecon:mapping=$GEMRECON_MAPPING $PWD/resources/test_data/rawdata_001068_10evt.evio
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: output.hists.root
+          path: output.hists.root
+          if-no-files-found: error
