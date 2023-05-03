@@ -57,6 +57,7 @@ jobs:
           # install this repo
           pwd
           ls -latrh /
+          ls -latrh /entrypoint.sh
           export JANA_HOME="/container/app/jana2/jana2-master"
           export JANA_PLUGIN_PATH=${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
           export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
@@ -143,8 +144,8 @@ jobs:
           export JANA_HOME="/container/app/jana2/jana2-master"
           export JANA_PLUGIN_PATH=$PWD/install/plugins:${JANA_PLUGIN_PATH:+${JANA_PLUGIN_PATH}:}$JANA_HOME/plugins  
           export PATH=$JANA_HOME/bin${PATH:+:${PATH}}
-          export LD_LIBRARY_PATH=/container/app/jana2/jana2-master/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
-          export CMAKE_PREFIX_PATH=/container/app/jana2/jana2-master/lib/cmake/JANA${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}  
+          export LD_LIBRARY_PATH=$PWD/install/lib:/container/app/jana2/jana2-master/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+          export CMAKE_PREFIX_PATH=/container/app/jana2/jana2-master/lib/cmake/JANA${CMAKE_PREFIX_PATH:+:${CMAKE_PREFIX_PATH}}          
           echo "doing chmod"
           chmod a+x install/bin/*          
           echo "running jana"
@@ -156,6 +157,7 @@ jobs:
           echo "INPUT_EVIO $INPUT_EVIO"
           ls -latrh $PWD/resources/test_data/rawdata_001068_10evt.evio
           $PWD/install/bin/jana4ml4fpga -Pplugins=CDAQfile,flat_tree,root_output,gemrecon -Phistsfile=output.hists.root -Pjana:nevents=10 -Pgemrecon:config=$GEMRECON_CONFIG -Pgemrecon:mapping=$GEMRECON_MAPPING $PWD/resources/test_data/rawdata_001068_10evt.evio
+
       - uses: actions/upload-artifact@v3
         with:
           name: output.hists.root
