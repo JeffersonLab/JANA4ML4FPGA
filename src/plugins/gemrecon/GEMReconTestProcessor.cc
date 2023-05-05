@@ -105,8 +105,9 @@ void GEMReconTestProcessor::Init() {
 
     // Initialize pedestals
     fPedestal = new GEMPedestal(pedestals_path.c_str(), fConfig.GetNbOfTimeSamples());
-    fPedestal->BookHistos();
     fPedestal->LoadPedestal();
+    m_dir_main->cd();
+    fPedestal->BookHistos();
     logger()->info("Loaded pedestals");
 
 
@@ -548,6 +549,9 @@ void GEMReconTestProcessor::FillTrdHistogram(uint64_t event_number, TDirectory *
         event_map[(int)srs_item->apv_id][(int)srs_item->channel_apv] = samples;
         fMapping->APVchannelCorrection(srs_item->channel_apv);
     }
+    auto storeDir = gDirectory;
+
+    m_dir_event_hists->cd();
 
     // Now lets go over this
     for(auto apvPair: event_map) {
@@ -605,8 +609,8 @@ GemApvDecodingResult GEMReconTestProcessor::DecodeApv(int apv_id, std::vector<st
 
     auto fPedestalOffsets = fPedestal->GetAPVOffsets(apv_id);
     auto fPedestalNoises = fPedestal->GetAPVNoises(apv_id);
-    int fComModeCut = 20; // TODO parameter
-    double fZeroSupCut = 10; // TODO parameter
+    int fComModeCut = 20;       // TODO parameter
+    double fZeroSupCut = 10;    // TODO parameter
     int fAPVBaseline = 2500;
     int time_bins_size = raw_data.size();
     assert(time_bins_size>0);

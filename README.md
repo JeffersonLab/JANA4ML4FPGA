@@ -66,7 +66,7 @@ You can bind any directory on your system to docker image by using **-v** flag:
 docker run -it --rm -v /host/dir:/mnt/data eicdev/ml4fpga:latest
 ```
 More information on [docker bind](https://docs.docker.com/storage/bind-mounts/),
-There are also other mechanisms of how to manage data in docker. 
+There are other mechanisms of how to manage data in docker. 
 [the official documentation on managing data in docker](https://docs.docker.com/storage/)
 
 
@@ -184,5 +184,8 @@ hd_rawdata_002633_000.evio          # <= input file
 
 # Set number of events to skip
 -Pjana:nskip=10000
+
+# Save events to EVIO file
+-PEVIO:output_file=/file/name.evio
 ```
 

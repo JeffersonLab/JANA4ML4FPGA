@@ -73,10 +73,11 @@ include_directories(${CMAKE_SOURCE_DIR}/src/libraries)
 print_grand_header("    B U I L D   J A N A 4 M L 4 F P G A   P A R T S    ")
 # ---------------------------------------------------------------------------
 
-add_subdirectory( src/libraries )
-add_subdirectory( src/services )
+add_subdirectory(src/libraries)
+add_subdirectory(src/services)
 add_subdirectory(src/plugins)
 add_subdirectory(src/executables)
+add_subdirectory(src/tests)
 
 # Print what we had built
 print_header("CMake processed subdirectories:")
