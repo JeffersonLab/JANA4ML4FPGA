@@ -7,7 +7,7 @@
 #include "AlignedArraysIO.h"
 
 namespace flatio {
-    struct F125WindowRawRecord
+    struct F250WindowRawRecord
     {
         uint32_t roc;
         uint32_t slot;
@@ -17,22 +17,22 @@ namespace flatio {
         uint32_t itrigger;
         std::vector<uint16_t> samples;
     };
-    
-    class F125WindowRawRecordIO: public AlignedArraysIO
+
+    class F250WindowRawRecordIO: public AlignedArraysIO
     {
     public:
         void bindToTree(TTree *tree) override {
             m_is_bound = true;
-            tree->Branch("f125_wraw_count", &m_count, "f125_wraw_count/l");
-            tree->Branch("f125_wraw_roc", &m_vect_roc);
-            tree->Branch("f125_wraw_slot", &m_vect_slot);
-            tree->Branch("f125_wraw_channel", &m_vect_channel);
-            tree->Branch("f125_wraw_invalid_samples", &m_vect_invalid_samples);
-            tree->Branch("f125_wraw_overflow", &m_vect_overflow);
-            tree->Branch("f125_wraw_itrigger", &m_vect_itrigger);
-            tree->Branch("f125_wraw_samples_index", &m_vect_samples_index);
-            tree->Branch("f125_wraw_samples_count", &m_vect_samples_count);
-            tree->Branch("f125_wraw_samples", &m_vect_samples);
+            tree->Branch("f250_wraw_count", &m_count, "f250_wraw_count/l");
+            tree->Branch("f250_wraw_roc", &m_vect_roc);
+            tree->Branch("f250_wraw_slot", &m_vect_slot);
+            tree->Branch("f250_wraw_channel", &m_vect_channel);
+            tree->Branch("f250_wraw_invalid_samples", &m_vect_invalid_samples);
+            tree->Branch("f250_wraw_overflow", &m_vect_overflow);
+            tree->Branch("f250_wraw_itrigger", &m_vect_itrigger);
+            tree->Branch("f250_wraw_samples_index", &m_vect_samples_index);
+            tree->Branch("f250_wraw_samples_count", &m_vect_samples_count);
+            tree->Branch("f250_wraw_samples", &m_vect_samples);
         }
 
         void clear() override {
@@ -47,10 +47,10 @@ namespace flatio {
             m_vect_itrigger.clear();
             m_vect_samples.clear();
         }
-        
-        void add(const F125WindowRawRecord& data) {
+
+        void add(const F250WindowRawRecord& data) {
             if(!m_is_bound) {
-                throw std::logic_error("Can't add F125WindowRawRecord data because F125WindowRawRecordIO is not bound to tree");
+                throw std::logic_error("Can't add F250WindowRawRecord data because F250WindowRawRecordIO is not bound to tree");
             }
             m_count++;
             m_vect_roc.push_back(data.roc);
@@ -75,9 +75,9 @@ namespace flatio {
             }
             m_vect_samples_count.push_back(data.samples.size());
         }
-        
+
         bool isBoundToTree() const { return m_is_bound; }
-        
+
     private:
         bool m_is_bound = false;
         uint64_t m_count;

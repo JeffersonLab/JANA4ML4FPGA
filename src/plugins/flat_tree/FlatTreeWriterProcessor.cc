@@ -1,10 +1,12 @@
-#include "SrsRecord.h"
+#include "SrsRawRecord.h"
 
 #include "FlatTreeWriterProcessor.h"
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
 #include "rawdataparser/Df125FDCPulse.h"
 #include "rawdataparser/Df125Config.h"
+#include "rawdataparser/Df250WindowRawData.h"
+#include "F250WindowRawRecord.h"
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -47,6 +49,7 @@ void FlatTreeWriterProcessor::Init() {
         m_ios.push_back(m_srs_record_io);
         m_ios.push_back(m_f125_wraw_io);
         m_ios.push_back(m_f125_pulse_io);
+        m_ios.push_back(m_f250_wraw_io);
 
         for(auto &io: m_ios) {
             io.get().bindToTree(mEventTree);
@@ -107,6 +110,11 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
             if(factory->GetObjectName() == "Df125WindowRawData" && factory->GetNumObjects() > 0) {
                 auto f125_wraw_records = event->Get<Df125WindowRawData>();
                 SaveF125WindowRawData(f125_wraw_records);
+            }
+
+            if(factory->GetObjectName() == "Df250WindowRawData" && factory->GetNumObjects() > 0) {
+                auto f250_wraw_records = event->Get<Df250WindowRawData>();
+                SaveF250WindowRawData(f250_wraw_records);
             }
 
             if(factory->GetObjectName() == "DGEMSRSWindowRawData" && factory->GetNumObjects() > 0) {
@@ -200,7 +208,7 @@ void FlatTreeWriterProcessor::SaveF125FDCPulse(std::vector<const Df125FDCPulse *
 void FlatTreeWriterProcessor::SaveGEMSRSWindowRawData(std::vector<const DGEMSRSWindowRawData *> records) {
     m_log->trace("Writing DGEMSRSWindowRawData data items: {} ", records.size());
     for(auto srs_item: records) {
-        flatio::SrsRecord srs_save{};
+        flatio::SrsRawRecord srs_save{};
         srs_save.roc = srs_item->rocid;
         srs_save.slot = srs_item->slot;
         srs_save.channel = srs_item->channel;
@@ -226,6 +234,20 @@ void FlatTreeWriterProcessor::SaveF125WindowRawData(std::vector<const Df125Windo
         f125_wraw_save.itrigger = record->itrigger;
         f125_wraw_save.samples =  record->samples;
         m_f125_wraw_io.add(f125_wraw_save);
+    }
+}
+
+void FlatTreeWriterProcessor::SaveF250WindowRawData(std::vector<const Df250WindowRawData *> records) {
+    for (auto record: records) {
+        flatio::F250WindowRawRecord f250_wraw_save{};
+        f250_wraw_save.roc = record->rocid;
+        f250_wraw_save.slot = record->slot;
+        f250_wraw_save.channel = record->channel;
+        f250_wraw_save.overflow = record->overflow;
+        f250_wraw_save.invalid_samples = record->invalid_samples;
+        f250_wraw_save.itrigger = record->itrigger;
+        f250_wraw_save.samples =  record->samples;
+        m_f250_wraw_io.add(f250_wraw_save);
     }
 }
 

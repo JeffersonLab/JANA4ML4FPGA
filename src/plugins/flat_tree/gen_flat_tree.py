@@ -19,8 +19,8 @@ class ClassInfo:
 
 io_classes = [
     ClassInfo(
-        name="SrsRecord",
-        root_name="srs",
+        name="SrsRawRecord",
+        root_name="srs_raw",
         fields=[
             FieldInfo('uint32_t', 'roc'),
             FieldInfo('uint32_t', 'slot'),
@@ -28,12 +28,25 @@ io_classes = [
             FieldInfo('uint32_t', 'apv_id'),
             FieldInfo('uint32_t', 'channel_apv'),
             FieldInfo('uint16_t', 'best_sample'),
-            FieldInfo('uint16_t', 'raw_samples'),
+            FieldInfo('std::vector<uint16_t>', 'samples'),
         ]),
 
     ClassInfo(
         name="F125WindowRawRecord",
         root_name="f125_wraw",
+        fields=[
+            FieldInfo('uint32_t', 'roc'),
+            FieldInfo('uint32_t', 'slot'),
+            FieldInfo('uint32_t', 'channel'),
+            FieldInfo('bool',     'invalid_samples'),
+            FieldInfo('bool',     'overflow'),
+            FieldInfo('uint32_t', 'itrigger'),
+            FieldInfo('std::vector<uint16_t>', 'samples'),
+        ]),
+
+    ClassInfo(
+        name="F250WindowRawRecord",
+        root_name="f250_wraw",
         fields=[
             FieldInfo('uint32_t', 'roc'),
             FieldInfo('uint32_t', 'slot'),
@@ -162,13 +175,15 @@ def generate_header(class_info: ClassInfo):
 
     return result
 
+
 def generate():
     for class_info in io_classes:
         code = generate_header(class_info)
         print("="*30)
         print(code)
-        with open(f"{class_info.name}.h", "w") as text_file:
-            text_file.write(code)
+        # with open(f"{class_info.name}.h", "w") as text_file:
+        #     text_file.write(code)
+
 
 if __name__ == "__main__":
     generate()

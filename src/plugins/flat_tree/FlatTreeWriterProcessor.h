@@ -7,12 +7,14 @@
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TTree.h>
-#include "SrsRecord.h"
+#include "SrsRawRecord.h"
 #include "F125FDCPulseRecord.h"
 #include "F125WindowRawRecord.h"
 #include "rawdataparser/Df125FDCPulse.h"
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
+#include "rawdataparser/Df250WindowRawData.h"
+#include "F250WindowRawRecord.h"
 
 class JEvent;
 class JApplication;
@@ -58,8 +60,9 @@ private:
     TTree *mEventTree;
     std::vector<std::reference_wrapper<flatio::AlignedArraysIO>> m_ios;
 
-    flatio::SrsRecordIO m_srs_record_io;
+    flatio::SrsRawRecordIO m_srs_record_io;
     flatio::F125WindowRawRecordIO m_f125_wraw_io;
+    flatio::F250WindowRawRecordIO m_f250_wraw_io;
     flatio::F125FDCPulseRecordIO m_f125_pulse_io;
 
     std::shared_ptr<JGlobalRootLock> m_glb_root_lock;
@@ -71,5 +74,7 @@ private:
     void SaveGEMSRSWindowRawData(std::vector<const DGEMSRSWindowRawData *> records);
 
     void SaveF125WindowRawData(std::vector<const Df125WindowRawData *> records);
+
+    void SaveF250WindowRawData(std::vector<const Df250WindowRawData *> records);
 };
 
