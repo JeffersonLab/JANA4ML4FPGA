@@ -2,18 +2,18 @@
 // Created by romanov on 5/5/2023.
 //
 #include "catch_amalgamated.hpp"
-#include "extmath/RollingMean.h"
+#include "extmath/RollingAverage.h"
 
 using namespace ml4fpga::extmath;
 using namespace Catch;
 
 TEST_CASE("RollingMean constructor and window size validation", "[RollingMean]") {
-REQUIRE_THROWS_AS(RollingMean(0), std::invalid_argument);
-REQUIRE_NOTHROW(RollingMean(1));
+REQUIRE_THROWS_AS(RollingAverage(0), std::invalid_argument);
+REQUIRE_NOTHROW(RollingAverage(1));
 }
 
 TEST_CASE("RollingMean add and mean calculation", "[RollingMean]") {
-RollingMean rollingMean(3);
+RollingAverage rollingMean(3);
 
 REQUIRE_THROWS_AS(rollingMean.mean(), std::runtime_error);
 
@@ -31,7 +31,7 @@ REQUIRE(rollingMean.mean() == Approx(3.0));
 }
 
 TEST_CASE("RollingMean handles negative numbers", "[RollingMean]") {
-RollingMean rollingMean(3);
+RollingAverage rollingMean(3);
 
 rollingMean.add(-1.0);
 rollingMean.add(2.0);
@@ -43,7 +43,7 @@ REQUIRE(rollingMean.mean() == Approx(1.0));
 }
 
 TEST_CASE("RollingMean handles large numbers", "[RollingMean]") {
-RollingMean rollingMean(3);
+RollingAverage rollingMean(3);
 
 rollingMean.add(1e12);
 rollingMean.add(2e12);
@@ -55,7 +55,7 @@ REQUIRE(rollingMean.mean() == Approx(3e12));
 }
 
 TEST_CASE("RollingMean handles more values than window size", "[RollingMean]") {
-    RollingMean rollingMean(3);
+    RollingAverage rollingMean(3);
 
     rollingMean.add(1.0);
     rollingMean.add(2.0);

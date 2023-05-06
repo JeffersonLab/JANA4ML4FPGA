@@ -9,9 +9,9 @@
 
 namespace ml4fpga::extmath {
 
-    class RollingMean {
+    class RollingAverage {
     public:
-        explicit RollingMean(size_t windowSize) : windowSize(windowSize), currentSum(0), currentCount(0) {
+        explicit RollingAverage(size_t windowSize) : windowSize(windowSize), currentSum(0), currentCount(0) {
             if (windowSize == 0) {
                 throw std::invalid_argument("windowSize must be greater than 0");
             }
