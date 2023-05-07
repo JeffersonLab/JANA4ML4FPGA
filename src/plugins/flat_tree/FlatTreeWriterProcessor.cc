@@ -41,8 +41,8 @@ void FlatTreeWriterProcessor::Init() {
     auto root_file_service = app->GetService<RootFile_service>();
 
     // Get TDirectory for histograms root file
-    m_glb_root_lock = app->GetService<JGlobalRootLock>();
-    m_glb_root_lock->acquire_write_lock();
+    // m_glb_root_lock = app->GetService<JGlobalRootLock>();
+    // m_glb_root_lock->acquire_write_lock();
     try {
         auto file = root_file_service->GetHistFile();
         file->cd();
@@ -57,10 +57,10 @@ void FlatTreeWriterProcessor::Init() {
             io.get().bindToTree(mEventTree);
         }
 
-        m_glb_root_lock->release_lock();
+        // m_glb_root_lock->release_lock();
     }
     catch (...) {
-        m_glb_root_lock->release_lock();
+        // m_glb_root_lock->release_lock();
         // Ideally we'd use the STL read-write lock (std::shared_mutex/lock) intead of the pthreads one.
         // However, for now we are limited to C++14 (we would need C++17).
         throw;
@@ -77,7 +77,7 @@ void FlatTreeWriterProcessor::Init() {
 // This function is called every event
 void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event) {
 
-    // TODO m_glb_root_lock->acquire_write_lock();
+    // TODO // m_glb_root_lock->acquire_write_lock();
     try {
         m_log->debug("=======================");
         m_log->debug("Event number {}", event->GetEventNumber());
@@ -131,10 +131,10 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
 
         // Fill the tree
         mEventTree->Fill();
-        m_glb_root_lock->release_lock();
+        // m_glb_root_lock->release_lock();
     }
     catch (...) {
-        m_glb_root_lock->release_lock();
+        // m_glb_root_lock->release_lock();
         // Ideally we'd use the STL read-write lock (std::shared_mutex/lock) intead of the pthreads one.
         // However, for now we are limited to C++14 (we would need C++17).
         throw;
@@ -151,10 +151,10 @@ void FlatTreeWriterProcessor::Finish() {
 
     try {
         mEventTree->Write();
-        m_glb_root_lock->release_lock();
+        // m_glb_root_lock->release_lock();
     }
     catch (...) {
-        m_glb_root_lock->release_lock();
+        // m_glb_root_lock->release_lock();
         throw;
     }
 }
