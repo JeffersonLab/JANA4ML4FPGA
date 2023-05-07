@@ -7,6 +7,7 @@
 #include "rawdataparser/Df125Config.h"
 #include "rawdataparser/Df250WindowRawData.h"
 #include "F250WindowRawRecord.h"
+#include <plugins/gemrecon/SFclust.h>
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -50,6 +51,7 @@ void FlatTreeWriterProcessor::Init() {
         m_ios.push_back(m_f125_wraw_io);
         m_ios.push_back(m_f125_pulse_io);
         m_ios.push_back(m_f250_wraw_io);
+        m_ios.push_back(m_gem_scluster_io);
 
         for(auto &io: m_ios) {
             io.get().bindToTree(mEventTree);
@@ -75,7 +77,7 @@ void FlatTreeWriterProcessor::Init() {
 // This function is called every event
 void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event) {
 
-    m_glb_root_lock->acquire_write_lock();
+    // TODO m_glb_root_lock->acquire_write_lock();
     try {
         m_log->debug("=======================");
         m_log->debug("Event number {}", event->GetEventNumber());
@@ -120,7 +122,11 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
             if(factory->GetObjectName() == "DGEMSRSWindowRawData" && factory->GetNumObjects() > 0) {
                 auto srs_data = event->Get<DGEMSRSWindowRawData>();
                 SaveGEMSRSWindowRawData(srs_data);
+
+                auto clusters = event->Get<SFclust>();
+                SaveGEMSimpleClusters(clusters);
             }
+
         }
 
         // Fill the tree
@@ -249,6 +255,18 @@ void FlatTreeWriterProcessor::SaveF250WindowRawData(std::vector<const Df250Windo
         f250_wraw_save.samples =  record->samples;
         m_f250_wraw_io.add(f250_wraw_save);
     }
+}
+
+void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const SFclust *> clusters) {
+    for(auto cluster: clusters) {
+        flatio::GemSimpleCluster cluster_save;
+        cluster_save.x = cluster->x;
+        cluster_save.y = cluster->y;
+        cluster_save.energy = cluster->E;
+        cluster_save.adc = cluster->A;
+        m_gem_scluster_io.add(cluster_save);
+    }
+
 }
 
 

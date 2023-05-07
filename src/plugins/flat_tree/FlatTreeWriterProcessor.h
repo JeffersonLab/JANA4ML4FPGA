@@ -15,6 +15,9 @@
 #include "rawdataparser/Df125WindowRawData.h"
 #include "rawdataparser/Df250WindowRawData.h"
 #include "F250WindowRawRecord.h"
+#include "GemSimpleCluster.h"
+#include <plugins/gemrecon/SFclust.h>
+
 
 class JEvent;
 class JApplication;
@@ -64,6 +67,7 @@ private:
     flatio::F125WindowRawRecordIO m_f125_wraw_io;
     flatio::F250WindowRawRecordIO m_f250_wraw_io;
     flatio::F125FDCPulseRecordIO m_f125_pulse_io;
+    flatio::GemSimpleClusterIO m_gem_scluster_io;
 
     std::shared_ptr<JGlobalRootLock> m_glb_root_lock;
 
@@ -76,5 +80,7 @@ private:
     void SaveF125WindowRawData(std::vector<const Df125WindowRawData *> records);
 
     void SaveF250WindowRawData(std::vector<const Df250WindowRawData *> records);
+
+    void SaveGEMSimpleClusters(std::vector<const SFclust *> clusters);
 };
 

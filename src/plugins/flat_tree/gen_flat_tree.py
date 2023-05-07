@@ -10,6 +10,9 @@ class FieldInfo:
     name: str
     comment: str = ""
 
+class FieldVectorInfo(FieldInfo):
+    pass
+
 @dataclass
 class ClassInfo:
     name: str             # Name. E.g. SrsRecord
@@ -18,6 +21,7 @@ class ClassInfo:
 
 
 io_classes = [
+
     ClassInfo(
         name="SrsRawRecord",
         root_name="srs_raw",
@@ -84,7 +88,16 @@ io_classes = [
             FieldInfo('uint32_t', 'integral_emulated',         'emulated from raw data when available'),
             FieldInfo('uint32_t', 'peak_amp_emulated',         'emulated from raw data when available'),
             FieldInfo('uint32_t', 'peak_time_emulated',        'emulated from raw data when available'),
-        ])
+        ]),
+        ClassInfo(
+            name="GemSimpleCluster",
+            root_name="gem_scluster",
+            fields=[
+                FieldInfo('double', 'x'),
+                FieldInfo('double', 'y'),
+                FieldInfo('double', 'energy'),
+                FieldInfo('double', 'adc'),
+            ]),
 ]
 
 struct_template = """

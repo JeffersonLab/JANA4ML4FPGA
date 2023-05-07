@@ -95,7 +95,7 @@ RUN echo '#!/bin/bash' > /entrypoint.sh && \
 RUN chmod +x /entrypoint.sh
 
 # Set the entrypoint script as the ENTRYPOINT
-ENTRYPOINT ["/bin/bash", "/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
 
 # That is for CI
 USER root

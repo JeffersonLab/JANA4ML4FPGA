@@ -477,10 +477,10 @@ void GEMReconTestProcessor::Process(const std::shared_ptr<const JEvent> &event) 
         }
 
         if (ncx == ncy) {
-            m_log->info(" OK nx={} ny={} at event {}\n", clustX.size(), clustY.size(), event->GetEventNumber());
+            m_log->debug("Found cluster nx={} ny={} at event {}", clustX.size(), clustY.size(), event->GetEventNumber());
             for (int ic = 0; ic < ncx; ic++) {
-                printf("cl=%d  x=%f  E=%f A=%f N=%d  \n", ic, clustX[ic].x, clustX[ic].E, clustX[ic].A, clustX[ic].N);
-                printf("cl=%d  y=%f  E=%f A=%f N=%d  \n", ic, clustY[ic].x, clustY[ic].E, clustY[ic].A, clustY[ic].N);
+                m_log->debug("  cl={}  x={}  E={} A={} N={}", ic, clustX[ic].x, clustX[ic].E, clustX[ic].A, clustX[ic].N);
+                m_log->debug("  cl={}  y={}  E=}| A={} N={}", ic, clustY[ic].x, clustY[ic].E, clustY[ic].A, clustY[ic].N);
 
                 SFclust cl;
                 cl.x = clustX[ic].x;
