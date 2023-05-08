@@ -377,8 +377,8 @@ void ClusterFactory::Process(const std::shared_ptr<const JEvent> &event) {
         auto srs_data = event->Get<DGEMSRSWindowRawData>();
         m_log->trace("DGEMSRSWindowRawData data items: {} ", srs_data.size());
 
-        TraceDumpSrsData(srs_data, /*num rows*/ 256);
-        TraceDumpMapping(srs_data, /*num rows*/ 256);
+        //TraceDumpSrsData(srs_data, /*num rows*/ 256);
+        //TraceDumpMapping(srs_data, /*num rows*/ 256);
 
         std::map<int, std::map<int, std::vector<int> > > apvid_chan_sampls;
 
@@ -386,8 +386,8 @@ void ClusterFactory::Process(const std::shared_ptr<const JEvent> &event) {
 
             // Dumb copy of samples because one is int and the other is uint16_t
             std::vector<int> samples;
-            for(size_t i=0; i< srs_item->samples.size(); i++) {
-                samples.push_back(srs_item->samples[i]);
+            for(unsigned short sample : srs_item->samples) {
+                samples.push_back(sample);
             }
 
             apvid_chan_sampls[(int)srs_item->apv_id][(int)srs_item->channel_apv] = samples;
@@ -441,7 +441,7 @@ void ClusterFactory::Process(const std::shared_ptr<const JEvent> &event) {
         fIsHitPeakOrSumADCs = "peakADCs";
         fIsCentralOrAllStripsADCs = "centralStripADCs";
 
-        this->FillTrdHistogram(event->GetEventNumber(), m_dir_main, srs_data);
+        // this->FillTrdHistogram(event->GetEventNumber(), m_dir_main, srs_data);
 
         GEMOnlineHitDecoder hit_decoder(fEventNumber, fNbOfTimeSamples, fStartTimeSample, fStopTimeSample,
                                         fZeroSupCut, fComModeCut, fIsHitPeakOrSumADCs, fIsCentralOrAllStripsADCs,
