@@ -123,8 +123,18 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
                 auto srs_data = event->Get<DGEMSRSWindowRawData>();
                 SaveGEMSRSWindowRawData(srs_data);
 
-                auto clusters = event->Get<SFclust>();
-                SaveGEMSimpleClusters(clusters);
+                try
+                {
+                    // TODO fix it and check for factory
+                    auto clusters = event->Get<SFclust>();
+                    SaveGEMSimpleClusters(clusters);
+
+                }
+                catch(...) {
+                    // It will fail without gemrecon plugin
+                    // TODO fix it fix it fix it !!!!111oneone
+                }
+
             }
 
         }

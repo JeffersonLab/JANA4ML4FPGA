@@ -107,7 +107,7 @@ void GEMReconTestProcessor::Init() {
     fPedestal = new GEMPedestal(pedestals_path.c_str(), fConfig.GetNbOfTimeSamples());
     fPedestal->LoadPedestal();
     m_dir_main->cd();
-    fPedestal->BookHistos();
+    // fPedestal->BookHistos();
     logger()->info("Loaded pedestals");
 
 

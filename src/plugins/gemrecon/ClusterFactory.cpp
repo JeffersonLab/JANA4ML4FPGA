@@ -111,7 +111,7 @@ void ClusterFactory::Init() {
     fPedestal = new GEMPedestal(pedestals_path.c_str(), fConfig.GetNbOfTimeSamples());
     fPedestal->LoadPedestal();
     m_dir_main->cd();
-    fPedestal->BookHistos();
+    // fPedestal->BookHistos();
     logger()->info("Loaded pedestals");
 
 
@@ -215,6 +215,7 @@ void ClusterFactory::InitHistForZeroSup() {
             fHitHist[planeId]->GetYaxis()->SetTitle("Strip hit counts");
             fHitHist[planeId]->SetLabelSize(0.04, "X");
             fHitHist[planeId]->SetLabelSize(0.04, "Y");
+
 
             TString hitUniformity = (*plane_itr).first + "_HitUniformity";
             fHitHist[id] = new TH1F(hitUniformity, hitUniformity, nbOfStrips, -1 * size / 2., size / 2.);
