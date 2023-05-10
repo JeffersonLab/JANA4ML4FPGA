@@ -34,6 +34,24 @@ io_classes = [
             FieldInfo('uint16_t', 'best_sample'),
             FieldInfo('std::vector<uint16_t>', 'samples'),
         ]),
+    ClassInfo(
+        name="SrsDecodedRecord",
+        root_name="srs_decoded",
+        fields=[
+            FieldInfo('uint32_t', 'apv_id'),
+            FieldInfo('std::string', 'plane_name'),
+            FieldInfo('std::string', 'detector'),
+            FieldInfo('std::vector<uint16_t>', 'samples'),
+        ]),
+    ClassInfo(
+        name="SrsPlaneRecord",
+        root_name="srs_decoded",
+        fields=[
+            FieldInfo('uint32_t', 'apv_id'),
+            FieldInfo('std::string', 'plane_name'),
+            FieldInfo('std::string', 'detector'),
+            FieldInfo('std::vector<uint16_t>', 'samples'),
+        ]),
 
     ClassInfo(
         name="F125WindowRawRecord",
@@ -89,6 +107,38 @@ io_classes = [
             FieldInfo('uint32_t', 'peak_amp_emulated',         'emulated from raw data when available'),
             FieldInfo('uint32_t', 'peak_time_emulated',        'emulated from raw data when available'),
         ]),
+    ClassInfo(
+        name="F250FDCPulseRecord",
+        root_name="f250_pulse",
+        fields=[
+		   FieldInfo('uint32_t' ,'event_within_block'),
+		   FieldInfo('bool'     ,'qf_pedestal'),
+		   FieldInfo('uint32_t' ,'pedestal'),
+		   FieldInfo('uint32_t' ,'integral'),
+		   FieldInfo('bool'     ,'qf_nsa_beyond_ptw'),
+		   FieldInfo('bool'     ,'qf_overflow'),
+		   FieldInfo('bool'     ,'qf_underflow'),
+		   FieldInfo('uint32_t' ,'nsamples_over_threshold'),
+		   FieldInfo('uint32_t' ,'course_time'),               # < 4 ns/count
+		   FieldInfo('uint32_t' ,'fine_time'),                 # < 0.0625 ns/count
+		   FieldInfo('uint32_t' ,'pulse_peak'),
+		   FieldInfo('bool'     ,'qf_vpeak_beyond_nsa'),
+		   FieldInfo('bool'     ,'qf_vpeak_not_found'),
+		   FieldInfo('bool'     ,'qf_bad_pedestal'),
+		   FieldInfo('uint32_t' ,'pulse_number'),         # pulse number for this channel, this event starting from 0
+		   FieldInfo('uint32_t' ,'nsamples_integral'),    # number of samples used in integral
+		   FieldInfo('uint32_t' ,'nsamples_pedestal'),    # number of samples used in pedestal
+		   FieldInfo('bool'     ,'emulated'),             # true if made from Window Raw Data
+           FieldInfo('uint32_t' ,'integral_emulated'),    # Value calculated from raw data (if available)
+           FieldInfo('uint32_t' ,'pedestal_emulated'),    # Value calculated from raw data (if available)
+           FieldInfo('uint32_t' ,'time_emulated'),        # Value calculated from raw data (if available)
+           FieldInfo('uint32_t' ,'course_time_emulated'), # Value calculated from raw data (if available) - debug
+           FieldInfo('uint32_t' ,'fine_time_emulated'),   # Value calculated from raw data (if available) - debug
+           FieldInfo('uint32_t' ,'pulse_peak_emulated'),  # Value calculated from raw data (if available)
+           FieldInfo('uint32_t' ,'qf_emulated'),
+        ]
+    ),
+
         ClassInfo(
             name="GemSimpleCluster",
             root_name="gem_scluster",
