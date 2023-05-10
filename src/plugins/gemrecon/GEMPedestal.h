@@ -10,7 +10,7 @@
 #include <TH1F.h>
 #include <TFile.h>
 
-#include <gem/constants.h>
+#include "Constants.h"
 
 class GEMRawDecoder;
 
@@ -20,7 +20,7 @@ class GEMRawPedestal;
 
 class GEMPedestal {
 public:
-    const int NCH = gem::ChannelsCount;     // Number of channels, which is 128 everywhere
+    const int NCH = ml4fpga::gem::Constants::ChannelsCount;     // Number of channels, which is 128 everywhere
 
     GEMPedestal(std::string pedFileName, int nbOfTimeSamples);
 

@@ -187,5 +187,8 @@ hd_rawdata_002633_000.evio          # <= input file
 
 # Save events to EVIO file
 -PEVIO:output_file=/file/name.evio
+
+# Number of SRS window raw data time all_samples
+-Pdaq:srs_window_raw:ntsamples=9
 ```
 

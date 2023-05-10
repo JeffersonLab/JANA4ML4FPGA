@@ -7,7 +7,7 @@
 #include <TCanvas.h>
 #include <iostream>
 #include <filesystem>
-#include <gem/constants.h>
+#include "Constants.h"
 
 using namespace std;
 
@@ -24,11 +24,10 @@ GEMPedestal::GEMPedestal(std::string pedFileName, int nbOfTimeSamples) {
     FECs.clear();
     FECs = mapping->GetBankIDSet();
 
-    printf("   GEMPedestal::GEMPedestal() ==> NCH %i \n", gem::ChannelsCount);
+    printf("   GEMPedestal::GEMPedestal() ==> NCH %i \n", ml4fpga::gem::Constants::ChannelsCount);
     printf("   GEMPedestal::GEMPedestal() ==> nNbofAPVs %i \n", nNbofAPVs);
     printf("   GEMPedestal::GEMPedestal() ==> FECs.size() %i \n", FECs.size());
     printf("   GEMPedestal::GEMPedestal() ==> End init \n");
-
 }
 
 //=========================================================================================================================

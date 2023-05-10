@@ -3,7 +3,24 @@
 // Subject to the terms in the LICENSE file found in the top-level directory.
 //
 
-#ifndef JANA4ML4FPGA_DECODEDDATA_H
-#define JANA4ML4FPGA_DECODEDDATA_H
+#pragma once
 
-#endif //JANA4ML4FPGA_DECODEDDATA_H
+#include <map>
+#include <vector>
+
+namespace ml4fpga::gem {
+    class SingleApvDecodedData {
+    public:
+        std::vector<double> PedestalOffsets;
+        std::vector<double> PedestalNoises;
+        std::vector<std::vector<double>> raw_data;
+        std::vector<double> CommonModeOffsets;
+        std::vector<double> RawDataAverage;
+        std::vector<std::vector<double>> data;
+    };
+
+
+    struct DecodedData {
+        std::map<int, SingleApvDecodedData> apv_data;
+    };
+}

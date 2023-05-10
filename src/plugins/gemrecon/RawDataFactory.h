@@ -4,11 +4,24 @@
 //
 
 #pragma once
+#include "RawData.h"
+#include "RawDataFactory.h"
+#include <JANA/JFactoryT.h>
+#include <extensions/spdlog/SpdlogMixin.h>
 
-namespace ml4fpga {
 
-class RawDataFactory {
+namespace ml4fpga::gem {
 
-};
+    class RawDataFactory :
+            public JFactoryT<RawData>,
+            public spdlog::extensions::SpdlogMixin<RawDataFactory>  {
+    public:
+        RawDataFactory()=default;
+        void Init() override;
+        void Process(const std::shared_ptr<const JEvent>&) override;
+        void Finish() override;
+
+
+    };
 
 } // ml4fpga

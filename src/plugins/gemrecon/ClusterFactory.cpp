@@ -13,6 +13,7 @@
 #include <spdlog/spdlog.h>
 #include <services/root_output/RootFile_service.h>
 #include <filesystem>
+#include "Pedestal.h"
 
 namespace ml4fpga::gem {
 
@@ -44,43 +45,26 @@ void ClusterFactory::Init() {
     globalRootLock->release_lock();
 
     // Create a directory for this plugin. And subdirectories for series of histograms
-    m_dir_main = file->mkdir(plugin_name.c_str());
-    m_dir_event_hists = m_dir_main->mkdir("trd_events", "TRD events visualization");
+
+    auto dir_main_tobj = file->FindObjectAny(plugin_name.c_str());
+    m_dir_main = dir_main_tobj? (TDirectory*) dir_main_tobj : file->mkdir(plugin_name.c_str());
+    // m_dir_event_hists = m_dir_main->mkdir("gem_events", "TRD events visualization");
     m_dir_main->cd();
 
     // Get Log level from user parameter or default
-    InitLogger(plugin_name);
+    InitLogger(plugin_name + ":ClusterF");
 
     m_histo_1d = new TH1F("test_histo", "Test histogram", 100, -10, 10);
     m_trd_integral_h2d = new TH2F("trd_integral_events", "TRD events from Df125WindowRawData integral", 250, -0.5, 249.5, 300, -0.5, 299.5);
 
-    // I N I T   C O N F I G
-    std::string gem_config = "Config.cfg";
-    app->SetDefaultParameter(plugin_name + ":config", gem_config, "Full path to gem config");
-    std::filesystem::path config_path;
-    try {
-        config_path = std::filesystem::canonical(gem_config);
-    }
-    catch (std::exception& ex) {
-        logger()->error("Error getting access to gem_config='{}' path. Exception message: {}", gem_config, ex.what());
-        throw new JException(ex.what());
-    }
+    // P A R A M E T E R S
+    // Number of SRS time samples:
+    app->SetDefaultParameter("daq:srs_window_raw:ntsamples", m_srs_ntsamples, "Number of SRS time samples");
+    app->SetDefaultParameter( plugin_name + ":min_adc", m_min_adc, "Min ADC value (For histos?)");
+    app->SetDefaultParameter( plugin_name + ":max_adc", m_max_adc, "Max ADC value (For histos?)");
 
-    logger()->info("Configuration file: {}", gem_config);
-    logger()->info("Canonical path: {}", config_path.string());
 
-    try {
-        fConfig.Load(gem_config);
-    }
-    catch(std::iostream::failure &ex) {
-        logger()->error("std::iostream::failure error opening '{}': {}", gem_config, ex.what());
-        throw;
-    }
-    catch (std::exception& ex) {
-        logger()->error("Error opening '{}': {}", gem_config, ex.what());
-        throw;
-    }
-
+    // I N I T   M A P P I N G
     std::string mapping_file = "mapping.cfg";
     app->SetDefaultParameter(plugin_name + ":mapping", mapping_file, "Full path to gem config");
     logger()->info("Mapping file file: {}", mapping_file);
@@ -89,32 +73,19 @@ void ClusterFactory::Init() {
     fMapping->LoadMapping(mapping_file.c_str());
     fMapping->PrintMapping();
 
-    // I N I T   P E D E S T A L S
-    // Config has pedestals file path. We want it to be executed relative to config file
-    logger()->info("Loading pedestals");
-    logger()->info("Pedestals file set in config: {}", fConfig.GetPedFileName());
+        auto plane_map = fMapping->GetAPVIDListFromPlaneMap();
+        logger()->info("MAPPING EXPLAINED:");
+        for(auto pair: plane_map) {
+            auto name = pair.first;
+            auto det_name = fMapping->GetDetectorFromPlane(name);
+            auto apv_list = pair.second;
+            m_log->info("  Plane: {:<10} from detector {:<10} has {} APVs:", name, det_name, apv_list.size());
+            for(auto apv_id: apv_list) {
+                m_log->info("    {}", apv_id);
+            }
+        }
 
-    // Get pedestal path, clean it, make canonical
-    std::filesystem::path config_parent_dir = config_path.parent_path();
-    std::filesystem::path pedestals_path = config_parent_dir / fConfig.GetPedFileName();
-    try{
-        pedestals_path = std::filesystem::canonical(std::filesystem::absolute(pedestals_path));
-    }
-    catch(std::exception &ex){
-        m_log->error("Error getting pedestals path: {}", ex.what());
-        throw;
-    }
-
-    logger()->info("Pedestals absolute path: {}", pedestals_path.string());
-
-    // Initialize pedestals
-    fPedestal = new GEMPedestal(pedestals_path.c_str(), fConfig.GetNbOfTimeSamples());
-    fPedestal->LoadPedestal();
-    m_dir_main->cd();
-    // fPedestal->BookHistos();
-    logger()->info("Loaded pedestals");
-
-
+    // I N I T   H I S T O G R A M S
     InitHistForZeroSup();
 
     //  D O N E
@@ -127,10 +98,9 @@ void ClusterFactory::Init() {
 void ClusterFactory::InitHistForZeroSup() {
 
     std::string fRunType("SINGLEEVENT");
-    int fNbOfTimeSamples = fConfig.GetNbOfTimeSamples();
 
     Int_t nbOfPlaneHists = 2 * fMapping->GetNbOfPlane();
-    Int_t driftTime = 25 * fNbOfTimeSamples;
+    Int_t driftTime = 25 * m_srs_ntsamples;
     int fNbADCBins = 50;
 
     // PLANES
@@ -147,7 +117,7 @@ void ClusterFactory::InitHistForZeroSup() {
             Float_t size = fMapping->GetPlaneSize((*plane_itr).first);
             Int_t id = fMapping->GetNbOfPlane() + planeId;
 
-            Int_t nbBins = nbOfStrips * fNbOfTimeSamples;
+            Int_t nbBins = nbOfStrips * m_srs_ntsamples;
 
             TString zeroSup = (*plane_itr).first + "_zeroSup";
             f1DSingleEventHist[planeId] = new TH1F(zeroSup, zeroSup, nbBins, 0, (nbBins - 1));
@@ -160,7 +130,7 @@ void ClusterFactory::InitHistForZeroSup() {
             f1DSingleEventHist[id]->SetLabelSize(0.04, "Y");
 
             zeroSup = (*plane_itr).first + "_SingleHit_vs_timebin_2D";
-            f2DSingleEventHist[planeId] = new TH2F(zeroSup, zeroSup, fNbOfTimeSamples, 0, driftTime, nbOfStrips, 0,
+            f2DSingleEventHist[planeId] = new TH2F(zeroSup, zeroSup, m_srs_ntsamples, 0, driftTime, nbOfStrips, 0,
                                                    (nbOfStrips - 1));
             f2DSingleEventHist[planeId]->GetXaxis()->SetTitle("drift time");
             f2DSingleEventHist[planeId]->GetYaxis()->SetTitle("Strip Nb");
@@ -172,10 +142,10 @@ void ClusterFactory::InitHistForZeroSup() {
             f2DSingleEventHist[planeId]->SetLabelSize(0.04, "X");
             f2DSingleEventHist[planeId]->SetLabelSize(0.04, "Y");
             printf(" = GemView::InitHistForZeroSup() => Initialize single events histos: plane[%s], nbStrips=%d, nbTimeS=%d, size=%f, to histId[%d]\n",
-                   plane.c_str(), nbOfStrips, fNbOfTimeSamples, size, planeId);
+                   plane.c_str(), nbOfStrips, m_srs_ntsamples, size, planeId);
 
             presZeroSup = (*plane_itr).first + "Accu_Hits_vs_timebin_2D";
-            f2DSingleEventHist[id] = new TH2F(presZeroSup, presZeroSup, fNbOfTimeSamples, 0, driftTime, nbOfStrips, 0,
+            f2DSingleEventHist[id] = new TH2F(presZeroSup, presZeroSup, m_srs_ntsamples, 0, driftTime, nbOfStrips, 0,
                                               (nbOfStrips - 1));
             f2DSingleEventHist[id]->GetXaxis()->SetTitle("drift time");
             f2DSingleEventHist[id]->GetYaxis()->SetTitle("Strip Nb");
@@ -187,7 +157,7 @@ void ClusterFactory::InitHistForZeroSup() {
             f2DSingleEventHist[id]->SetLabelSize(0.04, "X");
             f2DSingleEventHist[id]->SetLabelSize(0.04, "Y");
             printf(" = GemView::InitHistForZeroSup() => Initialize histos: plane[%s], nbOfStrips=%d, nbOfTimeSamples=%d, size=%f, to histId[%d]\n",
-                   plane.c_str(), nbOfStrips, fNbOfTimeSamples, size, id);
+                   plane.c_str(), nbOfStrips, m_srs_ntsamples, size, id);
         }
     }
 
@@ -254,8 +224,7 @@ void ClusterFactory::InitHistForZeroSup() {
 
             //      Int_t nbADCBins = 500 ;
             TString adcDist = (*plane_itr).first + "_adcDist";
-            fADCHist[planeId] = new TH1F(adcDist, adcDist, fNbADCBins, fConfig.GetMinADCvalue(),
-                                         fConfig.GetMaxADCvalue());
+            fADCHist[planeId] = new TH1F(adcDist, adcDist, fNbADCBins, m_min_adc, m_max_adc);
             fADCHist[planeId]->GetXaxis()->SetTitle("ADC");
             fADCHist[planeId]->GetYaxis()->SetTitle("Counts");
             fADCHist[planeId]->SetLabelSize(0.04, "X");
@@ -264,7 +233,7 @@ void ClusterFactory::InitHistForZeroSup() {
             Int_t tsbin = (Int_t) (nbOfStrips / 8);
 
             TString alltimeBin = (*plane_itr).first + "adc_vs_pos_allTimeBin";
-            fADCTimeBinPosHist[planeId] = new TH2F(alltimeBin, alltimeBin, fNbOfTimeSamples, 0, driftTime, tsbin, 0,
+            fADCTimeBinPosHist[planeId] = new TH2F(alltimeBin, alltimeBin, m_srs_ntsamples, 0, driftTime, tsbin, 0,
                                                    (nbOfStrips - 1));
             fADCTimeBinPosHist[planeId]->GetXaxis()->SetTitle("drift time");
             fADCTimeBinPosHist[planeId]->GetYaxis()->SetTitle("Position (mm)");
@@ -272,7 +241,7 @@ void ClusterFactory::InitHistForZeroSup() {
             fADCTimeBinPosHist[planeId]->SetLabelSize(0.04, "Y");
 
             TString timeBinPeak = (*plane_itr).first + "adc_vs_pos_timeBinPeak";
-            fADCTimeBinPosHist[id] = new TH2F(timeBinPeak, timeBinPeak, fNbOfTimeSamples, 0, driftTime, tsbin, 0,
+            fADCTimeBinPosHist[id] = new TH2F(timeBinPeak, timeBinPeak, m_srs_ntsamples, 0, driftTime, tsbin, 0,
                                               (nbOfStrips - 1));
             fADCTimeBinPosHist[id]->GetXaxis()->SetTitle("drift time");
             fADCTimeBinPosHist[id]->GetYaxis()->SetTitle("Position (mm)");
@@ -280,7 +249,7 @@ void ClusterFactory::InitHistForZeroSup() {
             fADCTimeBinPosHist[id]->SetLabelSize(0.04, "Y");
 
             alltimeBin = (*plane_itr).first + "_pos_vs_allTimeBin";
-            fTimeBinPosHist[planeId] = new TH2F(alltimeBin, alltimeBin, fNbOfTimeSamples, 0, driftTime, tsbin, 0,
+            fTimeBinPosHist[planeId] = new TH2F(alltimeBin, alltimeBin, m_srs_ntsamples, 0, driftTime, tsbin, 0,
                                                 (nbOfStrips - 1));
             fTimeBinPosHist[planeId]->GetXaxis()->SetTitle("drift time");
             fTimeBinPosHist[planeId]->GetYaxis()->SetTitle("Position (mm)");
@@ -288,7 +257,7 @@ void ClusterFactory::InitHistForZeroSup() {
             fTimeBinPosHist[planeId]->SetLabelSize(0.04, "Y");
 
             timeBinPeak = (*plane_itr).first + "_pos_vs_timeBinPeak";
-            fTimeBinPosHist[id] = new TH2F(timeBinPeak, timeBinPeak, fNbOfTimeSamples, 0, driftTime, tsbin, 0,
+            fTimeBinPosHist[id] = new TH2F(timeBinPeak, timeBinPeak, m_srs_ntsamples, 0, driftTime, tsbin, 0,
                                            (nbOfStrips - 1));
             fTimeBinPosHist[id]->GetXaxis()->SetTitle("drift time");
             fTimeBinPosHist[id]->GetYaxis()->SetTitle("Position (mm)");
@@ -347,9 +316,7 @@ void ClusterFactory::InitHistForZeroSup() {
             f2DPlotsHist[3 * detId + 2]->SetLabelSize(0.04, "Y");
 
             TString chSharing = detector + "_charge_Sharing";
-            fChargeSharingHist[detId] = new TH2F(chSharing, chSharing, 50, fConfig.GetMinADCvalue(),
-                                                 fConfig.GetMaxADCvalue(), 50, fConfig.GetMinADCvalue(),
-                                                 fConfig.GetMaxADCvalue());
+            fChargeSharingHist[detId] = new TH2F(chSharing, chSharing, 50, m_min_adc, m_max_adc, 50, m_min_adc, m_max_adc);
             fChargeSharingHist[detId]->GetXaxis()->SetTitle("ADC in X-strips");
             fChargeSharingHist[detId]->GetYaxis()->SetTitle("ADC in Y-strips");
             fChargeSharingHist[detId]->SetLabelSize(0.04, "X");
@@ -376,6 +343,7 @@ void ClusterFactory::Process(const std::shared_ptr<const JEvent> &event) {
     m_log->debug("new event");
     try {
         auto srs_data = event->Get<DGEMSRSWindowRawData>();
+        auto pedestal = const_cast<Pedestal*>(event->GetSingle<ml4fpga::gem::Pedestal>());  // we are not going to modify it, just remove hassle with const map
         m_log->trace("DGEMSRSWindowRawData data items: {} ", srs_data.size());
 
         //TraceDumpSrsData(srs_data, /*num rows*/ 256);
@@ -422,37 +390,18 @@ void ClusterFactory::Process(const std::shared_ptr<const JEvent> &event) {
             fec_apv_raw[0][apv_id] = raw_data;
         }
 
-        //  float   fOfflineProgress;
-        TString fIsHitPeakOrSumADCs, fIsCentralOrAllStripsADCs;
-        Float_t fMinADCvalue;
-        int fEventNumber, fLastEvent, fZeroSupCut, fComModeCut, fNbOfTimeSamples, fStopTimeSample, fStartTimeSample;
-        int fMinClusterSize, fMaxClusterSize, fMaxClusterMult;
-
-        fEventNumber = -1;
-        fLastEvent = 0;
-        fMinADCvalue = 50;
-        fZeroSupCut = 10;
-        fComModeCut = 20;
-        fNbOfTimeSamples = 9;
-        fStartTimeSample = 2;
-        fStopTimeSample = 7;
-        fMinClusterSize = 2;
-        fMaxClusterSize = 20;
-        fMaxClusterMult = 5;
-        fIsHitPeakOrSumADCs = "peakADCs";
-        fIsCentralOrAllStripsADCs = "centralStripADCs";
-
         // this->FillTrdHistogram(event->GetEventNumber(), m_dir_main, srs_data);
 
-        GEMOnlineHitDecoder hit_decoder(fEventNumber, fNbOfTimeSamples, fStartTimeSample, fStopTimeSample,
+        GEMOnlineHitDecoder hit_decoder(event->GetEventNumber(), m_srs_ntsamples, fStartTimeSample, m_srs_ntsamples-1,
                                         fZeroSupCut, fComModeCut, fIsHitPeakOrSumADCs, fIsCentralOrAllStripsADCs,
-                                        fMinADCvalue, fMinClusterSize, fMaxClusterSize, fMaxClusterMult);
+                                        m_min_adc, fMinClusterSize, fMaxClusterSize, fMaxClusterMult);
 //        hit_decoder.ProcessEvent(fec_apv_raw, fPedestal);
 //
         TH1F **hist = f1DSingleEventHist;
         TH2F **hist2d = f2DSingleEventHist;
 
-        hit_decoder.ProcessEvent(fec_apv_raw, fPedestal);
+
+        hit_decoder.ProcessEvent(fec_apv_raw, pedestal->offsets, pedestal->noises);
         std::map<std::string, Int_t> listOfPlanes = fMapping->GetPlaneIDFromPlaneMap();
         std::map<std::string, Int_t>::const_iterator plane_itr;
         int pad = 0;
@@ -473,10 +422,10 @@ void ClusterFactory::Process(const std::shared_ptr<const JEvent> &event) {
             hist2d[i]->Reset();
             hit_decoder.GetTimeBinClusterHit(plane_name, hist2d[i]);
 
-            if (plane_name == "GEM1X") {
+            if (plane_name == "URWELLX") {
                 ncx = hit_decoder.GetClusters(plane_name, clustX);
             }
-            if (plane_name == "GEM1Y") {
+            if (plane_name == "URWELLY") {
                 ncy = hit_decoder.GetClusters(plane_name, clustY);
             }
         }
@@ -517,6 +466,7 @@ void ClusterFactory::TraceDumpSrsData(std::vector<const DGEMSRSWindowRawData *> 
     logger()->trace("  [rocid] [slot]  [channel] [apv_id] [channel_apv] [samples size:val1,val2,...]");
 
     auto rows_to_display = std::min(srs_data.size(), print_rows);
+
 
     for(size_t i=0; i < rows_to_display; i++) {
         auto &srs_item = srs_data[i];
@@ -609,105 +559,105 @@ void ClusterFactory::TraceDumpMapping(std::vector<const DGEMSRSWindowRawData *> 
 }
 
 GemApvDecodingResult ClusterFactory::DecodeApv(int apv_id, std::vector<std::vector<int>> raw_data) {
-    //===========================================================================================================
-    // BLOCK WHERE COMMON MODE CORRECTION FOR ALL APV25 TIME BINS IS COMPUTED
-    //===========================================================================================================
-    static const int NCH = 128;
-
-    auto fPedestalOffsets = fPedestal->GetAPVOffsets(apv_id);
-    auto fPedestalNoises = fPedestal->GetAPVNoises(apv_id);
-    int fComModeCut = 20;       // TODO parameter
-    double fZeroSupCut = 10;    // TODO parameter
-    int fAPVBaseline = 2500;
-    int time_bins_size = raw_data.size();
-    assert(time_bins_size>0);
-    assert(raw_data[0].size() == NCH);
-    assert(fPedestalOffsets.size() == NCH);
-
-    std::vector<double> commonModeOffsets(time_bins_size, 0);
-    std::vector<double> rawDataZS(time_bins_size, 0);
-    std::map<int, GEMHit*> fListOfHits;
-    std::map<int, GEMHit*> fListOfHitsClean;
-
-    for (Int_t timebin = 0; timebin < time_bins_size; timebin++) {
-        std::vector<int> raw_channel_values = raw_data[timebin];
-
-        // PERFORM APV25 PEDESTAL OFFSET CORRECTION FOR A GIVEN TIME BIN
-        std::vector<double> channel_values;
-        for(size_t i; i < raw_channel_values.size(); i++) {
-            channel_values[i] = raw_channel_values[i] - fPedestalOffsets[i];
-        }
-
-        std::map<double, int> values_index_map;
-        for (int i = 0; i < NCH; i++) {
-            values_index_map[channel_values[i]] = i;
-        }
-
-        // Select only N channels with lowest adc
-        std::vector<double> dataTest = channel_values;
-        std::sort(dataTest.begin(), dataTest.end());
-        assert(fComModeCut < 28);
-        for (int i = 0; i < fComModeCut; i++) {
-            //     if(fAPVID == 0) printf("\n Enter  GEMHitDecoder::APVEventDecoder()=>BF: data[%d]=%f \n",timebin,dataTest[i]) ;
-            dataTest[i] = -fPedestalOffsets[values_index_map[dataTest[i]]] + fAPVBaseline;
-            //     if(fAPVID == 0) printf(" Enter  GEMHitDecoder::APVEventDecoder()=>AF: data[%d]=%f \n",  timebin,dataTest[i]) ;
-        }
-
-        // COMPUTE COMMON MODE FOR A GIVEN APV AND TIME BIN
-        double commonMode = std::accumulate(dataTest.begin(), dataTest.end(), 0.0) / NCH;
-        commonModeOffsets.push_back(commonMode);
-        //    if(fAPVID == 0) printf(" Enter  GEMHitDecoder::APVEventDecoder(), timebin = %d, commonMode = %d \n",  timebin, commonMode) ;
-
-        // PERFORM COMMON MODE CORRECTION FOR A GIVEN TIME BIN
-        std::transform(channel_values.begin(), channel_values.end(), channel_values.begin(), std::bind2nd(std::minus<Float_t>(), commonMode));
-
-        //  ADC SUM OVER ALL TIME BINS USE AS THE TEST CRITERIA FOR ZERO SUPPRESSION
-        for(int i=0; i < rawDataZS.size(); i++) {
-            rawDataZS[i] += channel_values[i];
-        }
-    }
-
-    // ADC AVERAGE OVER ALL TIME BINS USE AS THE TEST CRITERIA FOR ZERO SUPPRESSION
-    for(int i=0; i < rawDataZS.size(); i++) {
-        rawDataZS[i] = rawDataZS[i]/time_bins_size;
-    }
-
-    //if (isCommonModeTooLarge) return;
-
-    for (size_t timebin = 0; timebin < raw_data.size(); timebin++) {
-        // EXTRACT APV25 DATA FOR A GIVEN TIME BIN
-        std::vector<int> rawDataTS = raw_data[timebin];
-        for (int chNo = 0; chNo < NCH; chNo++) {
-            int hitID = (apv_id << 8) | chNo;
-            Float_t data = -(rawDataTS[chNo] - fPedestalOffsets[chNo] - commonModeOffsets[timebin]);
-            Float_t avgdata = -rawDataZS[chNo];
-
-            //   if (fAPVID % 2 == 1) data = 1.2 * data ;
-
-            // NO ZERO SUPPRESSION
-            if (!fListOfHits[hitID]) {
-                GEMHit *hit = new GEMHit(hitID, apv_id, chNo, 0, "peakADCs", time_bins_size, /**StopTimeSamples**/time_bins_size, /**StartTimeSamples**/0);
-                fListOfHits[hitID] = hit;
-            }
-            fListOfHits[hitID]->AddTimeBinADCs(timebin, data,  fPedestalNoises[chNo]);
-            TString planename = fListOfHits[hitID]->GetPlane();
-
-//            // ZERO SUPPRESSION
-//            if (avgdata > (fZeroSupCut * fPedestalNoises[chNo])) {
-//                if (!fListOfHitsClean[hitID]) {
-//                    GEMHit *hit = new GEMHit(hitID, apv_id, chNo, fZeroSupCut, fIsHitMaxOrTotalADCs, fNbOfTimeSamples, fStopTimeSamples, fStartTimeSamples);
-//                    fListOfHitsClean[hitID] = hit;
-//                }
-//                fListOfHitsClean[hitID]->AddTimeBinADCs(timebin, data, fPedestalNoises[chNo]);
+//    //===========================================================================================================
+//    // BLOCK WHERE COMMON MODE CORRECTION FOR ALL APV25 TIME BINS IS COMPUTED
+//    //===========================================================================================================
+//    static const int NCH = 128;
+//
+//    auto fPedestalOffsets = fPedestal->GetAPVOffsets(apv_id);
+//    auto fPedestalNoises = fPedestal->GetAPVNoises(apv_id);
+//    int fComModeCut = 20;       // TODO parameter
+//    double fZeroSupCut = 10;    // TODO parameter
+//    int fAPVBaseline = 2500;
+//    int time_bins_size = raw_data.size();
+//    assert(time_bins_size>0);
+//    assert(raw_data[0].size() == NCH);
+//    assert(fPedestalOffsets.size() == NCH);
+//
+//    std::vector<double> commonModeOffsets(time_bins_size, 0);
+//    std::vector<double> rawDataZS(time_bins_size, 0);
+//    std::map<int, GEMHit*> fListOfHits;
+//    std::map<int, GEMHit*> fListOfHitsClean;
+//
+//    for (Int_t timebin = 0; timebin < time_bins_size; timebin++) {
+//        std::vector<int> raw_channel_values = raw_data[timebin];
+//
+//        // PERFORM APV25 PEDESTAL OFFSET CORRECTION FOR A GIVEN TIME BIN
+//        std::vector<double> channel_values;
+//        for(size_t i; i < raw_channel_values.size(); i++) {
+//            channel_values[i] = raw_channel_values[i] - fPedestalOffsets[i];
+//        }
+//
+//        std::map<double, int> values_index_map;
+//        for (int i = 0; i < NCH; i++) {
+//            values_index_map[channel_values[i]] = i;
+//        }
+//
+//        // Select only N channels with lowest adc
+//        std::vector<double> dataTest = channel_values;
+//        std::sort(dataTest.begin(), dataTest.end());
+//        assert(fComModeCut < 28);
+//        for (int i = 0; i < fComModeCut; i++) {
+//            //     if(fAPVID == 0) printf("\n Enter  GEMHitDecoder::APVEventDecoder()=>BF: data[%d]=%f \n",timebin,dataTest[i]) ;
+//            dataTest[i] = -fPedestalOffsets[values_index_map[dataTest[i]]] + fAPVBaseline;
+//            //     if(fAPVID == 0) printf(" Enter  GEMHitDecoder::APVEventDecoder()=>AF: data[%d]=%f \n",  timebin,dataTest[i]) ;
+//        }
+//
+//        // COMPUTE COMMON MODE FOR A GIVEN APV AND TIME BIN
+//        double commonMode = std::accumulate(dataTest.begin(), dataTest.end(), 0.0) / NCH;
+//        commonModeOffsets.push_back(commonMode);
+//        //    if(fAPVID == 0) printf(" Enter  GEMHitDecoder::APVEventDecoder(), timebin = %d, commonMode = %d \n",  timebin, commonMode) ;
+//
+//        // PERFORM COMMON MODE CORRECTION FOR A GIVEN TIME BIN
+//        std::transform(channel_values.begin(), channel_values.end(), channel_values.begin(), std::bind2nd(std::minus<Float_t>(), commonMode));
+//
+//        //  ADC SUM OVER ALL TIME BINS USE AS THE TEST CRITERIA FOR ZERO SUPPRESSION
+//        for(int i=0; i < rawDataZS.size(); i++) {
+//            rawDataZS[i] += channel_values[i];
+//        }
+//    }
+//
+//    // ADC AVERAGE OVER ALL TIME BINS USE AS THE TEST CRITERIA FOR ZERO SUPPRESSION
+//    for(int i=0; i < rawDataZS.size(); i++) {
+//        rawDataZS[i] = rawDataZS[i]/time_bins_size;
+//    }
+//
+//    //if (isCommonModeTooLarge) return;
+//
+//    for (size_t timebin = 0; timebin < raw_data.size(); timebin++) {
+//        // EXTRACT APV25 DATA FOR A GIVEN TIME BIN
+//        std::vector<int> rawDataTS = raw_data[timebin];
+//        for (int chNo = 0; chNo < NCH; chNo++) {
+//            int hitID = (apv_id << 8) | chNo;
+//            Float_t data = -(rawDataTS[chNo] - fPedestalOffsets[chNo] - commonModeOffsets[timebin]);
+//            Float_t avgdata = -rawDataZS[chNo];
+//
+//            //   if (fAPVID % 2 == 1) data = 1.2 * data ;
+//
+//            // NO ZERO SUPPRESSION
+//            if (!fListOfHits[hitID]) {
+//                GEMHit *hit = new GEMHit(hitID, apv_id, chNo, 0, "peakADCs", time_bins_size, /**StopTimeSamples**/time_bins_size, /**StartTimeSamples**/0);
+//                fListOfHits[hitID] = hit;
 //            }
-        }
-    }
-    GemApvDecodingResult result;
-    result.RawData = raw_data;
-    result.PedestalOffsets = fPedestalOffsets;
-    result.PedestalNoises = fPedestalNoises;
-    result.CommonModeOffsets = commonModeOffsets;
-    result.RawDataAverage = rawDataZS;
-    return result;
+//            fListOfHits[hitID]->AddTimeBinADCs(timebin, data,  fPedestalNoises[chNo]);
+//            TString planename = fListOfHits[hitID]->GetPlane();
+//
+////            // ZERO SUPPRESSION
+////            if (avgdata > (fZeroSupCut * fPedestalNoises[chNo])) {
+////                if (!fListOfHitsClean[hitID]) {
+////                    GEMHit *hit = new GEMHit(hitID, apv_id, chNo, fZeroSupCut, fIsHitMaxOrTotalADCs, fNbOfTimeSamples, fStopTimeSamples, fStartTimeSamples);
+////                    fListOfHitsClean[hitID] = hit;
+////                }
+////                fListOfHitsClean[hitID]->AddTimeBinADCs(timebin, data, fPedestalNoises[chNo]);
+////            }
+//        }
+//    }
+//    GemApvDecodingResult result;
+//    result.RawData = raw_data;
+//    result.PedestalOffsets = fPedestalOffsets;
+//    result.PedestalNoises = fPedestalNoises;
+//    result.CommonModeOffsets = commonModeOffsets;
+//    result.RawDataAverage = rawDataZS;
+//    return result;
 }
 }

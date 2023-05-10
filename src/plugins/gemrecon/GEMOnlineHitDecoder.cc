@@ -1,6 +1,7 @@
 #include "GEMOnlineHitDecoder.h"
 // #include "GemView.h"
 #include <spdlog/fmt/fmt.h>
+#include <JANA/JException.h>
 
 using namespace std;
 
@@ -108,8 +109,15 @@ GEMOnlineHitDecoder::~GEMOnlineHitDecoder() {
     DeleteClustersInPlaneMap();
 }
 
+void GEMOnlineHitDecoder::ProcessEvent(std::map<int, std::map<int, std::vector<int>>> event, GEMPedestal *pedestal) {
+    throw JException("NOT IMPLEMENTED");
+
+}
+
 //======================================================
-void GEMOnlineHitDecoder::ProcessEvent(map<int, map<int, vector<int> > > srsSingleEvent, GEMPedestal *ped) {
+void GEMOnlineHitDecoder::ProcessEvent(map<int, map<int, vector<int>>> srsSingleEvent,
+                                       std::map<int, std::vector<double>>& offsets,
+                                       std::map<int, std::vector<double>>& noises) {
 
     mSrsSingleEvent = srsSingleEvent;
 
@@ -144,8 +152,8 @@ void GEMOnlineHitDecoder::ProcessEvent(map<int, map<int, vector<int> > > srsSing
 
                 fPedestalNoises.clear();
                 fPedestalOffsets.clear();
-                fPedestalNoises = ped->GetAPVNoises(fAPVID);
-                fPedestalOffsets = ped->GetAPVOffsets(fAPVID);
+                fPedestalNoises = noises[fAPVID];
+                fPedestalOffsets = offsets[fAPVID];
                 fAPVBaseline = std::accumulate(fPedestalOffsets.begin(), fPedestalOffsets.end(), 0.0) / NCH;
 
                 fPedestalNoises_1stSet.clear();
@@ -924,4 +932,7 @@ void GEMOnlineHitDecoder::Fill2DClusterHistos(TString detector, TH2F *pos2DHist,
     listOfClustersX.clear();
     listOfClustersY.clear();
 }
+
+
+
 

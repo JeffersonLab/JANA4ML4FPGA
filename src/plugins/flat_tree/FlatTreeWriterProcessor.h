@@ -16,6 +16,9 @@
 #include "rawdataparser/Df250WindowRawData.h"
 #include "F250WindowRawRecord.h"
 #include "GemSimpleCluster.h"
+#include "F250FDCPulseRecord.h"
+#include "rawdataparser/Df250PulseData.h"
+#include "plugins/gemrecon/DecodedData.h"
 #include <plugins/gemrecon/SFclust.h>
 
 
@@ -67,20 +70,22 @@ private:
     flatio::F125WindowRawRecordIO m_f125_wraw_io;
     flatio::F250WindowRawRecordIO m_f250_wraw_io;
     flatio::F125FDCPulseRecordIO m_f125_pulse_io;
+    flatio::F250FDCPulseRecordIO m_f250_pulse_io;
     flatio::GemSimpleClusterIO m_gem_scluster_io;
 
     std::shared_ptr<JGlobalRootLock> m_glb_root_lock;
 
     uint16_t findBestSrsSamle(std::vector<uint16_t> samples);
 
-    void SaveF125FDCPulse(std::vector<const Df125FDCPulse *> records);
-
+    void SaveF125FDCPulse(const std::vector<const Df125FDCPulse *>& records);
+    void SaveF250FDCPulse(const std::vector<const Df250PulseData *>& records);
     void SaveGEMSRSWindowRawData(std::vector<const DGEMSRSWindowRawData *> records);
-
     void SaveF125WindowRawData(std::vector<const Df125WindowRawData *> records);
-
     void SaveF250WindowRawData(std::vector<const Df250WindowRawData *> records);
-
     void SaveGEMSimpleClusters(std::vector<const SFclust *> clusters);
+
+
+//    void SaveGEMDecodedData(const ml4fpga::gem::DecodedData *pData);
+    TDirectory* m_main_dir;
 };
 

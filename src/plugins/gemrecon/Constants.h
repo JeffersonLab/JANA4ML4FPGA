@@ -4,6 +4,12 @@
 
 #pragma once
 
-namespace gem {
-    const int ChannelsCount = 128;
+namespace ml4fpga::gem {
+    struct Constants{
+        static const int ChannelsCount = 128;
+
+        static constexpr int ApvChannelCorrection(int channel) {
+            return (32 * (channel % 4)) + (8 * (int) (channel / 4)) - (31 * (int) (channel / 16));
+        }
+    };
 }

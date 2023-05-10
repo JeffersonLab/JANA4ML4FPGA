@@ -11,6 +11,7 @@ add_executable(${DIRECOTRY_NAME}
         catch_amalgamated.hpp
         rolling_average_tests.cpp
         average_tests.cpp
+        standard_deviation_test.cpp
         )
 
 # These tests need their own main

@@ -103,10 +103,7 @@ void CDAQEVIOFileSource::Open() {
     m_log->info("GetResourceName() = {}", m_evio_filename);
     CDAQEVIOFileSource::OpenEVIOFile(m_evio_filename);
 
-    GetApplication()->SetDefaultParameter(
-            GetPluginName() + ":srs_nsamples",
-            m_parser_config.NSAMPLES_GEMSRS,
-            "Number of GEM SRS time samples per APV");
+    GetApplication()->SetDefaultParameter("daq:srs_window_raw:ntsamples", m_parser_config.NSAMPLES_GEMSRS, "Number of GEM SRS time samples per APV");
 }
 
 std::string CDAQEVIOFileSource::GetDescription() {

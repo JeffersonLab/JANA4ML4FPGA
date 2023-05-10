@@ -4,9 +4,12 @@
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
 #include "rawdataparser/Df125FDCPulse.h"
+#include "rawdataparser/Df250PulseData.h"
 #include "rawdataparser/Df125Config.h"
 #include "rawdataparser/Df250WindowRawData.h"
 #include "F250WindowRawRecord.h"
+#include <plugins/gemrecon/DecodedData.h>
+
 #include <plugins/gemrecon/SFclust.h>
 
 #include <JANA/JApplication.h>
@@ -46,17 +49,20 @@ void FlatTreeWriterProcessor::Init() {
     try {
         auto file = root_file_service->GetHistFile();
         file->cd();
+        m_main_dir = gDirectory;
+
         mEventTree = new TTree("events","jana4ml4fpga_tree_v1");
         m_ios.push_back(m_srs_record_io);
         m_ios.push_back(m_f125_wraw_io);
-        m_ios.push_back(m_f125_pulse_io);
         m_ios.push_back(m_f250_wraw_io);
+        m_ios.push_back(m_f125_pulse_io);
+        m_ios.push_back(m_f250_pulse_io);
         m_ios.push_back(m_gem_scluster_io);
+        mEventTree->SetDirectory(m_main_dir);
 
         for(auto &io: m_ios) {
             io.get().bindToTree(mEventTree);
         }
-
         // m_glb_root_lock->release_lock();
     }
     catch (...) {
@@ -109,6 +115,11 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
                 SaveF125FDCPulse(f125_pulse_records);
             }
 
+            if(factory->GetObjectName() == "Df250PulseData" && factory->GetNumObjects() > 0) {
+                auto f250_pulse_records = event->Get<Df250PulseData>();
+                SaveF250FDCPulse(f250_pulse_records);
+            }
+
             if(factory->GetObjectName() == "Df125WindowRawData" && factory->GetNumObjects() > 0) {
                 auto f125_wraw_records = event->Get<Df125WindowRawData>();
                 SaveF125WindowRawData(f125_wraw_records);
@@ -128,15 +139,15 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
                     // TODO fix it and check for factory
                     auto clusters = event->Get<SFclust>();
                     SaveGEMSimpleClusters(clusters);
-
+                    auto decodedData = event->GetSingle<ml4fpga::gem::DecodedData>();
+                    //SaveGEMDecodedData(decodedData);
                 }
-                catch(...) {
+                catch(std::exception ex) {
+                    m_log->error("event->Get<SFclust>() problem: {}", ex.what());
                     // It will fail without gemrecon plugin
                     // TODO fix it fix it fix it !!!!111oneone
                 }
-
             }
-
         }
 
         // Fill the tree
@@ -191,7 +202,7 @@ uint16_t FlatTreeWriterProcessor::findBestSrsSamle(std::vector<uint16_t> samples
     return best_sample;
 }
 
-void FlatTreeWriterProcessor::SaveF125FDCPulse(std::vector<const Df125FDCPulse *> records) {
+void FlatTreeWriterProcessor::SaveF125FDCPulse(const std::vector<const Df125FDCPulse *>& records) {
     for (auto record: records) {
         flatio::F125FDCPulseRecord save_struct{};
         save_struct.roc = record->rocid;
@@ -218,6 +229,38 @@ void FlatTreeWriterProcessor::SaveF125FDCPulse(std::vector<const Df125FDCPulse *
         save_struct.peak_amp_emulated = record->peak_amp_emulated;
         save_struct.peak_time_emulated = record->peak_time_emulated;
         m_f125_pulse_io.add(save_struct);
+    }
+}
+
+void FlatTreeWriterProcessor::SaveF250FDCPulse(const std::vector<const Df250PulseData *>& records) {
+    for (auto record: records) {
+        flatio::F250FDCPulseRecord save_struct{};
+        save_struct.event_within_block = record->event_within_block;
+        save_struct.qf_pedestal = record->QF_pedestal;
+        save_struct.pedestal = record->pedestal;
+        save_struct.integral = record->integral;
+        save_struct.qf_nsa_beyond_ptw = record->QF_NSA_beyond_PTW;
+        save_struct.qf_overflow = record->QF_overflow;
+        save_struct.qf_underflow = record->QF_underflow;
+        save_struct.nsamples_over_threshold = record->nsamples_over_threshold;
+        save_struct.course_time = record->course_time;
+        save_struct.fine_time = record->fine_time;
+        save_struct.pulse_peak = record->pulse_peak;
+        save_struct.qf_vpeak_beyond_nsa = record->QF_vpeak_beyond_NSA;
+        save_struct.qf_vpeak_not_found = record->QF_vpeak_not_found;
+        save_struct.qf_bad_pedestal = record->QF_bad_pedestal;
+        save_struct.pulse_number = record->pulse_number;
+        save_struct.nsamples_integral = record->nsamples_integral;
+        save_struct.nsamples_pedestal = record->nsamples_pedestal;
+        save_struct.emulated = record->emulated;
+        save_struct.integral_emulated = record->integral_emulated;
+        save_struct.pedestal_emulated = record->pedestal_emulated;
+        save_struct.time_emulated = record->time_emulated;
+        save_struct.course_time_emulated = record->course_time_emulated;
+        save_struct.fine_time_emulated = record->fine_time_emulated;
+        save_struct.pulse_peak_emulated = record->pulse_peak_emulated;
+        save_struct.qf_emulated = record->QF_emulated;
+        m_f250_pulse_io.add(save_struct);
     }
 }
 
@@ -252,6 +295,8 @@ void FlatTreeWriterProcessor::SaveF125WindowRawData(std::vector<const Df125Windo
         m_f125_wraw_io.add(f125_wraw_save);
     }
 }
+
+
 
 void FlatTreeWriterProcessor::SaveF250WindowRawData(std::vector<const Df250WindowRawData *> records) {
     for (auto record: records) {

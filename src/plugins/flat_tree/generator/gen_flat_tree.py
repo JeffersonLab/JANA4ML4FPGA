@@ -10,6 +10,9 @@ class FieldInfo:
     name: str
     comment: str = ""
 
+    def gen_struct_definition(self):
+        return f'{self.type} {self.name};'
+
 class FieldVectorInfo(FieldInfo):
     pass
 
@@ -18,6 +21,7 @@ class ClassInfo:
     name: str             # Name. E.g. SrsRecord
     root_name: str        # Part of root file name: e.g. 'srs' => fileds will be srs_id, srs_value, etc.
     fields: list          # List of variable fields
+
 
 
 io_classes = [
@@ -45,10 +49,10 @@ io_classes = [
         ]),
     ClassInfo(
         name="SrsPlaneRecord",
-        root_name="srs_decoded",
+        root_name="srs_plane",
         fields=[
             FieldInfo('uint32_t', 'apv_id'),
-            FieldInfo('std::string', 'plane_name'),
+            FieldInfo('std::string', 'name'),
             FieldInfo('std::string', 'detector'),
             FieldInfo('std::vector<uint16_t>', 'samples'),
         ]),
@@ -139,15 +143,15 @@ io_classes = [
         ]
     ),
 
-        ClassInfo(
-            name="GemSimpleCluster",
-            root_name="gem_scluster",
-            fields=[
-                FieldInfo('double', 'x'),
-                FieldInfo('double', 'y'),
-                FieldInfo('double', 'energy'),
-                FieldInfo('double', 'adc'),
-            ]),
+    ClassInfo(
+        name="GemSimpleCluster",
+        root_name="gem_scluster",
+        fields=[
+            FieldInfo('double', 'x'),
+            FieldInfo('double', 'y'),
+            FieldInfo('double', 'energy'),
+            FieldInfo('double', 'adc'),
+        ]),
 ]
 
 struct_template = """
