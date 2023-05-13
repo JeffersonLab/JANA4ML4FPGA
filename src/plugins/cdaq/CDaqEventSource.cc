@@ -45,6 +45,7 @@ void CDaqEventSource::Open() {
                                 default_level;
     app->SetDefaultParameter(param_prefix + ":LogLevel", log_level_str,
                              "LogLevel: trace, debug, info, warn, err, critical, off");
+    printf("CDAQ LOG LEVEL %s\n", log_level_str.c_str());
     m_log->set_level(spdlog::extensions::ParseLogLevel(log_level_str));
 
     m_log->info("GetResourceName() = {}", GetResourceName());
@@ -247,6 +248,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             unsigned int cdaq_trigger_id = cdaq_header[1];
             unsigned int cdaq_mod_id = (cdaq_header[0] >> 24) & 0xff;
             unsigned int cdaq_event_size = cdaq_header[2];
+            m_log->trace("EORE_TRIGGERID Header: {:x} {:x} {:x} cdaq_mod_id={:x}", cdaq_header[0], cdaq_header[1], cdaq_header[2], cdaq_mod_id);
 
             if (cdaq_trigger_id == EORE_TRIGGERID ||
                 cdaq_trigger_id == BORE_TRIGGERID) {    //-------------       for memory book          -----------
@@ -317,8 +319,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             }
 
             // Reading the event
-            rc = TcpReadData(m_receive_fd, receive_buffer,
-                             event_bytes_len);  // <<<<---------------- THIS IS DATA !!!! -----------------------
+            rc = TcpReadData(m_receive_fd, receive_buffer, event_bytes_len);  // <<<<---------------- THIS IS DATA !!!! -----------------------
             //memcpy(wrptr,BUFFER,3*4);  //--- words to bytes
 
             // Start EVIO decoding
@@ -330,6 +331,8 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             // Add 2 words that would make it a bank of banks in EVIO format
             // That would allow ParseEVIOBlockedEvent to parse this event
             uint32_t *event_buffer_ptr = const_cast<uint32_t *>(block.data.data());
+
+            m_log->trace("About to swap bank: len {}", event_words_len);
             swap_bank(&event_buffer_ptr[2], receive_buffer, event_words_len);
             event_buffer_ptr[0] = event_words_len + 1;    // +1 because the length word itself is not counted in length
             event_buffer_ptr[1] = 0xFF331001;           // 0xFF33-bank of banks, 10-special, 01-1 event
