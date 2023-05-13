@@ -1,4 +1,4 @@
-
+#pragma once
 
 // This contains code for byte swapping EVIO banks. The code
 // is mostly copied from HDEVIO, but modified to just print
