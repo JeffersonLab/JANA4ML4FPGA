@@ -152,7 +152,7 @@ void CDaqEventSource::WaitForClient() {
 void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
 
     try {
-
+        m_log->set_level(spdlog::level::trace);
 
         static std::once_flag begin_data_taking_flag;
 
