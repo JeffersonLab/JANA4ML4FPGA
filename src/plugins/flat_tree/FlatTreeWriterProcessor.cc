@@ -151,6 +151,7 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
         }
 
         // Fill the tree
+        m_main_dir->cd();
         mEventTree->Fill();
         // m_glb_root_lock->release_lock();
     }
@@ -171,6 +172,7 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
 void FlatTreeWriterProcessor::Finish() {
 
     try {
+        m_main_dir->cd();
         mEventTree->Write();
         // m_glb_root_lock->release_lock();
     }

@@ -9,6 +9,7 @@
 namespace flatio {
     struct F125FDCPulseRecord
     {
+
         uint32_t roc;
         uint32_t slot;
         uint32_t channel;
@@ -40,6 +41,7 @@ namespace flatio {
         void bindToTree(TTree *tree) override {
             m_is_bound = true;
             tree->Branch("f125_pulse_count", &m_count, "f125_pulse_count/l");
+
             tree->Branch("f125_pulse_roc", &m_vect_roc);
             tree->Branch("f125_pulse_slot", &m_vect_slot);
             tree->Branch("f125_pulse_channel", &m_vect_channel);
@@ -67,6 +69,7 @@ namespace flatio {
 
         void clear() override {
             m_count = 0;
+
             m_vect_roc.clear();
             m_vect_slot.clear();
             m_vect_channel.clear();
@@ -97,6 +100,7 @@ namespace flatio {
                 throw std::logic_error("Can't add F125FDCPulseRecord data because F125FDCPulseRecordIO is not bound to tree");
             }
             m_count++;
+
             m_vect_roc.push_back(data.roc);
             m_vect_slot.push_back(data.slot);
             m_vect_channel.push_back(data.channel);
@@ -127,6 +131,7 @@ namespace flatio {
     private:
         bool m_is_bound = false;
         uint64_t m_count;
+
         std::vector<uint32_t> m_vect_roc;
         std::vector<uint32_t> m_vect_slot;
         std::vector<uint32_t> m_vect_channel;

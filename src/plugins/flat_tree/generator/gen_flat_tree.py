@@ -3,6 +3,54 @@ from collections import namedtuple
 from typing import Callable
 from dataclasses import dataclass
 
+
+struct_template = """
+#pragma once
+
+#include <cstdint>
+#include <vector>
+#include <TTree.h>
+#include "AlignedArraysIO.h"
+
+namespace flatio {
+    struct {{name}}
+    {
+{{struct_decl_code}}
+    };
+    
+    class {{name}}IO: public AlignedArraysIO
+    {
+    public:
+        void bindToTree(TTree *tree) override {
+            m_is_bound = true;
+            tree->Branch("{{root_name}}_count", &m_count, "{{root_name}}_count/l");
+{{record_bind_code}}
+        }
+
+        void clear() override {
+            m_count = 0;
+{{record_clear_code}}
+        }
+        
+        void add(const {{name}}& data) {
+            if(!m_is_bound) {
+                throw std::logic_error("Can't add {{name}} data because {{name}}IO is not bound to tree");
+            }
+            m_count++;
+{{record_add_code}}
+        }
+        
+        bool isBoundToTree() const { return m_is_bound; }
+        
+    private:
+        bool m_is_bound = false;
+        uint64_t m_count;
+{{record_decl_code}}
+    };
+}
+"""
+
+
 @dataclass
 class FieldInfo:
     """Class for keeping track of an item in inventory."""
@@ -10,11 +58,63 @@ class FieldInfo:
     name: str
     comment: str = ""
 
-    def gen_struct_definition(self):
-        return f'{self.type} {self.name};'
+    def gen_struct_decl(self):
+        return f'        {self.type} {self.name};'
 
-class FieldVectorInfo(FieldInfo):
-    pass
+    def gen_record_bind(self, class_root_name):
+        return f'            tree->Branch("{class_root_name}_{self.name}", &m_vect_{self.name});'
+
+    # Structure declaration
+    def gen_record_clear(self):
+        return f'            m_vect_{self.name}.clear();'
+
+    def gen_record_add(self):
+        return f'            m_vect_{self.name}.push_back(data.{self.name});'
+
+    # Fields declaration
+    def gen_record_decl(self):
+        return f'        std::vector<{self.type}> m_vect_{self.name};'
+
+
+
+@dataclass
+class VectorFieldInfo():
+    """Class for keeping track of an item in inventory."""
+    type: str
+    name: str
+    comment: str = ""
+
+    def gen_struct_decl(self):
+        return f'        std::vector<{self.type}> {self.name};'
+
+    def gen_record_bind(self, class_root_name):
+        return f'            tree->Branch("{class_root_name}_{self.name}_index", &m_vect_{self.name}_index);\n'\
+               f'            tree->Branch("{class_root_name}_{self.name}_count", &m_vect_{self.name}_count);\n'\
+               f'            tree->Branch("{class_root_name}_{self.name}", &m_vect_{self.name});'
+
+    # Structure declaration
+    def gen_record_clear(self):
+        return f'            m_vect_{self.name}.clear();\n' \
+               f'            m_vect_{self.name}_index.clear();\n' \
+               f'            m_vect_{self.name}_count.clear();'
+
+    def gen_record_add(self):
+        return f'            for(auto item: data.{self.name}) m_vect_{self.name}.push_back(item);\n'\
+               f'            // First record, {self.name} index = 0\n'\
+               f'            if(m_vect_{self.name}_count.size() == 0) {{\n'\
+               f'                m_vect_{self.name}_index.push_back(0);\n'\
+               f'            }} else {{\n'\
+               f'                auto last_count = m_vect_{self.name}_count[m_vect_{self.name}_count.size() - 1];\n'\
+               f'                auto last_index = m_vect_{self.name}_index[m_vect_{self.name}_index.size() - 1];\n'\
+               f'                m_vect_{self.name}_index.push_back(last_index+last_count);\n'\
+               f'            }}\n'\
+               f'            m_vect_{self.name}_count.push_back(data.{self.name}.size());'
+
+    def gen_record_decl(self):
+        return f'        std::vector<{self.type}> m_vect_{self.name}_count;\n'\
+               f'        std::vector<{self.type}> m_vect_{self.name}_index;\n'\
+               f'        std::vector<{self.type}> m_vect_{self.name};'
+
 
 @dataclass
 class ClassInfo:
@@ -22,6 +122,22 @@ class ClassInfo:
     root_name: str        # Part of root file name: e.g. 'srs' => fileds will be srs_id, srs_value, etc.
     fields: list          # List of variable fields
 
+    def gen_struct_decl(self):
+        return "\n" + "\n".join([f.gen_struct_decl() for f in self.fields])
+
+    def gen_record_bind(self):
+        return "\n" + "\n".join([f.gen_record_bind(self.root_name) for f in self.fields])
+
+    # Structure declaration
+    def gen_record_clear(self):
+        return "\n" + "\n".join([f.gen_record_clear() for f in self.fields])
+
+    def gen_record_add(self):
+        return "\n" + "\n".join([f.gen_record_add() for f in self.fields])
+
+    # Fields declaration
+    def gen_record_decl(self):
+        return "\n" + "\n".join([f.gen_record_decl() for f in self.fields])
 
 
 io_classes = [
@@ -36,7 +152,7 @@ io_classes = [
             FieldInfo('uint32_t', 'apv_id'),
             FieldInfo('uint32_t', 'channel_apv'),
             FieldInfo('uint16_t', 'best_sample'),
-            FieldInfo('std::vector<uint16_t>', 'samples'),
+            VectorFieldInfo('uint16_t', 'samples'),
         ]),
     ClassInfo(
         name="SrsDecodedRecord",
@@ -45,16 +161,14 @@ io_classes = [
             FieldInfo('uint32_t', 'apv_id'),
             FieldInfo('std::string', 'plane_name'),
             FieldInfo('std::string', 'detector'),
-            FieldInfo('std::vector<uint16_t>', 'samples'),
+            VectorFieldInfo('uint16_t', 'samples'),
         ]),
     ClassInfo(
-        name="SrsPlaneRecord",
-        root_name="srs_plane",
+        name="SrsPreReconRecord",
+        root_name="srs_prerecon_",
         fields=[
-            FieldInfo('uint32_t', 'apv_id'),
-            FieldInfo('std::string', 'name'),
-            FieldInfo('std::string', 'detector'),
-            FieldInfo('std::vector<uint16_t>', 'samples'),
+            FieldInfo('double', 'y'),
+            FieldInfo('double', 'x'),
         ]),
 
     ClassInfo(
@@ -67,7 +181,7 @@ io_classes = [
             FieldInfo('bool',     'invalid_samples'),
             FieldInfo('bool',     'overflow'),
             FieldInfo('uint32_t', 'itrigger'),
-            FieldInfo('std::vector<uint16_t>', 'samples'),
+            VectorFieldInfo('uint16_t', 'samples'),
         ]),
 
     ClassInfo(
@@ -80,7 +194,7 @@ io_classes = [
             FieldInfo('bool',     'invalid_samples'),
             FieldInfo('bool',     'overflow'),
             FieldInfo('uint32_t', 'itrigger'),
-            FieldInfo('std::vector<uint16_t>', 'samples'),
+            VectorFieldInfo('uint16_t', 'samples'),
         ]),
 
     ClassInfo(
@@ -115,31 +229,31 @@ io_classes = [
         name="F250FDCPulseRecord",
         root_name="f250_pulse",
         fields=[
-		   FieldInfo('uint32_t' ,'event_within_block'),
-		   FieldInfo('bool'     ,'qf_pedestal'),
-		   FieldInfo('uint32_t' ,'pedestal'),
-		   FieldInfo('uint32_t' ,'integral'),
-		   FieldInfo('bool'     ,'qf_nsa_beyond_ptw'),
-		   FieldInfo('bool'     ,'qf_overflow'),
-		   FieldInfo('bool'     ,'qf_underflow'),
-		   FieldInfo('uint32_t' ,'nsamples_over_threshold'),
-		   FieldInfo('uint32_t' ,'course_time'),               # < 4 ns/count
-		   FieldInfo('uint32_t' ,'fine_time'),                 # < 0.0625 ns/count
-		   FieldInfo('uint32_t' ,'pulse_peak'),
-		   FieldInfo('bool'     ,'qf_vpeak_beyond_nsa'),
-		   FieldInfo('bool'     ,'qf_vpeak_not_found'),
-		   FieldInfo('bool'     ,'qf_bad_pedestal'),
-		   FieldInfo('uint32_t' ,'pulse_number'),         # pulse number for this channel, this event starting from 0
-		   FieldInfo('uint32_t' ,'nsamples_integral'),    # number of samples used in integral
-		   FieldInfo('uint32_t' ,'nsamples_pedestal'),    # number of samples used in pedestal
-		   FieldInfo('bool'     ,'emulated'),             # true if made from Window Raw Data
-           FieldInfo('uint32_t' ,'integral_emulated'),    # Value calculated from raw data (if available)
-           FieldInfo('uint32_t' ,'pedestal_emulated'),    # Value calculated from raw data (if available)
-           FieldInfo('uint32_t' ,'time_emulated'),        # Value calculated from raw data (if available)
-           FieldInfo('uint32_t' ,'course_time_emulated'), # Value calculated from raw data (if available) - debug
-           FieldInfo('uint32_t' ,'fine_time_emulated'),   # Value calculated from raw data (if available) - debug
-           FieldInfo('uint32_t' ,'pulse_peak_emulated'),  # Value calculated from raw data (if available)
-           FieldInfo('uint32_t' ,'qf_emulated'),
+            FieldInfo('uint32_t', 'event_within_block'),
+            FieldInfo('bool', 'qf_pedestal'),
+            FieldInfo('uint32_t', 'pedestal'),
+            FieldInfo('uint32_t', 'integral'),
+            FieldInfo('bool', 'qf_nsa_beyond_ptw'),
+            FieldInfo('bool', 'qf_overflow'),
+            FieldInfo('bool', 'qf_underflow'),
+            FieldInfo('uint32_t', 'nsamples_over_threshold'),
+            FieldInfo('uint32_t', 'course_time'),               # < 4 ns/count
+            FieldInfo('uint32_t', 'fine_time'),                 # < 0.0625 ns/count
+            FieldInfo('uint32_t', 'pulse_peak'),
+            FieldInfo('bool', 'qf_vpeak_beyond_nsa'),
+            FieldInfo('bool', 'qf_vpeak_not_found'),
+            FieldInfo('bool', 'qf_bad_pedestal'),
+            FieldInfo('uint32_t', 'pulse_number'),
+            FieldInfo('uint32_t', 'nsamples_integral'),
+            FieldInfo('uint32_t', 'nsamples_pedestal'),
+            FieldInfo('bool', 'emulated'),
+            FieldInfo('uint32_t', 'integral_emulated'),
+            FieldInfo('uint32_t', 'pedestal_emulated'),
+            FieldInfo('uint32_t', 'time_emulated'),
+            FieldInfo('uint32_t', 'course_time_emulated'),
+            FieldInfo('uint32_t', 'fine_time_emulated'),
+            FieldInfo('uint32_t', 'pulse_peak_emulated'),
+            FieldInfo('uint32_t', 'qf_emulated'),
         ]
     ),
 
@@ -151,54 +265,8 @@ io_classes = [
             FieldInfo('double', 'y'),
             FieldInfo('double', 'energy'),
             FieldInfo('double', 'adc'),
-        ]),
+        ])
 ]
-
-struct_template = """
-#pragma once
-
-#include <cstdint>
-#include <vector>
-#include <TTree.h>
-#include "AlignedArraysIO.h"
-
-namespace flatio {
-    struct {{name}}
-    {
-        {{struct_code}}
-    };
-    
-    class {{name}}IO: public AlignedArraysIO
-    {
-    public:
-        void bindToTree(TTree *tree) override {
-            m_is_bound = true;
-            tree->Branch("{{root_name}}_count", &m_count, "{{root_name}}_count/l");
-            {{fields_bind_code}}
-        }
-
-        void clear() override {
-            m_count = 0;
-            {{fields_clear_code}}
-        }
-        
-        void add(const {{name}}& data) {
-            if(!m_is_bound) {
-                throw std::logic_error("Can't add {{name}} data because {{name}}IO is not bound to tree");
-            }
-            m_count++;
-            {{fields_add_code}}
-        }
-        
-        bool isBoundToTree() const { return m_is_bound; }
-        
-    private:
-        bool m_is_bound = false;
-        uint64_t m_count;
-        {{fields_declaration_code}}
-    };
-}
-"""
 
 def gen_fields_code(template: str, class_info: ClassInfo, spaces: int):
     code = ""
@@ -215,31 +283,15 @@ def gen_fields_code(template: str, class_info: ClassInfo, spaces: int):
 
 def generate_header(class_info: ClassInfo):
 
-    # Structure declaration
-    struct_code = gen_fields_code('{{field_type}} {{field_name}};', class_info, 8)
-
-    # Generate code for bindToTree function
-    fields_bind_code = gen_fields_code('tree->Branch("{{class_root_name}}_{{field_name}}", &m_vect_{{field_name}});', class_info, 12)
-
-    # Code for clear function
-    fields_clear_code = gen_fields_code('m_vect_{{field_name}}.clear();', class_info, 12)
-
-    # Code for adding data from single struct to vectors
-    fields_add_code = gen_fields_code('m_vect_{{field_name}}.push_back(data.{{field_name}});', class_info, 12)
-
-    # Fields declaration
-    fields_declaration_code = gen_fields_code('std::vector<{{field_type}}> m_vect_{{field_name}};', class_info, 8)
-
     # Process the main template
     result = struct_template\
         .replace('{{name}}', class_info.name) \
         .replace('{{root_name}}', class_info.root_name) \
-        .replace('{{struct_code}}', struct_code) \
-        .replace('{{fields_bind_code}}', fields_bind_code) \
-        .replace('{{fields_clear_code}}', fields_clear_code) \
-        .replace('{{fields_declaration_code}}', fields_declaration_code)\
-        .replace('{{fields_add_code}}', fields_add_code)
-
+        .replace('{{struct_decl_code}}', class_info.gen_struct_decl()) \
+        .replace('{{record_bind_code}}', class_info.gen_record_bind()) \
+        .replace('{{record_clear_code}}', class_info.gen_record_clear()) \
+        .replace('{{record_add_code}}', class_info.gen_record_add()) \
+        .replace('{{record_decl_code}}', class_info.gen_record_decl())
     return result
 
 
@@ -248,8 +300,8 @@ def generate():
         code = generate_header(class_info)
         print("="*30)
         print(code)
-        # with open(f"{class_info.name}.h", "w") as text_file:
-        #     text_file.write(code)
+        with open(f"{class_info.name}.h", "w") as text_file:
+            text_file.write(code)
 
 
 if __name__ == "__main__":

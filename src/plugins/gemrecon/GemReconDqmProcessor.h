@@ -11,6 +11,7 @@
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "GEMHit.h"
 #include "DecodedData.h"
+#include "PreReconData.h"
 
 class JEvent;
 class JApplication;
@@ -69,6 +70,8 @@ namespace ml4fpga::gem {
         void FillRawData(uint64_t event_number, TDirectory *hists_dir, std::vector<const DGEMSRSWindowRawData *> srs_data);
 
         void FillDecodedData(uint64_t number, TDirectory *pDirectory, const ml4fpga::gem::DecodedData* data);
+
+        void FillPreReconData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::PreReconData* data);
     };
 }      // namespace ml4fpga::gem
 

@@ -24,7 +24,7 @@ namespace ml4fpga::gem {
 
         /// Number of events to average Pedestal
         size_t m_events_to_average = 500;
-        size_t m_minimal_events = 50;
+        size_t m_minimal_events = 15;
         double m_constant_offset = 3000;
         double m_constant_noise = 0;
         size_t m_events_counter = 0;

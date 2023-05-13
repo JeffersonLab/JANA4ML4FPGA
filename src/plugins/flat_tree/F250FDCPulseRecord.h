@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <cstdint>
@@ -8,6 +9,7 @@
 namespace flatio {
     struct F250FDCPulseRecord
     {
+
         uint32_t event_within_block;
         bool qf_pedestal;
         uint32_t pedestal;
@@ -34,13 +36,14 @@ namespace flatio {
         uint32_t pulse_peak_emulated;
         uint32_t qf_emulated;
     };
-
+    
     class F250FDCPulseRecordIO: public AlignedArraysIO
     {
     public:
         void bindToTree(TTree *tree) override {
             m_is_bound = true;
             tree->Branch("f250_pulse_count", &m_count, "f250_pulse_count/l");
+
             tree->Branch("f250_pulse_event_within_block", &m_vect_event_within_block);
             tree->Branch("f250_pulse_qf_pedestal", &m_vect_qf_pedestal);
             tree->Branch("f250_pulse_pedestal", &m_vect_pedestal);
@@ -70,6 +73,7 @@ namespace flatio {
 
         void clear() override {
             m_count = 0;
+
             m_vect_event_within_block.clear();
             m_vect_qf_pedestal.clear();
             m_vect_pedestal.clear();
@@ -96,12 +100,13 @@ namespace flatio {
             m_vect_pulse_peak_emulated.clear();
             m_vect_qf_emulated.clear();
         }
-
+        
         void add(const F250FDCPulseRecord& data) {
             if(!m_is_bound) {
                 throw std::logic_error("Can't add F250FDCPulseRecord data because F250FDCPulseRecordIO is not bound to tree");
             }
             m_count++;
+
             m_vect_event_within_block.push_back(data.event_within_block);
             m_vect_qf_pedestal.push_back(data.qf_pedestal);
             m_vect_pedestal.push_back(data.pedestal);
@@ -128,12 +133,13 @@ namespace flatio {
             m_vect_pulse_peak_emulated.push_back(data.pulse_peak_emulated);
             m_vect_qf_emulated.push_back(data.qf_emulated);
         }
-
+        
         bool isBoundToTree() const { return m_is_bound; }
-
+        
     private:
         bool m_is_bound = false;
         uint64_t m_count;
+
         std::vector<uint32_t> m_vect_event_within_block;
         std::vector<bool> m_vect_qf_pedestal;
         std::vector<uint32_t> m_vect_pedestal;
@@ -161,4 +167,3 @@ namespace flatio {
         std::vector<uint32_t> m_vect_qf_emulated;
     };
 }
-

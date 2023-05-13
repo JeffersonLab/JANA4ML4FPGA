@@ -15,6 +15,7 @@
 #include <filesystem>
 #include "RawData.h"
 #include "DecodedDataFactory.h"
+#include "PreReconData.h"
 
 namespace ml4fpga::gem {
 //-------------------------------------
@@ -190,4 +191,38 @@ namespace ml4fpga::gem {
 
     }
 
+    void GemReconDqmProcessor::FillPreReconData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::PreReconData* data) {
+        m_dir_event_hists->cd();
+
+        // Now lets go over this
+        for(auto smpl_x: data->samples_x) {
+            for(auto smpl_x: data->samples_y) {
+
+//            }
+//            auto apv_id = apv_pair.first;
+//            auto &timebins = apv_pair.second.data;
+//
+//            size_t nbins = timebins.size() * 128 + (timebins.size()-1);
+//
+//            // Crate histogram
+//            std::string histo_name = fmt::format("evt_{}_xy_{}", event_number, fMapping->GetAPVFromID(apv_id));
+//            std::string histo_title = fmt::format("SRS Raw Window data for Event# {} APV {}", event_number, apv_id);
+//
+//            auto histo= new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
+//            histo->SetDirectory(pDirectory);
+//
+//            // go over channels
+//            for(size_t time_i = 0; time_i < timebins.size(); time_i++) {
+//                for(size_t ch_i = 0; ch_i < Constants::ChannelsCount; ch_i++)
+//                {
+//                    // go over samples
+//                    int bin_index = time_i*128 + time_i + ch_i;  // + time_i to make gaps in between samples
+//                    histo->SetBinContent(bin_index, timebins[time_i][ch_i]);
+//                }
+//            }
+
+                //histo->Write();
+            }
+        }
+    }
 }
