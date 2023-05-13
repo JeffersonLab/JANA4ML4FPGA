@@ -226,6 +226,8 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
         if (header_request == 0x5) {  //---  recv BUFFERED ---;
             m_log->trace("get_from_client:: MARKER=0x{:02X}", header_marker);
 
+            std::cout<<"HERE1"<<std::endl;
+
             // Check event len is OK
             if (header_event_len > MAXDATA) {
                 m_log->error("ERROR RECV:: event size={} > buffsize={} trig={} mod={}",
@@ -248,7 +250,8 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             unsigned int cdaq_trigger_id = cdaq_header[1];
             unsigned int cdaq_mod_id = (cdaq_header[0] >> 24) & 0xff;
             unsigned int cdaq_event_size = cdaq_header[2];
-            m_log->trace("EORE_TRIGGERID Header: {:x} {:x} {:x} cdaq_mod_id={:x}", cdaq_header[0], cdaq_header[1], cdaq_header[2], cdaq_mod_id);
+            std::cout<<"HERE2"<<std::endl;
+            m_log->trace("trace Header: {:x} {:x} {:x} cdaq_mod_id={:x}", cdaq_header[0], cdaq_header[1], cdaq_header[2], cdaq_mod_id);
 
             if (cdaq_trigger_id == EORE_TRIGGERID ||
                 cdaq_trigger_id == BORE_TRIGGERID) {    //-------------       for memory book          -----------
@@ -283,6 +286,8 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
                 m_log->error("Event length exceeds buffer LENEVENT={}  MAXDATA={}\n", header_event_len, MAXDATA);
                 // TODO Should we throw kERROR here?
             }
+
+            std::cout<<"HERE3"<<std::endl;
 
             // Finished with cdaq 3 words
 
@@ -332,6 +337,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             // That would allow ParseEVIOBlockedEvent to parse this event
             uint32_t *event_buffer_ptr = const_cast<uint32_t *>(block.data.data());
 
+            std::cout<<"HERE4 "<<event_words_len<<std::endl;
             m_log->trace("About to swap bank: len {}", event_words_len);
             swap_bank(&event_buffer_ptr[2], receive_buffer, event_words_len);
             event_buffer_ptr[0] = event_words_len + 1;    // +1 because the length word itself is not counted in length
