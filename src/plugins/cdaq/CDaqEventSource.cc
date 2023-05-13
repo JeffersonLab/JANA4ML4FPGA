@@ -1,5 +1,4 @@
 #include "CDaqEventSource.h"
-#include "rawdataparser/EVIOFileWriter.h"
 
 #include <future>
 #include <thread>
@@ -103,7 +102,7 @@ void CDaqEventSource::Open() {
     // End of run count
     m_end_of_runs_count=0;
 
-    m_evio_output_file = new EVIOFileWriter("output.evio");
+    //m_evio_output_file = new EVIOFileWriter("output.evio");
 }
 
 
