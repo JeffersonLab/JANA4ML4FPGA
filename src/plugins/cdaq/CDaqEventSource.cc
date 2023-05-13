@@ -1,4 +1,5 @@
 #include "CDaqEventSource.h"
+#include "rawdataparser/EVIOFileWriter.h"
 
 #include <future>
 #include <thread>
@@ -101,6 +102,8 @@ void CDaqEventSource::Open() {
 
     // End of run count
     m_end_of_runs_count=0;
+
+    m_evio_output_file = new EVIOFileWriter("output.evio");
 }
 
 
@@ -353,7 +356,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
 
             // >oODebugging output
             // TODO make a flag to show this dumps
-            parser.DumpBinary(event_buffer_ptr, &event_buffer_ptr[24], 0, nullptr);
+            // parser.DumpBinary(event_buffer_ptr, &event_buffer_ptr[24], 0, nullptr);
 
             // Parse the block
             auto events = parser.ParseEVIOBlockedEvent(block, event); // std::vector <std::shared_ptr<JEvent>>
