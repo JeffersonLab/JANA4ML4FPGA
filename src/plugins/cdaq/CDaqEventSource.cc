@@ -249,7 +249,15 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
             // Who knows what is it? TODO check with Sergey
             printf(" >> RECV:: TriggerID=0x%x (0x%x) evtSize=%d  got Run Number = %d ModID=%d \n", header_trigger_id,
                    cdaq_trigger_id, cdaq_event_size, header_run_number, cdaq_mod_id);
+
         }
+
+        if(cdaq_trigger_id == EORE_TRIGGERID) {
+            m_log->info("EORE_TRIGGERID Header: {:x} {:x} {:x} cdaq_mod_id={:x}", cdaq_header[0], cdaq_header[1], cdaq_header[2], cdaq_mod_id);
+            throw RETURN_STATUS::kTRY_AGAIN;
+        }
+
+
 
         if (cdaq_trigger_id == BORE_TRIGGERID) {    //-------------         New run           -----------
             // New run number?
