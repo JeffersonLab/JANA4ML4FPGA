@@ -7,34 +7,34 @@
 #include "AlignedArraysIO.h"
 
 namespace flatio {
-    struct F125WindowRawRecord
+    struct SrsRawRecord
     {
 
         uint32_t roc;
         uint32_t slot;
         uint32_t channel;
-        bool invalid_samples;
-        bool overflow;
-        uint32_t itrigger;
+        uint32_t apv_id;
+        uint32_t channel_apv;
+        uint16_t best_sample;
         std::vector<uint16_t> samples;
     };
     
-    class F125WindowRawRecordIO: public AlignedArraysIO
+    class SrsRawRecordIO: public AlignedArraysIO
     {
     public:
         void bindToTree(TTree *tree) override {
             m_is_bound = true;
-            tree->Branch("f125_wraw_count", &m_count, "f125_wraw_count/l");
+            tree->Branch("srs_raw_count", &m_count, "srs_raw_count/l");
 
-            tree->Branch("f125_wraw_roc", &m_vect_roc);
-            tree->Branch("f125_wraw_slot", &m_vect_slot);
-            tree->Branch("f125_wraw_channel", &m_vect_channel);
-            tree->Branch("f125_wraw_invalid_samples", &m_vect_invalid_samples);
-            tree->Branch("f125_wraw_overflow", &m_vect_overflow);
-            tree->Branch("f125_wraw_itrigger", &m_vect_itrigger);
-            tree->Branch("f125_wraw_samples_index", &m_vect_samples_index);
-            tree->Branch("f125_wraw_samples_count", &m_vect_samples_count);
-            tree->Branch("f125_wraw_samples", &m_vect_samples);
+            tree->Branch("srs_raw_roc", &m_vect_roc);
+            tree->Branch("srs_raw_slot", &m_vect_slot);
+            tree->Branch("srs_raw_channel", &m_vect_channel);
+            tree->Branch("srs_raw_apv_id", &m_vect_apv_id);
+            tree->Branch("srs_raw_channel_apv", &m_vect_channel_apv);
+            tree->Branch("srs_raw_best_sample", &m_vect_best_sample);
+            tree->Branch("srs_raw_samples_index", &m_vect_samples_index);
+            tree->Branch("srs_raw_samples_count", &m_vect_samples_count);
+            tree->Branch("srs_raw_samples", &m_vect_samples);
         }
 
         void clear() override {
@@ -43,26 +43,26 @@ namespace flatio {
             m_vect_roc.clear();
             m_vect_slot.clear();
             m_vect_channel.clear();
-            m_vect_invalid_samples.clear();
-            m_vect_overflow.clear();
-            m_vect_itrigger.clear();
+            m_vect_apv_id.clear();
+            m_vect_channel_apv.clear();
+            m_vect_best_sample.clear();
             m_vect_samples.clear();
             m_vect_samples_index.clear();
             m_vect_samples_count.clear();
         }
         
-        void add(const F125WindowRawRecord& data) {
+        void add(const SrsRawRecord& data) {
             if(!m_is_bound) {
-                throw std::logic_error("Can't add F125WindowRawRecord data because F125WindowRawRecordIO is not bound to tree");
+                throw std::logic_error("Can't add SrsRawRecord data because SrsRawRecordIO is not bound to tree");
             }
             m_count++;
 
             m_vect_roc.push_back(data.roc);
             m_vect_slot.push_back(data.slot);
             m_vect_channel.push_back(data.channel);
-            m_vect_invalid_samples.push_back(data.invalid_samples);
-            m_vect_overflow.push_back(data.overflow);
-            m_vect_itrigger.push_back(data.itrigger);
+            m_vect_apv_id.push_back(data.apv_id);
+            m_vect_channel_apv.push_back(data.channel_apv);
+            m_vect_best_sample.push_back(data.best_sample);
             for(auto item: data.samples) m_vect_samples.push_back(item);
             // First record, samples index = 0
             if(m_vect_samples_count.size() == 0) {
@@ -84,9 +84,9 @@ namespace flatio {
         std::vector<uint32_t> m_vect_roc;
         std::vector<uint32_t> m_vect_slot;
         std::vector<uint32_t> m_vect_channel;
-        std::vector<bool> m_vect_invalid_samples;
-        std::vector<bool> m_vect_overflow;
-        std::vector<uint32_t> m_vect_itrigger;
+        std::vector<uint32_t> m_vect_apv_id;
+        std::vector<uint32_t> m_vect_channel_apv;
+        std::vector<uint16_t> m_vect_best_sample;
         std::vector<uint16_t> m_vect_samples_count;
         std::vector<uint16_t> m_vect_samples_index;
         std::vector<uint16_t> m_vect_samples;

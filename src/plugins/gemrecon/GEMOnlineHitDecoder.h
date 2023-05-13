@@ -44,6 +44,9 @@ public:
     int GetClusters(TString plane, std::vector<SFclust> &clust);
 
     void ProcessEvent(std::map<int, std::map<int, std::vector<int> > >, GEMPedestal *);
+    void ProcessEvent(std::map<int, std::map<int, std::vector<int>>> srsSingleEvent,
+                      std::map<int, std::vector<double>>& offsets,
+                      std::map<int, std::vector<double>>& noises);
 
     void GetListOfClustersFromPlanes();
 
@@ -109,10 +112,11 @@ private:
     std::map<int, std::map<int, std::vector<int> > > mSrsSingleEvent;
 
     std::vector<int> fRawData16bits, fActiveADCchannels;
-    std::vector<Float_t> fPedestalNoises, fPedestalNoises_1stSet, fPedestalNoises_2ndSet;
-    std::vector<Float_t> fPedestalOffsets, fPedestalOffsets_1stSet, fPedestalOffsets_2ndSet;
+    std::vector<double> fPedestalNoises, fPedestalNoises_1stSet, fPedestalNoises_2ndSet;
+    std::vector<double> fPedestalOffsets, fPedestalOffsets_1stSet, fPedestalOffsets_2ndSet;
 
     Bool_t fIsGoodClusterEvent;
+
 
 };
 

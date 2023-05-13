@@ -59,14 +59,25 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 # For peer plugins the later is OK, but for libraries <tcp_daq/tcp_event.h> is better
 include_directories(${CMAKE_SOURCE_DIR}/src/libraries)
 
+#Add clang sanitizers
+#if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+#    # Enable sanitizers
+#    message(STATUS "Clang sanitizers are enabled")
+#    set(SANITIZE_FLAGS "-fsanitize=address,undefined")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SANITIZE_FLAGS}")
+#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SANITIZE_FLAGS}")
+#endif()
+
+
 # ---------------------------------------------------------------------------
 print_grand_header("    B U I L D   J A N A 4 M L 4 F P G A   P A R T S    ")
 # ---------------------------------------------------------------------------
 
-add_subdirectory( src/libraries )
-add_subdirectory( src/services )
+add_subdirectory(src/libraries)
+add_subdirectory(src/services)
 add_subdirectory(src/plugins)
 add_subdirectory(src/executables)
+add_subdirectory(src/tests)
 
 # Print what we had built
 print_header("CMake processed subdirectories:")

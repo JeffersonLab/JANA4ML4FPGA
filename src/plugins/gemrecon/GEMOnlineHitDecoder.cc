@@ -1,6 +1,7 @@
 #include "GEMOnlineHitDecoder.h"
 // #include "GemView.h"
 #include <spdlog/fmt/fmt.h>
+#include <JANA/JException.h>
 
 using namespace std;
 
@@ -80,7 +81,7 @@ void GEMOnlineHitDecoder::DeleteClustersInPlaneMap() {
 //_______________________________________________________________________________
 GEMOnlineHitDecoder::~GEMOnlineHitDecoder() {
     //clear hits
-    printf("~GEMOnlineHitDecoder()::  delete hits = %d\n", fListOfHits.size());
+    // printf("~GEMOnlineHitDecoder()::  delete hits = %d\n", fListOfHits.size());
     map<int, GEMHit *>::iterator it = fListOfHits.begin();
     for (; it != fListOfHits.end(); ++it) {
         delete (it->second);
@@ -108,11 +109,17 @@ GEMOnlineHitDecoder::~GEMOnlineHitDecoder() {
     DeleteClustersInPlaneMap();
 }
 
+void GEMOnlineHitDecoder::ProcessEvent(std::map<int, std::map<int, std::vector<int>>> event, GEMPedestal *pedestal) {
+    throw JException("NOT IMPLEMENTED");
+
+}
+
 //======================================================
-void GEMOnlineHitDecoder::ProcessEvent(map<int, map<int, vector<int> > > srsSingleEvent, GEMPedestal *ped) {
+void GEMOnlineHitDecoder::ProcessEvent(map<int, map<int, vector<int>>> srsSingleEvent,
+                                       std::map<int, std::vector<double>>& offsets,
+                                       std::map<int, std::vector<double>>& noises) {
 
     mSrsSingleEvent = srsSingleEvent;
-    printf("\n Enter  GEMHitDecoder::ProcessEvent fListOfHits size =%d\n", fListOfHits.size());
 
     map<int, map<int, vector<int> > >::iterator it;
     for (it = mSrsSingleEvent.begin(); it != mSrsSingleEvent.end(); ++it) {
@@ -132,7 +139,7 @@ void GEMOnlineHitDecoder::ProcessEvent(map<int, map<int, vector<int> > > srsSing
                 apv_status = trim(apv_status);
                 auto apvMap = fMapping->GetDetectorFromAPVIDMap();
 
-                fmt::print("    fMapping->GetDetectorFromAPVIDMap().size {:<10}", apvMap.size());
+                //fmt::print("    fMapping->GetDetectorFromAPVIDMap().size {:<10}", apvMap.size());
                 for(auto mapItem: apvMap) {
                     int id = mapItem.first;
                     std::string name(mapItem.second);
@@ -145,8 +152,8 @@ void GEMOnlineHitDecoder::ProcessEvent(map<int, map<int, vector<int> > > srsSing
 
                 fPedestalNoises.clear();
                 fPedestalOffsets.clear();
-                fPedestalNoises = ped->GetAPVNoises(fAPVID);
-                fPedestalOffsets = ped->GetAPVOffsets(fAPVID);
+                fPedestalNoises = noises[fAPVID];
+                fPedestalOffsets = offsets[fAPVID];
                 fAPVBaseline = std::accumulate(fPedestalOffsets.begin(), fPedestalOffsets.end(), 0.0) / NCH;
 
                 fPedestalNoises_1stSet.clear();
@@ -189,7 +196,6 @@ void GEMOnlineHitDecoder::ProcessEvent(map<int, map<int, vector<int> > > srsSing
 
 //=====================================================
 void GEMOnlineHitDecoder::APVEventDecoder() {
-    //  printf(" Enter  GEMHitDecoder::APVEventDecoder()\n") ;
 
     Int_t idata = 0, firstdata = 0, lastdata = 0;
     Int_t size = fRawData16bits.size();
@@ -716,8 +722,7 @@ void GEMOnlineHitDecoder::ComputeClusters() {
             fListOfClustersCleanFromPlane[plane].push_back(cluster);
         }
         fListOfClustersCleanFromPlane[plane].sort(CompareClusterADCs);
-        cout << "fListOfClustersCleanFromPlane " << plane << " size = " << fListOfClustersCleanFromPlane[plane].size()
-             << endl;
+        ;
         hitsFromPlane.clear();
         clustersMap.clear();
     }
@@ -742,7 +747,6 @@ void GEMOnlineHitDecoder::GetClusterHit(TString plane, TH1F *theHist) {
 //==================================================================================
 
 int GEMOnlineHitDecoder::GetClusters(TString plane, vector<SFclust> &clust) {
-    printf(" Enter  GEMHitDecoder::GetClusters(), plane = %s \n", plane.Data());
 
     list<GEMCluster *> listOfClusters = fListOfClustersCleanFromPlane[plane];
     Int_t nbOfAnalysedClusters = 0;
@@ -757,7 +761,9 @@ int GEMOnlineHitDecoder::GetClusters(TString plane, vector<SFclust> &clust) {
             //theHist -> Fill( (* cluster_it)->GetHit(i)->GetStripNo(), (* cluster_it)->GetHit(i)->GetHitADCs());
             pos += (*cluster_it)->GetHit(i)->GetStripNo() * (*cluster_it)->GetHit(i)->GetHitADCs();
             E += (*cluster_it)->GetHit(i)->GetHitADCs();
-            if (A < (*cluster_it)->GetHit(i)->GetHitADCs()) A = (*cluster_it)->GetHit(i)->GetHitADCs();
+            if (A < (*cluster_it)->GetHit(i)->GetHitADCs()) {
+                A = (*cluster_it)->GetHit(i)->GetHitADCs();
+            }
         }
         pos /= E;
         cl.x = pos;
@@ -926,4 +932,7 @@ void GEMOnlineHitDecoder::Fill2DClusterHistos(TString detector, TH2F *pos2DHist,
     listOfClustersX.clear();
     listOfClustersY.clear();
 }
+
+
+
 

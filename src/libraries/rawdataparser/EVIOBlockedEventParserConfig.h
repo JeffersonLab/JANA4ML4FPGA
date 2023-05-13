@@ -2,7 +2,7 @@
 // Subject to the terms in the LICENSE file found in the top-level directory.
 //
 
-#pragma once;
+#pragma once
 
 
 struct EVIOBlockedEventParserConfig {
@@ -14,5 +14,5 @@ struct EVIOBlockedEventParserConfig {
     bool PARSE_F250 = true;
     bool PARSE_F125 = true;
 
-    int32_t NSAMPLES_GEMSRS = 9;
+    int32_t NSAMPLES_GEMSRS = 6;
 };

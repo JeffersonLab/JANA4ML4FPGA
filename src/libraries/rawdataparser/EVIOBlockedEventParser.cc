@@ -32,8 +32,7 @@ namespace EBEP {
     void InitializeEVIOOutputFile() {
 
         std::string filename = "";
-        japp->SetDefaultParameter("EVIO:output_file", filename,
-                                  "Name of optional EVIO output file to write events to. (leave empty to not to a file)");
+        japp->SetDefaultParameter("EVIO:output_file", filename, "Name of optional EVIO output file to write events to. (leave empty to not to a file)");
         if (!filename.empty()) eviowriter = std::make_shared<EVIOFileWriter>(filename);
     }
 } // end EBEP namespace
