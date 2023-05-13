@@ -21,6 +21,7 @@
 
 CDaqEventSource::CDaqEventSource(std::string resource_name, JApplication *app) : JEventSource(resource_name, app) {
     SetTypeName(NAME_OF_THIS); // Provide JANA with class name
+
 }
 
 void CDaqEventSource::Open() {
@@ -97,6 +98,9 @@ void CDaqEventSource::Open() {
     m_receive_fd = -1;
     m_listen_thread = std::thread([this]() { this->WaitForClient(); });
     m_listen_thread.detach();
+
+    // End of run count
+    m_end_of_runs_count=0;
 }
 
 
@@ -152,7 +156,7 @@ void CDaqEventSource::WaitForClient() {
 void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
 
     try {
-        m_log->set_level(spdlog::level::trace);
+
 
         static std::once_flag begin_data_taking_flag;
 
@@ -226,8 +230,6 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
         if (header_request == 0x5) {  //---  recv BUFFERED ---;
             m_log->trace("get_from_client:: MARKER=0x{:02X}", header_marker);
 
-            std::cout<<"HERE1"<<std::endl;
-
             // Check event len is OK
             if (header_event_len > MAXDATA) {
                 m_log->error("ERROR RECV:: event size={} > buffsize={} trig={} mod={}",
@@ -250,7 +252,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             unsigned int cdaq_trigger_id = cdaq_header[1];
             unsigned int cdaq_mod_id = (cdaq_header[0] >> 24) & 0xff;
             unsigned int cdaq_event_size = cdaq_header[2];
-            std::cout<<"HERE2"<<std::endl;
+
             m_log->trace("trace Header: {:x} {:x} {:x} cdaq_mod_id={:x}", cdaq_header[0], cdaq_header[1], cdaq_header[2], cdaq_mod_id);
 
             if (cdaq_trigger_id == EORE_TRIGGERID ||
@@ -264,9 +266,16 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             }
 
             if (cdaq_trigger_id == EORE_TRIGGERID) {
-                m_log->info("EORE_TRIGGERID Header: {:x} {:x} {:x} cdaq_mod_id={:x}", cdaq_header[0], cdaq_header[1],
-                            cdaq_header[2], cdaq_mod_id);
-                throw RETURN_STATUS::kTRY_AGAIN;
+
+                m_log->info("EORE_TRIGGERID Header: {:x} {:x} {:x} cdaq_mod_id={:x} END of RUN count: {}", cdaq_header[0], cdaq_header[1],
+                            cdaq_header[2], cdaq_mod_id, m_end_of_runs_count);
+
+                if(m_end_of_runs_count == 0) {
+                    m_end_of_runs_count++;
+                    throw RETURN_STATUS::kTRY_AGAIN;
+                } else {
+                    throw RETURN_STATUS::kNO_MORE_EVENTS;
+                }
             }
 
 
@@ -287,7 +296,6 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
                 // TODO Should we throw kERROR here?
             }
 
-            std::cout<<"HERE3"<<std::endl;
 
             // Finished with cdaq 3 words
 
@@ -337,7 +345,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             // That would allow ParseEVIOBlockedEvent to parse this event
             uint32_t *event_buffer_ptr = const_cast<uint32_t *>(block.data.data());
 
-            std::cout<<"HERE4 "<<event_words_len<<std::endl;
+
             m_log->trace("About to swap bank: len {}", event_words_len);
             swap_bank(&event_buffer_ptr[2], receive_buffer, event_words_len);
             event_buffer_ptr[0] = event_words_len + 1;    // +1 because the length word itself is not counted in length
@@ -351,10 +359,9 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             auto events = parser.ParseEVIOBlockedEvent(block, event); // std::vector <std::shared_ptr<JEvent>>
 
             for (auto &parsed_event: events) {
-                m_log->info("Event number = {}", event->GetEventNumber());
+                m_log->trace("Event number = {}", event->GetEventNumber());
                 for (auto factory: event->GetFactorySet()->GetAllFactories()) {
-                    m_log->info("  Factory = {} NumObjects = {}", factory->GetObjectName(), factory->GetNumObjects());
-
+                    m_log->trace("  Factory = {} NumObjects = {}", factory->GetObjectName(), factory->GetNumObjects());
                 }
             }
         }

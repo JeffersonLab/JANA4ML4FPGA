@@ -64,6 +64,7 @@ private:
 
     // EVIO block parser
     EVIOBlockedEventParser parser; // TODO: make this persistent
+    size_t m_end_of_runs_count=0;
 };
 
 template <>
