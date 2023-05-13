@@ -32,7 +32,22 @@ void CDaqEventSource::Open() {
 
 
     m_log = GetApplication()->GetService<Log_service>()->logger(GetPluginName());
+    auto param_prefix = GetPluginName();
+    string default_level = "info";
+    JApplication* app = GetApplication();
+
+    // Logger. Get plugin level sub-Log
+    m_log = app->GetService<Log_service>()->logger(param_prefix);
+
+    // Get Log level from user parameter or default
+    std::string log_level_str = default_level.empty() ?         // did user provide default level?
+                                spdlog::extensions::LogLevelToString(m_log->level()) :   //
+                                default_level;
+    app->SetDefaultParameter(param_prefix + ":LogLevel", log_level_str, "LogLevel: trace, debug, info, warn, err, critical, off");
+    m_log->set_level(spdlog::extensions::ParseLogLevel(log_level_str));
+
     m_log->info("GetResourceName() = {}", GetResourceName());
+
 
     //================================================================
 
@@ -259,6 +274,31 @@ void CDaqEventSource::GetEvent(std::shared_ptr <JEvent> event) {
         size_t event_words_len = (header_event_len - 3);
         size_t event_bytes_len = event_words_len * 4;
         uint32_t receive_buffer[event_words_len];
+
+        if(event_bytes_len == 0) {
+            m_log->info("Event bytes len == 0. Header: {:x} {:x} {:x}", cdaq_header[0], cdaq_header[1], cdaq_header[2]);
+            m_log->info("10 digit header",
+                        "header_request {},"
+                        "header_marker {},"
+                        "header_event_len {},"
+                        "header_useless {},"
+                        "header_trigger_id {},"
+                        "header_num_modules {},"
+                        "header_module_id {},"
+                        "header_run_number {},"
+                        "header_status {},",
+                        header_request,
+                        header_marker,
+                        header_event_len,
+                        header_useless,
+                        header_trigger_id,
+                        header_num_modules,
+                        header_module_id,
+                        header_run_number,
+                        header_status
+                        );
+            throw RETURN_STATUS::kTRY_AGAIN;
+        }
         
         // Reading the event
         rc = TcpReadData(m_receive_fd, receive_buffer, event_bytes_len);  // <<<<---------------- THIS IS DATA !!!! -----------------------

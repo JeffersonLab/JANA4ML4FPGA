@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <future>
 
-class CDaqEventSource : public JEventSource, spdlog::extensions::SpdlogMixin<CDaqEventSource>
+class CDaqEventSource : public JEventSource, public spdlog::extensions::SpdlogMixin<CDaqEventSource>
 {
 
     /// Add member variables here

@@ -12,8 +12,8 @@
 #define USE_ASYNC_FILEBUF 0
 #endif // __APPLE__
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 #include <libgen.h>
 #include <unistd.h>
 #include <cinttypes>
@@ -33,8 +33,8 @@ HDEVIO::HDEVIO(string fname, bool read_map_file, int verbose):filename(fname),VE
 	// These must be initialized in case we return early
 	// so they aren't deleted in the destructor if they
 	// were never allocated.
-	fbuff = NULL;
-	buff  = NULL;
+	fbuff = nullptr;
+	buff  = nullptr;
 
 	is_open = false;
 #if ! USE_ASYNC_FILEBUF

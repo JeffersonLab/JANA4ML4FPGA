@@ -165,6 +165,16 @@ jana4ml4fpga
 hd_rawdata_002633_000.evio          # <= input file
 ```
 
+### CDAQ TCP via EVIO
+
+```sh
+jana4ml4fpga
+-Pplugins=log,root_output,flat_tree,cdaq
+-Pjana:timeout=0
+-Pnthreads=1
+tcp-cdaq-evio
+```
+
 ### Useful flags
 
 ```sh

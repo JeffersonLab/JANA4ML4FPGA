@@ -447,7 +447,7 @@ void EVIOBlockedEventParser::ParseBuiltTriggerBank(uint32_t *&iptr, uint32_t *ie
     uint32_t Ntimestamps = (common_header64_len / 2) - 1;
     if (tag & 0x2) Ntimestamps--; // subtract 1 for run number/type word if present
     vector<uint64_t> avg_timestamps;
-    for (uint32_t i = 0; i < Ntimestamps; i++) avg_timestamps.push_back(*iptr64++);
+    for (uint32_t i = 0; i < Ntimestamps; i++) avg_timestamps.push_back((uint64_t)(*iptr64++));
 
     // run number and run type
     uint32_t run_number = 0;
