@@ -19,7 +19,7 @@
 #include "F250FDCPulseRecord.h"
 #include "rawdataparser/Df250PulseData.h"
 #include "plugins/gemrecon/DecodedData.h"
-#include <plugins/gemrecon/SFclust.h>
+#include "plugins/gemrecon/SFclust.h"
 
 
 class JEvent;
@@ -87,5 +87,7 @@ private:
 
 //    void SaveGEMDecodedData(const ml4fpga::gem::DecodedData *pData);
     TDirectory* m_main_dir;
+
+    void SaveGEMDecodedData(const ml4fpga::gem::DecodedData *data);
 };
 

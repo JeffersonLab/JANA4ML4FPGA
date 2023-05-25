@@ -8,9 +8,9 @@
 #include "rawdataparser/Df125Config.h"
 #include "rawdataparser/Df250WindowRawData.h"
 #include "F250WindowRawRecord.h"
-#include <plugins/gemrecon/DecodedData.h>
+#include "plugins/gemrecon/DecodedData.h"
 
-#include <plugins/gemrecon/SFclust.h>
+#include "plugins/gemrecon/SFclust.h"
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -140,7 +140,7 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
                     auto clusters = event->Get<SFclust>();
                     SaveGEMSimpleClusters(clusters);
                     auto decodedData = event->GetSingle<ml4fpga::gem::DecodedData>();
-                    //SaveGEMDecodedData(decodedData);
+                    SaveGEMDecodedData(decodedData);
                 }
                 catch(std::exception ex) {
                     m_log->error("event->Get<SFclust>() problem: {}", ex.what());
@@ -275,7 +275,6 @@ void FlatTreeWriterProcessor::SaveGEMSRSWindowRawData(std::vector<const DGEMSRSW
         srs_save.channel = srs_item->channel;
         srs_save.apv_id = srs_item->apv_id;
         srs_save.channel_apv = srs_item->channel_apv;
-        srs_save.best_sample = findBestSrsSamle(srs_item->samples);
 
         for(auto sample: srs_item->samples) {
             srs_save.samples.push_back(sample);
@@ -323,6 +322,10 @@ void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const SFclust *>
         cluster_save.adc = cluster->A;
         m_gem_scluster_io.add(cluster_save);
     }
+
+}
+
+void FlatTreeWriterProcessor::SaveGEMDecodedData(const ml4fpga::gem::DecodedData *data) {
 
 }
 
