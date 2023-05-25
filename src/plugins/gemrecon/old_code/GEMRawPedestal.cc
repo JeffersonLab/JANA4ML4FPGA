@@ -1,5 +1,5 @@
 #include "GEMRawPedestal.h"
-#include "GemMapping.h"
+#include "plugins/gemrecon/GemMapping.h"
 #include <TMath.h>
 #include <TCanvas.h>
 #include <TH1F.h>

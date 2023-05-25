@@ -3,7 +3,7 @@
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
 #include "rawdataparser/Df125FDCPulse.h"
-#include "GEMOnlineHitDecoder.h"
+#include "plugins/gemrecon/old_code/GEMOnlineHitDecoder.h"
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -11,7 +11,7 @@
 #include <Math/GenVector/PxPyPzM4D.h>
 
 #include <spdlog/spdlog.h>
-#include <services/root_output/RootFile_service.h>
+#include "services/root_output/RootFile_service.h"
 #include <filesystem>
 #include "Pedestal.h"
 #include "RawData.h"
@@ -30,18 +30,14 @@ void DecodedDataFactory::Init() {
     // Get JANA application
     auto app = GetApplication();
 
-
     // Get Log level from user parameter or default
     InitLogger(plugin_name + ":" + JTypeInfo::demangle<GemReconDqmProcessor>());
-
 
     // P A R A M E T E R S
     // Number of SRS time samples:
     app->SetDefaultParameter("daq:srs_window_raw:ntsamples", m_srs_ntsamples, "Number of SRS time samples");
     app->SetDefaultParameter( plugin_name + ":min_adc", m_min_adc, "Min ADC value (For histos?)");
     app->SetDefaultParameter( plugin_name + ":max_adc", m_max_adc, "Max ADC value (For histos?)");
-
-
 
     //  D O N E
     logger()->info("This plugin name is: " + GetPluginName());

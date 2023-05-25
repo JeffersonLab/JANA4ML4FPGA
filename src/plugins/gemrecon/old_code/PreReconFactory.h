@@ -7,11 +7,11 @@
 #include <TH2F.h>
 #include "GEMPedestal.h"
 #include "GemConfiguration.h"
-#include "GemMapping.h"
+#include "plugins/gemrecon/GemMapping.h"
 #include "rawdataparser/DGEMSRSWindowRawData.h"
-#include "GemReconDqmProcessor.h"
-#include <extensions/spdlog/SpdlogExtensions.h>
-#include "SFclust.h"
+#include "plugins/gemrecon/GemReconDqmProcessor.h"
+#include "extensions/spdlog/SpdlogExtensions.h"
+#include "plugins/gemrecon/SFclust.h"
 #include "PreReconData.h"
 
 

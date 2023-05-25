@@ -2,16 +2,16 @@
 
 #include <JANA/JEventProcessor.h>
 #include <JANA/JEventProcessorSequentialRoot.h>
-#include <extensions/spdlog/SpdlogMixin.h>
+#include "extensions/spdlog/SpdlogMixin.h"
 #include <TDirectory.h>
 #include <TH1F.h>
 #include <TH2F.h>
-#include "GemConfiguration.h"
-#include "GEMPedestal.h"
+#include "plugins/gemrecon/old_code/GemConfiguration.h"
+#include "plugins/gemrecon/old_code/GEMPedestal.h"
 #include "rawdataparser/DGEMSRSWindowRawData.h"
-#include "GEMHit.h"
+#include "plugins/gemrecon/old_code/GEMHit.h"
 #include "DecodedData.h"
-#include "PreReconData.h"
+#include "plugins/gemrecon/old_code/PreReconData.h"
 
 class JEvent;
 class JApplication;

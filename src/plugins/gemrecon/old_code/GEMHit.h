@@ -23,7 +23,7 @@
 #include "TH1.h"
 #include "TF1.h"
 #include "TMath.h"
-#include "GemMapping.h"
+#include "plugins/gemrecon/GemMapping.h"
 
 #endif
 

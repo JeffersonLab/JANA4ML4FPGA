@@ -2,7 +2,7 @@
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
 #include "rawdataparser/Df125FDCPulse.h"
-#include "GEMOnlineHitDecoder.h"
+#include "plugins/gemrecon/old_code/GEMOnlineHitDecoder.h"
 #include "Pedestal.h"
 
 #include <JANA/JApplication.h>
@@ -11,11 +11,11 @@
 #include <Math/GenVector/PxPyPzM4D.h>
 
 #include <spdlog/spdlog.h>
-#include <services/root_output/RootFile_service.h>
+#include "services/root_output/RootFile_service.h"
 #include <filesystem>
 #include "RawData.h"
 #include "DecodedDataFactory.h"
-#include "PreReconData.h"
+#include "plugins/gemrecon/old_code/PreReconData.h"
 
 namespace ml4fpga::gem {
 //-------------------------------------
@@ -188,7 +188,6 @@ namespace ml4fpga::gem {
 
             histo->Write();
         }
-
     }
 
     void GemReconDqmProcessor::FillPreReconData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::PreReconData* data) {

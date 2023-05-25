@@ -2,7 +2,7 @@
 #define _GEMONLINEHITDECODER_H__
 
 #include "GEMRawDecoder.h"
-#include "GemMapping.h"
+#include "plugins/gemrecon/GemMapping.h"
 #include "GEMHit.h"
 #include "GEMPedestal.h"
 #include "GEMCluster.h"
@@ -26,7 +26,7 @@
 #include <list>
 #include <vector>
 #include <numeric>
-#include "SFclust.h"
+#include "plugins/gemrecon/SFclust.h"
 
 //vector <SFclust> clusters;
 

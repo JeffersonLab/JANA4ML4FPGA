@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <utility>
 #include "GEMRawDecoder.h"
-#include "GemMapping.h"
+#include "plugins/gemrecon/GemMapping.h"
 #include <fstream>
 #include <iostream>
 #include <utility>
