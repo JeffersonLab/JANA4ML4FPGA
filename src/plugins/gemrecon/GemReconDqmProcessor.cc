@@ -14,7 +14,7 @@
 #include "services/root_output/RootFile_service.h"
 #include <filesystem>
 #include "RawData.h"
-#include "DecodedDataFactory.h"
+#include "ApvDecodedDataFactory.h"
 #include "plugins/gemrecon/old_code/PreReconData.h"
 
 namespace ml4fpga::gem {
@@ -74,7 +74,7 @@ namespace ml4fpga::gem {
             fMapping = GemMapping::GetInstance();
 
             auto evio_raw_data = event->Get<DGEMSRSWindowRawData>();
-            auto decoded_data = event->GetSingle<DecodedData>();
+            auto decoded_data = event->GetSingle<ApvDecodedData>();
             if(!decoded_data) {
                 m_log->warn("No DecodedData for GemReconDqmProcessor");
                 return;
@@ -159,7 +159,7 @@ namespace ml4fpga::gem {
         }
     }
 
-    void GemReconDqmProcessor::FillDecodedData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::DecodedData* data) {
+    void GemReconDqmProcessor::FillDecodedData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::ApvDecodedData* data) {
         m_dir_event_hists->cd();
 
         // Now lets go over this

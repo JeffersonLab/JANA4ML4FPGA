@@ -139,8 +139,8 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
                     // TODO fix it and check for factory
                     auto clusters = event->Get<SFclust>();
                     SaveGEMSimpleClusters(clusters);
-                    auto decodedData = event->GetSingle<ml4fpga::gem::DecodedData>();
-                    SaveGEMDecodedData(decodedData);
+                    auto apv_decoded_data = event->GetSingle<ml4fpga::gem::ApvDecodedData>();
+                    SaveGEMDecodedData(apv_decoded_data);
                 }
                 catch(std::exception ex) {
                     m_log->error("event->Get<SFclust>() problem: {}", ex.what());
@@ -325,7 +325,7 @@ void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const SFclust *>
 
 }
 
-void FlatTreeWriterProcessor::SaveGEMDecodedData(const ml4fpga::gem::DecodedData *data) {
+void FlatTreeWriterProcessor::SaveGEMDecodedData(const ml4fpga::gem::ApvDecodedData *data) {
 
 }
 

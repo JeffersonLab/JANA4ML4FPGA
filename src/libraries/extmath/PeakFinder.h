@@ -27,8 +27,8 @@ namespace ml4fpga::extmath {
     /// Find peaks in the input data that exceed the noise level by a factor of N, have a minimum width,
     /// are separated by at least a minimum distance, and have a minimum prominence.
     /// Return a vector of SingleDimensionPeakData, each representing a peak found in the data.
-    std::vector<Peak>
-    find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double N, int min_width,
+    inline std::vector<Peak>
+    find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double n_sigmas, int min_width,
                int min_distance);
 
     /// @brief Identifies common peaks across multiple time slices of ADC data.
@@ -56,44 +56,43 @@ namespace ml4fpga::extmath {
     ///
     /// @param time_slices A 2D vector where each element represents a time slice of ADC readings. Each time slice is a 1D vector of double values representing ADC readings.
     /// @param noise_data A 1D vector of double values representing the standard deviations of the ADC readings, used to determine the noise level for each channel.
-    /// @param N A double value representing the threshold multiplier. This is used in conjunction with noise_data to determine the minimum height for a peak.
+    /// @param n_sigmas A double value representing the threshold multiplier. This is used in conjunction with noise_data to determine the minimum height for a peak.
     /// @param min_width An integer representing the minimum width of a peak. Any detected peak with a width smaller than this value will be discarded.
     /// @param min_distance An integer representing the minimum distance between two peaks. Peaks closer than this value to each other will be treated as a single peak.
-    /// @param tolerance A double value representing the tolerance for peak position and width when comparing peaks across different time slices. Peaks within this tolerance are treated as the same peak.
+    /// @param max_time_shift A double value representing the tolerance for peak position when comparing peaks across different time slices. Peaks within this tolerance are treated as the same peak.
     ///
     /// @return Returns a vector of SingleDimensionPeakData objects, each representing a common peak detected across all time slices. For each unique peak position, only the peak with the highest amplitude is returned.
     ///
-    std::vector<Peak>
-    find_common_peaks(std::vector<std::vector<double>> &time_slices, const std::vector<double> &noise_data, double N,
-                      int min_width, int min_distance, double tolerance);
+    inline std::vector<Peak>
+    find_common_peaks(const std::vector<std::vector<double>> &time_slices, const std::vector<double> &noise_data, double n_sigmas,
+                      int min_width, int min_distance, double max_time_shift);
 
     // Match peaks in the X and Y dimensions using the specified mode.
     // Return a vector of Peak, each representing a pair of matching peaks.
-    std::vector<PeakPair> match_peaks(const std::vector<Peak> &x_peaks,
+    inline  std::vector<PeakPair> match_peaks(const std::vector<Peak> &x_peaks,
                                       const std::vector<Peak> &y_peaks, PeakFindingMode mode);
 
 
     // Match peaks in the X and Y dimensions by sorting them by area and matching them in order.
-    std::vector<PeakPair>
+    inline  std::vector<PeakPair>
     match_peaks_sorting(std::vector<Peak> x_peaks, std::vector<Peak> y_peaks);
 
     // Match peaks in the X and Y dimensions by comparing their areas and matching the closest pairs.
-    std::vector<PeakPair> match_peaks_area_comparison(std::vector<Peak> x_peaks,
+    inline  std::vector<PeakPair> match_peaks_area_comparison(std::vector<Peak> x_peaks,
                                                       std::vector<Peak> y_peaks);
 
 
     std::vector<Peak>
-    find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double N, int min_width,
-               int min_distance) {
+    find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double n_sigmas, int min_width, int min_distance) {
         std::vector<Peak> peaks;
         if (input_data.empty()) return peaks;        // No data no peaks
 
         double min_since_last_peak = input_data[0];
 
         for (int i = 0; i < input_data.size() - min_width;) {
-            if (input_data[i] > N * noise_data[i]) {
+            if (input_data[i] > n_sigmas * noise_data[i]) {
                 int width = 1;
-                while (i + width < input_data.size() && input_data[i + width] > N * noise_data[i + width]) {
+                while (i + width < input_data.size() && input_data[i + width] > n_sigmas * noise_data[i + width]) {
                     width++;
                 }
                 if (width >= min_width) {
@@ -201,12 +200,11 @@ namespace ml4fpga::extmath {
 
 
     std::vector<Peak>
-    find_common_peaks(std::vector<std::vector<double>> &time_slices, const std::vector<double> &noise_data, double N,
-                      int min_width, int min_distance, double tolerance) {
+    find_common_peaks(const std::vector<std::vector<double>> &time_slices, const std::vector<double> &noise_data, double n_sigmas, int min_width, int min_distance, double max_time_shift) {
         // Step 1: Detect peaks in each time slice
         std::vector<std::vector<Peak>> all_peaks;
         for (auto &slice: time_slices) {
-            all_peaks.push_back(find_peaks(slice, noise_data, N, min_width, min_distance));
+            all_peaks.push_back(find_peaks(slice, noise_data, n_sigmas, min_width, min_distance));
         }
 
         std::vector<Peak> common_peaks;
@@ -221,9 +219,8 @@ namespace ml4fpga::extmath {
                 for (size_t j = 0; j < all_peaks.size(); ++j) {
                     if (i != j) {
                         if (std::none_of(all_peaks[j].begin(), all_peaks[j].end(),
-                                         [&peak, tolerance](const Peak &other_peak) {
-                                             return abs(peak.index - other_peak.index) <= tolerance &&
-                                                    abs(peak.width - other_peak.width) <= tolerance;
+                                         [&peak, max_time_shift](const Peak &other_peak) {
+                                             return abs(peak.index - other_peak.index) <= max_time_shift;
                                          })) {
                             common = false;
                             break;
@@ -242,8 +239,8 @@ namespace ml4fpga::extmath {
         std::vector<Peak> max_amplitude_peaks;
         for (auto &peak: common_peaks) {
             auto it = std::find_if(max_amplitude_peaks.begin(), max_amplitude_peaks.end(),
-                                   [&peak, tolerance](const Peak &max_peak) {
-                                       return abs(max_peak.index - peak.index) <= tolerance;
+                                   [&peak, max_time_shift](const Peak &max_peak) {
+                                       return abs(max_peak.index - peak.index) <= max_time_shift;
                                    });
 
             if (it == max_amplitude_peaks.end()) {

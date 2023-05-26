@@ -17,23 +17,20 @@
 
 namespace ml4fpga::gem {
 
-    class DecodedDataFactory: public JFactoryT<DecodedData>, public spdlog::extensions::SpdlogMixin<DecodedDataFactory>  {
+    class PlaneDecodedDataFactory: public JFactoryT<PlaneDecodedData>, public spdlog::extensions::SpdlogMixin<PlaneDecodedDataFactory>  {
         public:
-            DecodedDataFactory() = default;
+            PlaneDecodedDataFactory() = default;
             void Init() override;
             void Process(const std::shared_ptr<const JEvent>&) override;
             void Finish() override;
         private:
-
-            SingleApvDecodedData DecodeApv(int apv_id, std::vector<std::vector<double>> raw_data,
-                                           std::vector<double> offsets,
-                                           std::vector<double> noises);
 
             unsigned int m_srs_ntsamples = 9;
             int m_min_adc = 50;         /// Min ADC value for histogram plotting
             int m_max_adc = 5000;       /// Max ADC value for histogram plotting
             std::string fIsHitPeakOrSumADCs = "peakADCs";
             std::string fIsCentralOrAllStripsADCs = "centralStripADCs";
+        GemMapping *m_mapping;
     };
 } // namespace ml4fpga::gem
 

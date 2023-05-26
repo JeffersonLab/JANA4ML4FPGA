@@ -54,12 +54,13 @@ TEST_CASE("find_common_peaks works correctly", "[peak_finding]") {
             {1, 2, 4, 2, 1, 0, 1, 2, 5, 2, 1, 0, 0, 0, 0, 0, 0}
     };
     std::vector<double> noise_data = {0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2};
-    double N = 3.0;
+    double n_sigmas = 3.0;
     int min_width = 2;
     int min_distance = 2;
+    int peak_time_tolerance = 2;
 
     // Run find_common_peaks
-    std::vector<Peak> common_peaks = find_common_peaks(time_slices, noise_data, N, min_width, min_distance, 1);
+    std::vector<Peak> common_peaks = find_common_peaks(time_slices, noise_data, n_sigmas, min_width, min_distance, peak_time_tolerance);
 
     // Check that the output matches the expected results
     REQUIRE(common_peaks.size() == 2);

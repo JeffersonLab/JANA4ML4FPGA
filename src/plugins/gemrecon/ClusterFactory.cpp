@@ -14,6 +14,7 @@
 #include "services/root_output/RootFile_service.h"
 #include <filesystem>
 #include "Pedestal.h"
+#include <extmath/PeakFinder.h>
 
 namespace ml4fpga::gem {
 
@@ -85,9 +86,6 @@ namespace ml4fpga::gem {
             }
         }
 
-        // I N I T   H I S T O G R A M S
-        InitHistForZeroSup();
-
         //  D O N E
         logger()->info("This plugin name is: " + GetPluginName());
         logger()->info("ClusterFactory initialization is done");
@@ -100,11 +98,30 @@ namespace ml4fpga::gem {
     void ClusterFactory::Process(const std::shared_ptr<const JEvent> &event) {
         m_log->debug("new event");
         try {
-            auto srs_data = event->Get<DGEMSRSWindowRawData>();
-            auto pedestal = const_cast<Pedestal *>(event->GetSingle<ml4fpga::gem::Pedestal>());  // we are not going to modify it, just remove hassle with const map
-            m_log->trace("DGEMSRSWindowRawData data items: {} ", srs_data.size());
+            auto srs_data = event->GetSingle<PlaneDecodedData>();
+            m_log->trace("DGEMSRSWindowRawData data items: {} ", srs_data->plane_data.size());
+
+            double n_sigmas = 3.0;
+            int min_width = 2;
+            int min_distance = 2;
+            int peak_time_tolerance = 2;
+
+            const auto& plane_data = srs_data->plane_data.at("URWELLX");
+
+            auto peaksx = ml4fpga::extmath::find_common_peaks(plane_data.data, plane_data.PedestalNoises, n_sigmas, min_width, min_distance, peak_time_tolerance);
+            auto peaksy = ml4fpga::extmath::find_common_peaks(plane_data.data, plane_data.PedestalNoises, n_sigmas, min_width, min_distance, peak_time_tolerance);
+
+            auto matched_peaks = ml4fpga::extmath::match_peaks(peaksx, peaksy, extmath::PeakFindingMode::AUTO);
 
             std::vector<SFclust *> result_clusters;
+
+            for(auto &peak: matched_peaks) {
+                auto clust = new SFclust();
+                clust->x = peak.x_data.index;
+                clust->y = peak.y_data.index;
+                result_clusters.push_back(clust);
+
+            }
             Set(result_clusters);
         }
         catch (std::exception &exp) {

@@ -88,6 +88,6 @@ private:
 //    void SaveGEMDecodedData(const ml4fpga::gem::DecodedData *pData);
     TDirectory* m_main_dir;
 
-    void SaveGEMDecodedData(const ml4fpga::gem::DecodedData *data);
+    void SaveGEMDecodedData(const ml4fpga::gem::ApvDecodedData *data);
 };
 
