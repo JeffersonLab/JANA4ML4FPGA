@@ -53,8 +53,8 @@ class ClusterFactory: public JFactoryT<SFclust>, public spdlog::extensions::Spdl
         int m_min_adc = 50;         /// Min ADC value for histogram plotting
         int m_max_adc = 5000;       /// Max ADC value for histogram plotting
         int fZeroSupCut = 10;
-        int m_max_cluster_size = 20;
-        int m_min_cluster_size = 2;
+        int fMaxClusterSize = 20;
+        int fMinClusterSize = 2;
         int fStartTimeSample = 0;
         int fComModeCut = 20;
         int fMaxClusterMult = 5;

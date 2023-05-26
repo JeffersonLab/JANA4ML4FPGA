@@ -12,6 +12,7 @@ add_executable(${DIRECOTRY_NAME}
         rolling_average_tests.cpp
         average_tests.cpp
         standard_deviation_test.cpp
+        peak_finder_tests.cpp
         )
 
 # These tests need their own main
