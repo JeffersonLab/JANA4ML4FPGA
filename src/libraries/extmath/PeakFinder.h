@@ -10,23 +10,26 @@
 #include <cmath>
 #include <stdexcept>
 #include <vector>
-#include "SingleDimensionPeakData.h"
 #include "Peak.h"
+#include "PeakPair.h"
 #include "PeakFinder.h"
 
 
+namespace ml4fpga::extmath {
 // Enumeration for the different modes of peak matching
-enum class PeakFindingMode {
-    AUTO,             // Automatically choose the mode based on the number of peaks in each dimension
-    SORTING,          // Sort peaks by area and match them in order
-    AREA_COMPARISON   // Match peaks based on the closest area
-};
+    enum class PeakFindingMode {
+        AUTO,             // Automatically choose the mode based on the number of peaks in each dimension
+        SORTING,          // Sort peaks by area and match them in order
+        AREA_COMPARISON   // Match peaks based on the closest area
+    };
 
 
     /// Find peaks in the input data that exceed the noise level by a factor of N, have a minimum width,
     /// are separated by at least a minimum distance, and have a minimum prominence.
     /// Return a vector of SingleDimensionPeakData, each representing a peak found in the data.
-    std::vector<SingleDimensionPeakData> find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double N, int min_width, int min_distance);
+    std::vector<Peak>
+    find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double N, int min_width,
+               int min_distance);
 
     /// @brief Identifies common peaks across multiple time slices of ADC data.
     ///
@@ -60,188 +63,200 @@ enum class PeakFindingMode {
     ///
     /// @return Returns a vector of SingleDimensionPeakData objects, each representing a common peak detected across all time slices. For each unique peak position, only the peak with the highest amplitude is returned.
     ///
-    std::vector<SingleDimensionPeakData> find_common_peaks(std::vector<std::vector<double>>& time_slices, const std::vector<double>& noise_data, double N, int min_width, int min_distance, double tolerance);
+    std::vector<Peak>
+    find_common_peaks(std::vector<std::vector<double>> &time_slices, const std::vector<double> &noise_data, double N,
+                      int min_width, int min_distance, double tolerance);
 
     // Match peaks in the X and Y dimensions using the specified mode.
     // Return a vector of Peak, each representing a pair of matching peaks.
-    std::vector<Peak> match_peaks(const std::vector<SingleDimensionPeakData>& x_peaks, const std::vector<SingleDimensionPeakData>& y_peaks, PeakFindingMode mode);
+    std::vector<PeakPair> match_peaks(const std::vector<Peak> &x_peaks,
+                                      const std::vector<Peak> &y_peaks, PeakFindingMode mode);
 
 
     // Match peaks in the X and Y dimensions by sorting them by area and matching them in order.
-    std::vector<Peak> match_peaks_sorting(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks);
+    std::vector<PeakPair>
+    match_peaks_sorting(std::vector<Peak> x_peaks, std::vector<Peak> y_peaks);
 
     // Match peaks in the X and Y dimensions by comparing their areas and matching the closest pairs.
-    std::vector<Peak> match_peaks_area_comparison(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks);
+    std::vector<PeakPair> match_peaks_area_comparison(std::vector<Peak> x_peaks,
+                                                      std::vector<Peak> y_peaks);
 
 
+    std::vector<Peak>
+    find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double N, int min_width,
+               int min_distance) {
+        std::vector<Peak> peaks;
+        if (input_data.empty()) return peaks;        // No data no peaks
 
+        double min_since_last_peak = input_data[0];
 
-std::vector<SingleDimensionPeakData> find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double N, int min_width, int min_distance) {
-    std::vector<SingleDimensionPeakData> peaks;
-    if(input_data.empty()) return peaks;        // No data no peaks
-
-    double min_since_last_peak = input_data[0];
-
-    for (int i = 0; i < input_data.size() - min_width;) {
-        if (input_data[i] > N * noise_data[i]) {
-            int width = 1;
-            while (i + width < input_data.size() && input_data[i + width] > N * noise_data[i + width]) {
-                width++;
-            }
-            if (width >= min_width) {
-                double max_value = input_data[i];
-                double area = 0.0;
-                int max_index = i;
-                for (int j = i; j < i + width; ++j) {
-                    if (input_data[j] > max_value) {
-                        max_value = input_data[j];
-                        max_index = j;
-                    }
-                    area += input_data[j];
+        for (int i = 0; i < input_data.size() - min_width;) {
+            if (input_data[i] > N * noise_data[i]) {
+                int width = 1;
+                while (i + width < input_data.size() && input_data[i + width] > N * noise_data[i + width]) {
+                    width++;
                 }
-                peaks.push_back({max_index, max_value, width, area});
+                if (width >= min_width) {
+                    double max_value = input_data[i];
+                    double area = 0.0;
+                    int max_index = i;
+                    for (int j = i; j < i + width; ++j) {
+                        if (input_data[j] > max_value) {
+                            max_value = input_data[j];
+                            max_index = j;
+                        }
+                        area += input_data[j];
+                    }
+                    peaks.push_back({max_index, max_value, width, area});
+                }
+                i += width + min_distance;
+            } else {
+                if (input_data[i] < min_since_last_peak) {
+                    min_since_last_peak = input_data[i];
+                }
+                i++;
             }
-            i += width + min_distance;
-        } else {
-            if (input_data[i] < min_since_last_peak) {
-                min_since_last_peak = input_data[i];
+        }
+
+        return peaks;
+    }
+
+
+    std::vector<PeakPair> match_peaks(const std::vector<Peak> &x_peaks,
+                                      const std::vector<Peak> &y_peaks, PeakFindingMode mode) {
+        if (mode == PeakFindingMode::AUTO) {
+            if (x_peaks.size() == y_peaks.size()) {
+                mode = PeakFindingMode::SORTING;
+            } else {
+                mode = PeakFindingMode::AREA_COMPARISON;
             }
-            i++;
+        }
+
+        switch (mode) {
+            case PeakFindingMode::SORTING:
+                return match_peaks_sorting(x_peaks, y_peaks);
+            case PeakFindingMode::AREA_COMPARISON:
+                return match_peaks_area_comparison(x_peaks, y_peaks);
+            default:
+                throw std::invalid_argument("Invalid peak finding mode");
         }
     }
 
-    return peaks;
-}
+    std::vector<PeakPair>
+    match_peaks_sorting(std::vector<Peak> x_peaks, std::vector<Peak> y_peaks) {
+        std::vector<PeakPair> matched_peaks;
 
+        // Sort the peaks by area
+        std::sort(x_peaks.begin(), x_peaks.end(), [](const Peak &a, const Peak &b) { return a.area > b.area; });
+        std::sort(y_peaks.begin(), y_peaks.end(), [](const Peak &a, const Peak &b) { return a.area > b.area; });
 
-
-std::vector<Peak> match_peaks(const std::vector<SingleDimensionPeakData>& x_peaks, const std::vector<SingleDimensionPeakData>& y_peaks, PeakFindingMode mode) {
-    if (mode == PeakFindingMode::AUTO) {
-        if (x_peaks.size() == y_peaks.size()) {
-            mode = PeakFindingMode::SORTING;
-        } else {
-            mode = PeakFindingMode::AREA_COMPARISON;
+        // Match peaks
+        int num_peaks = std::min(x_peaks.size(), y_peaks.size());
+        for (int i = 0; i < num_peaks; ++i) {
+            matched_peaks.push_back({x_peaks[i], y_peaks[i]});
         }
+
+        return matched_peaks;
     }
 
-    switch (mode) {
-        case PeakFindingMode::SORTING:
-            return match_peaks_sorting(x_peaks, y_peaks);
-        case PeakFindingMode::AREA_COMPARISON:
-            return match_peaks_area_comparison(x_peaks, y_peaks);
-        default:
-            throw std::invalid_argument("Invalid peak finding mode");
-    }
-}
+    std::vector<PeakPair> match_peaks_area_comparison(std::vector<Peak> x_peaks,
+                                                      std::vector<Peak> y_peaks) {
+        struct Match {
+            Peak x_peak;
+            Peak y_peak;
+            double area_difference;
 
-std::vector<Peak> match_peaks_sorting(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks) {
-    std::vector<Peak> matched_peaks;
+            Match(Peak x_peak, Peak y_peak)
+                    : x_peak(x_peak), y_peak(y_peak), area_difference(std::abs(x_peak.area - y_peak.area)) {}
 
-    // Sort the peaks by area
-    std::sort(x_peaks.begin(), x_peaks.end(), [](const SingleDimensionPeakData& a, const SingleDimensionPeakData& b) {return a.area > b.area; });
-    std::sort(y_peaks.begin(), y_peaks.end(), [](const SingleDimensionPeakData& a, const SingleDimensionPeakData& b) {return a.area > b.area;});
+            bool operator<(const Match &other) const {
+                return area_difference > other.area_difference;
+            }
+        };
 
-    // Match peaks
-    int num_peaks = std::min(x_peaks.size(), y_peaks.size());
-    for (int i = 0; i < num_peaks; ++i) {
-        matched_peaks.push_back({x_peaks[i], y_peaks[i]});
-    }
-
-    return matched_peaks;
-}
-
-std::vector<Peak> match_peaks_area_comparison(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks) {
-    struct Match {
-        SingleDimensionPeakData x_peak;
-        SingleDimensionPeakData y_peak;
-        double area_difference;
-
-        Match(SingleDimensionPeakData x_peak, SingleDimensionPeakData y_peak)
-                : x_peak(x_peak), y_peak(y_peak), area_difference(std::abs(x_peak.area - y_peak.area)) {}
-
-        bool operator<(const Match& other) const {
-            return area_difference > other.area_difference;
+        std::priority_queue<Match> matches;
+        for (const auto &x_peak: x_peaks) {
+            for (const auto &y_peak: y_peaks) {
+                matches.push(Match(x_peak, y_peak));
+            }
         }
-    };
 
-    std::priority_queue<Match> matches;
-    for (const auto& x_peak : x_peaks) {
-        for (const auto& y_peak : y_peaks) {
-            matches.push(Match(x_peak, y_peak));
+        std::vector<PeakPair> matched_peaks;
+        while (!matches.empty()) {
+            Match match = matches.top();
+            matches.pop();
+
+            auto x_it = std::find(x_peaks.begin(), x_peaks.end(), match.x_peak);
+            auto y_it = std::find(y_peaks.begin(), y_peaks.end(), match.y_peak);
+            if (x_it != x_peaks.end() && y_it != y_peaks.end()) {
+                matched_peaks.push_back({*x_it, *y_it});
+
+                x_peaks.erase(x_it);
+                y_peaks.erase(y_it);
+            }
         }
+
+        return matched_peaks;
     }
 
-    std::vector<Peak> matched_peaks;
-    while (!matches.empty()) {
-        Match match = matches.top();
-        matches.pop();
 
-        auto x_it = std::find(x_peaks.begin(), x_peaks.end(), match.x_peak);
-        auto y_it = std::find(y_peaks.begin(), y_peaks.end(), match.y_peak);
-        if (x_it != x_peaks.end() && y_it != y_peaks.end()) {
-            matched_peaks.push_back({*x_it, *y_it});
-
-            x_peaks.erase(x_it);
-            y_peaks.erase(y_it);
+    std::vector<Peak>
+    find_common_peaks(std::vector<std::vector<double>> &time_slices, const std::vector<double> &noise_data, double N,
+                      int min_width, int min_distance, double tolerance) {
+        // Step 1: Detect peaks in each time slice
+        std::vector<std::vector<Peak>> all_peaks;
+        for (auto &slice: time_slices) {
+            all_peaks.push_back(find_peaks(slice, noise_data, N, min_width, min_distance));
         }
-    }
 
-    return matched_peaks;
-}
+        std::vector<Peak> common_peaks;
 
+        // Step 2: Check for common peaks
+        // Step 2: Check for common peaks
+        for (size_t i = 0; i < all_peaks.size(); ++i) {
+            for (auto &peak: all_peaks[i]) {
+                bool common = true;
 
-
-std::vector<SingleDimensionPeakData> find_common_peaks(std::vector<std::vector<double>>& time_slices,  const std::vector<double>& noise_data, double N, int min_width, int min_distance, double tolerance) {
-    // Step 1: Detect peaks in each time slice
-    std::vector<std::vector<SingleDimensionPeakData>> all_peaks;
-    for (auto& slice : time_slices) {
-        all_peaks.push_back(find_peaks(slice, noise_data, N, min_width, min_distance));
-    }
-
-    std::vector<SingleDimensionPeakData> common_peaks;
-
-    // Step 2: Check for common peaks
-    // Step 2: Check for common peaks
-    for (size_t i = 0; i < all_peaks.size(); ++i) {
-        for (auto& peak : all_peaks[i]) {
-            bool common = true;
-
-            // Check if this peak exists in all other time slices
-            for (size_t j = 0; j < all_peaks.size(); ++j) {
-                if (i != j) {
-                    if (std::none_of(all_peaks[j].begin(), all_peaks[j].end(), [&peak, tolerance](const SingleDimensionPeakData& other_peak) {
-                        return abs(peak.index - other_peak.index) <= tolerance && abs(peak.width - other_peak.width) <= tolerance;
-                    })) {
-                        common = false;
-                        break;
+                // Check if this peak exists in all other time slices
+                for (size_t j = 0; j < all_peaks.size(); ++j) {
+                    if (i != j) {
+                        if (std::none_of(all_peaks[j].begin(), all_peaks[j].end(),
+                                         [&peak, tolerance](const Peak &other_peak) {
+                                             return abs(peak.index - other_peak.index) <= tolerance &&
+                                                    abs(peak.width - other_peak.width) <= tolerance;
+                                         })) {
+                            common = false;
+                            break;
+                        }
                     }
                 }
-            }
 
-            if (common) {
-                // This peak is common to all time slices, add it to the list
-                common_peaks.push_back(peak);
-            }
-        }
-    }
-
-    // Step 3: Keep only the peak with the maximum amplitude for each position
-    std::vector<SingleDimensionPeakData> max_amplitude_peaks;
-    for (auto& peak : common_peaks) {
-        auto it = std::find_if(max_amplitude_peaks.begin(), max_amplitude_peaks.end(), [&peak, tolerance](const SingleDimensionPeakData& max_peak) {
-            return abs(max_peak.index - peak.index) <= tolerance;
-        });
-
-        if (it == max_amplitude_peaks.end()) {
-            // This position is not in the list yet, add this peak
-            max_amplitude_peaks.push_back(peak);
-        } else {
-            // This position is already in the list, update the peak if this one has a higher amplitude
-            if (peak.height > it->height) {
-                *it = peak;
+                if (common) {
+                    // This peak is common to all time slices, add it to the list
+                    common_peaks.push_back(peak);
+                }
             }
         }
-    }
 
-    return max_amplitude_peaks;
+        // Step 3: Keep only the peak with the maximum amplitude for each position
+        std::vector<Peak> max_amplitude_peaks;
+        for (auto &peak: common_peaks) {
+            auto it = std::find_if(max_amplitude_peaks.begin(), max_amplitude_peaks.end(),
+                                   [&peak, tolerance](const Peak &max_peak) {
+                                       return abs(max_peak.index - peak.index) <= tolerance;
+                                   });
+
+            if (it == max_amplitude_peaks.end()) {
+                // This position is not in the list yet, add this peak
+                max_amplitude_peaks.push_back(peak);
+            } else {
+                // This position is already in the list, update the peak if this one has a higher amplitude
+                if (peak.height > it->height) {
+                    *it = peak;
+                }
+            }
+        }
+
+        return max_amplitude_peaks;
+    }
 }

@@ -1,6 +1,7 @@
 #include "catch_amalgamated.hpp"
 #include <extmath/PeakFinder.h>
 
+using namespace ml4fpga::extmath;
 
 TEST_CASE("PeakFinder is tested", "[PeakFinder]") {
     // Initialize PeakFinder
@@ -16,7 +17,7 @@ TEST_CASE("PeakFinder is tested", "[PeakFinder]") {
 
 
     SECTION("find_peaks is tested") {
-        std::vector<SingleDimensionPeakData> peaks = find_peaks(input_data, noise_data, N, min_width, min_distance);
+        std::vector<Peak> peaks = find_peaks(input_data, noise_data, N, min_width, min_distance);
         // Check that the output matches the expected results
         REQUIRE(peaks.size() == 2);
 
@@ -30,9 +31,9 @@ TEST_CASE("PeakFinder is tested", "[PeakFinder]") {
     }
 
     SECTION("match_peaks is tested") {
-        std::vector<SingleDimensionPeakData> x_peaks = find_peaks(input_data, noise_data, N, min_width, min_distance);
-        std::vector<SingleDimensionPeakData> y_peaks = find_peaks(input_data, noise_data, N, min_width, min_distance);
-        std::vector<Peak> matched_peaks = match_peaks(x_peaks, y_peaks, PeakFindingMode::AUTO);
+        std::vector<Peak> x_peaks = find_peaks(input_data, noise_data, N, min_width, min_distance);
+        std::vector<Peak> y_peaks = find_peaks(input_data, noise_data, N, min_width, min_distance);
+        std::vector<PeakPair> matched_peaks = match_peaks(x_peaks, y_peaks, PeakFindingMode::AUTO);
         REQUIRE(matched_peaks.size() == 2);  // Change as per your expectations
         // Add more REQUIRE statements as per your expectations
     }
@@ -58,7 +59,7 @@ TEST_CASE("find_common_peaks works correctly", "[peak_finding]") {
     int min_distance = 2;
 
     // Run find_common_peaks
-    std::vector<SingleDimensionPeakData> common_peaks = find_common_peaks(time_slices,  noise_data, N, min_width, min_distance,  1);
+    std::vector<Peak> common_peaks = find_common_peaks(time_slices, noise_data, N, min_width, min_distance, 1);
 
     // Check that the output matches the expected results
     REQUIRE(common_peaks.size() == 2);

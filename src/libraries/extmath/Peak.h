@@ -1,12 +1,25 @@
+//
+// Created by romanov on 5/25/2023.
+// Subject to the terms in the LICENSE file found in the top-level directory.
+//
+
 #pragma once
 
-#include "SingleDimensionPeakData.h"
+namespace ml4fpga::extmath {
 
-// Data structure to hold a pair of matching peaks in the X and Y dimensions
-struct Peak {
-    SingleDimensionPeakData x_data;  // The data for the peak in the X dimension
-    SingleDimensionPeakData y_data;  // The data for the peak in the Y dimension
+/// Data structure to hold information about a single peak in one dimension
+    struct Peak {
+        int index;      /// The index of the peak in the input data
+        double height;  /// The height of the peak
+        int width;      /// The width of the peak (number of consecutive data points that are part of the peak)
+        double area;    /// The area under the peak (sum of the data values that are part of the peak)
 
-    Peak(SingleDimensionPeakData x_data, SingleDimensionPeakData y_data)
-            : x_data(x_data), y_data(y_data) {}
-};
+        Peak(int index, double height, int width, double area)
+                : index(index), height(height), width(width), area(area) {}
+
+        /// Equality operator for comparing peaks based on their data
+        bool operator==(const Peak &other) const {
+            return index == other.index && height == other.height && width == other.width && area == other.area;
+        }
+    };
+}
