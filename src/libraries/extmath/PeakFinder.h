@@ -23,35 +23,66 @@ enum class PeakFindingMode {
 };
 
 
-class PeakFinder {
-public:
-    // Find peaks in the input data that exceed the noise level by a factor of N, have a minimum width,
-    // are separated by at least a minimum distance, and have a minimum prominence.
-    // Return a vector of SingleDimensionPeakData, each representing a peak found in the data.
+    /// Find peaks in the input data that exceed the noise level by a factor of N, have a minimum width,
+    /// are separated by at least a minimum distance, and have a minimum prominence.
+    /// Return a vector of SingleDimensionPeakData, each representing a peak found in the data.
     std::vector<SingleDimensionPeakData> find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double N, int min_width, int min_distance);
+
+    /// @brief Identifies common peaks across multiple time slices of ADC data.
+    ///
+    /// The find_common_peaks function is designed to identify common peaks across multiple time slices of ADC data.
+    ///
+    /// Here's a step-by-step explanation of what the function does:
+    ///  1. Detect peaks in each time slice: The function begins by detecting peaks in each time slice.
+    ///     It uses the N, min_width, min_distance, and noise_data for peak finding algorithm for each time slice.
+    ///     It stores the peaks from each time slice in a two-dimensional vector.
+    ///
+    ///  2. Check for common peaks: Next, the function iterates through each detected peak in each time slice.
+    ///     For each peak, it checks if there is a corresponding peak in all other time slices.
+    ///     A corresponding peak is defined as a peak whose position and width are within the specified tolerance
+    ///     level of the original peak's position and width. If a peak is found in all time slices, it is considered
+    ///     a common peak and added to the common_peaks vector.
+    ///
+    ///  3.  Select peaks with the maximum amplitude: Finally, the function iterates through the common_peaks vector
+    ///  and keeps only one peak for each unique position - the one with the highest amplitude.
+    ///  If a new peak is found at the same position as an existing peak in the common_peaks vector,
+    ///  and its amplitude is higher than the existing peak's amplitude, the existing peak is replaced by the new peak.
+    ///
+    ///  The function then returns the common_peaks vector, which contains the common peaks with the highest amplitude for each unique position across all time slices.
+    ///
+    ///
+    /// @param time_slices A 2D vector where each element represents a time slice of ADC readings. Each time slice is a 1D vector of double values representing ADC readings.
+    /// @param noise_data A 1D vector of double values representing the standard deviations of the ADC readings, used to determine the noise level for each channel.
+    /// @param N A double value representing the threshold multiplier. This is used in conjunction with noise_data to determine the minimum height for a peak.
+    /// @param min_width An integer representing the minimum width of a peak. Any detected peak with a width smaller than this value will be discarded.
+    /// @param min_distance An integer representing the minimum distance between two peaks. Peaks closer than this value to each other will be treated as a single peak.
+    /// @param tolerance A double value representing the tolerance for peak position and width when comparing peaks across different time slices. Peaks within this tolerance are treated as the same peak.
+    ///
+    /// @return Returns a vector of SingleDimensionPeakData objects, each representing a common peak detected across all time slices. For each unique peak position, only the peak with the highest amplitude is returned.
+    ///
+    std::vector<SingleDimensionPeakData> find_common_peaks(std::vector<std::vector<double>>& time_slices, const std::vector<double>& noise_data, double N, int min_width, int min_distance, double tolerance);
 
     // Match peaks in the X and Y dimensions using the specified mode.
     // Return a vector of Peak, each representing a pair of matching peaks.
-    std::vector<Peak> match_peaks(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks, PeakFindingMode mode);
+    std::vector<Peak> match_peaks(const std::vector<SingleDimensionPeakData>& x_peaks, const std::vector<SingleDimensionPeakData>& y_peaks, PeakFindingMode mode);
 
-private:
+
     // Match peaks in the X and Y dimensions by sorting them by area and matching them in order.
     std::vector<Peak> match_peaks_sorting(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks);
 
     // Match peaks in the X and Y dimensions by comparing their areas and matching the closest pairs.
     std::vector<Peak> match_peaks_area_comparison(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks);
-};
 
 
 
-std::vector<SingleDimensionPeakData> PeakFinder::find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double N, int min_width, int min_distance) {
+
+std::vector<SingleDimensionPeakData> find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double N, int min_width, int min_distance) {
     std::vector<SingleDimensionPeakData> peaks;
-    if(input_data.size() == 0) return peaks;        // No data no peaks
+    if(input_data.empty()) return peaks;        // No data no peaks
 
     double min_since_last_peak = input_data[0];
 
-    int i = min_width;
-    while (i < input_data.size() - min_width) {
+    for (int i = 0; i < input_data.size() - min_width;) {
         if (input_data[i] > N * noise_data[i]) {
             int width = 1;
             while (i + width < input_data.size() && input_data[i + width] > N * noise_data[i + width]) {
@@ -82,7 +113,9 @@ std::vector<SingleDimensionPeakData> PeakFinder::find_peaks(std::vector<double> 
     return peaks;
 }
 
-std::vector<Peak> PeakFinder::match_peaks(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks, PeakFindingMode mode) {
+
+
+std::vector<Peak> match_peaks(const std::vector<SingleDimensionPeakData>& x_peaks, const std::vector<SingleDimensionPeakData>& y_peaks, PeakFindingMode mode) {
     if (mode == PeakFindingMode::AUTO) {
         if (x_peaks.size() == y_peaks.size()) {
             mode = PeakFindingMode::SORTING;
@@ -101,7 +134,7 @@ std::vector<Peak> PeakFinder::match_peaks(std::vector<SingleDimensionPeakData> x
     }
 }
 
-std::vector<Peak> PeakFinder::match_peaks_sorting(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks) {
+std::vector<Peak> match_peaks_sorting(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks) {
     std::vector<Peak> matched_peaks;
 
     // Sort the peaks by area
@@ -117,7 +150,7 @@ std::vector<Peak> PeakFinder::match_peaks_sorting(std::vector<SingleDimensionPea
     return matched_peaks;
 }
 
-std::vector<Peak> PeakFinder::match_peaks_area_comparison(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks) {
+std::vector<Peak> match_peaks_area_comparison(std::vector<SingleDimensionPeakData> x_peaks, std::vector<SingleDimensionPeakData> y_peaks) {
     struct Match {
         SingleDimensionPeakData x_peak;
         SingleDimensionPeakData y_peak;
@@ -154,4 +187,61 @@ std::vector<Peak> PeakFinder::match_peaks_area_comparison(std::vector<SingleDime
     }
 
     return matched_peaks;
+}
+
+
+
+std::vector<SingleDimensionPeakData> find_common_peaks(std::vector<std::vector<double>>& time_slices,  const std::vector<double>& noise_data, double N, int min_width, int min_distance, double tolerance) {
+    // Step 1: Detect peaks in each time slice
+    std::vector<std::vector<SingleDimensionPeakData>> all_peaks;
+    for (auto& slice : time_slices) {
+        all_peaks.push_back(find_peaks(slice, noise_data, N, min_width, min_distance));
+    }
+
+    std::vector<SingleDimensionPeakData> common_peaks;
+
+    // Step 2: Check for common peaks
+    // Step 2: Check for common peaks
+    for (size_t i = 0; i < all_peaks.size(); ++i) {
+        for (auto& peak : all_peaks[i]) {
+            bool common = true;
+
+            // Check if this peak exists in all other time slices
+            for (size_t j = 0; j < all_peaks.size(); ++j) {
+                if (i != j) {
+                    if (std::none_of(all_peaks[j].begin(), all_peaks[j].end(), [&peak, tolerance](const SingleDimensionPeakData& other_peak) {
+                        return abs(peak.index - other_peak.index) <= tolerance && abs(peak.width - other_peak.width) <= tolerance;
+                    })) {
+                        common = false;
+                        break;
+                    }
+                }
+            }
+
+            if (common) {
+                // This peak is common to all time slices, add it to the list
+                common_peaks.push_back(peak);
+            }
+        }
+    }
+
+    // Step 3: Keep only the peak with the maximum amplitude for each position
+    std::vector<SingleDimensionPeakData> max_amplitude_peaks;
+    for (auto& peak : common_peaks) {
+        auto it = std::find_if(max_amplitude_peaks.begin(), max_amplitude_peaks.end(), [&peak, tolerance](const SingleDimensionPeakData& max_peak) {
+            return abs(max_peak.index - peak.index) <= tolerance;
+        });
+
+        if (it == max_amplitude_peaks.end()) {
+            // This position is not in the list yet, add this peak
+            max_amplitude_peaks.push_back(peak);
+        } else {
+            // This position is already in the list, update the peak if this one has a higher amplitude
+            if (peak.height > it->height) {
+                *it = peak;
+            }
+        }
+    }
+
+    return max_amplitude_peaks;
 }
