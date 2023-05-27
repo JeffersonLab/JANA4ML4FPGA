@@ -332,7 +332,7 @@ void FlatTreeWriterProcessor::SaveGEMDecodedData(const ml4fpga::gem::PlaneDecode
     const auto& plane_data_y = data->plane_data.at("URWELLY");
 
     for(size_t time_i=0; time_i < plane_data_x.data.size(); time_i++) {
-        for(size_t adc_i=0; adc_i < ml4fpga::gem::Constants::ChannelsCount; adc_i++) {
+        for(size_t adc_i=0; adc_i < plane_data_x.data[time_i].size(); adc_i++) {
             flatio::SrsPreReconRecord record;
             record.x = plane_data_x.data[time_i][adc_i];
             record.y = plane_data_y.data[time_i][adc_i];

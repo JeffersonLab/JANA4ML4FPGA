@@ -113,7 +113,6 @@ namespace ml4fpga::gem {
                 return;
             }
 
-
             double n_sigmas = 3.0;
             int min_width = 2;
             int min_distance = 2;
