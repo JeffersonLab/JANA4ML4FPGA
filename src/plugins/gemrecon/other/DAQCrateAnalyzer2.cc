@@ -47,7 +47,7 @@ using namespace evio;
 //                 SRS 
 //=========================================================================
 
-#include "plugins/gemrecon/GEMRawDecoder.h"
+#include "plugins/gemrecon/old_code/GEMRawDecoder.h"
 #include "plugins/gemrecon/GemInputHandler.h"
 #include "plugins/gemrecon/GemFEC.h"
 #include "plugins/gemrecon/GemView.h"

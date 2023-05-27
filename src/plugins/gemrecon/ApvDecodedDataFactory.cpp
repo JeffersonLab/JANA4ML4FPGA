@@ -1,9 +1,9 @@
-#include "DecodedDataFactory.h"
+#include "ApvDecodedDataFactory.h"
 
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
 #include "rawdataparser/Df125FDCPulse.h"
-#include "GEMOnlineHitDecoder.h"
+#include "plugins/gemrecon/old_code/GEMOnlineHitDecoder.h"
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -11,7 +11,7 @@
 #include <Math/GenVector/PxPyPzM4D.h>
 
 #include <spdlog/spdlog.h>
-#include <services/root_output/RootFile_service.h>
+#include "services/root_output/RootFile_service.h"
 #include <filesystem>
 #include "Pedestal.h"
 #include "RawData.h"
@@ -23,17 +23,15 @@ namespace ml4fpga::gem {
 //-------------------------------------
 // Init
 //-------------------------------------
-void DecodedDataFactory::Init() {
+void ApvDecodedDataFactory::Init() {
 
     std::string plugin_name = GetPluginName();
 
     // Get JANA application
     auto app = GetApplication();
 
-
     // Get Log level from user parameter or default
-    InitLogger(plugin_name + ":" + JTypeInfo::demangle<GemReconDqmProcessor>());
-
+    InitLogger(plugin_name + ":ApvDecode");
 
     // P A R A M E T E R S
     // Number of SRS time samples:
@@ -41,11 +39,11 @@ void DecodedDataFactory::Init() {
     app->SetDefaultParameter( plugin_name + ":min_adc", m_min_adc, "Min ADC value (For histos?)");
     app->SetDefaultParameter( plugin_name + ":max_adc", m_max_adc, "Max ADC value (For histos?)");
 
-
-
     //  D O N E
     logger()->info("This plugin name is: " + GetPluginName());
     logger()->info("DecodedDataFactory initialization is done");
+
+    m_mapping = GemMapping::GetInstance();
 }
 
 
@@ -54,22 +52,26 @@ void DecodedDataFactory::Init() {
 // Process
 //------------------
 // This function is called every event
-void DecodedDataFactory::Process(const std::shared_ptr<const JEvent> &event) {
+void ApvDecodedDataFactory::Process(const std::shared_ptr<const JEvent> &event) {
     m_log->debug("new event");
     try {
         auto raw_data = event->GetSingle<RawData>();
         auto pedestal = const_cast<Pedestal*>(event->GetSingle<ml4fpga::gem::Pedestal>());  // we are not going to modify it, just remove hassle with const map
 
-        auto result = new DecodedData();
+        auto apv_decoded_data = new ApvDecodedData();
 
         for(auto& apv_pair: raw_data->data) {
             auto apv_id = apv_pair.first;
             auto apv_samples = apv_pair.second;
 
-            result->apv_data[apv_id] = DecodeApv(apv_id, apv_samples.AsTimebins(), pedestal->offsets[apv_id], pedestal->noises[apv_id]);
+            auto data = DecodeApv(apv_id, apv_samples.AsTimebins(), pedestal->offsets[apv_id], pedestal->noises[apv_id]);
+            data.plane_name = m_mapping->GetPlaneFromAPVID(apv_id);
+            data.detector_name = m_mapping->GetDetectorFromPlane(apv_decoded_data->apv_data[apv_id].plane_name);
+            data.apv_ids = {apv_id};
+            apv_decoded_data->apv_data[apv_id] = data;
         }
 
-        Insert(result);
+        Insert(apv_decoded_data);
     }
     catch (std::exception &exp) {
         m_log->error("Error during process");
@@ -81,15 +83,15 @@ void DecodedDataFactory::Process(const std::shared_ptr<const JEvent> &event) {
 //------------------
 // Finish
 //------------------
-void DecodedDataFactory::Finish() {
+void ApvDecodedDataFactory::Finish() {
 //    m_log->trace("DecodedDataFactory finished\n");
 
 }
 
 
-    SingleApvDecodedData DecodedDataFactory::DecodeApv(int apv_id, std::vector<std::vector<double>> raw_data,
-                                                       std::vector<double> offsets,
-                                                       std::vector<double> noises) {
+    AdcDecodedData ApvDecodedDataFactory::DecodeApv(int apv_id, std::vector<std::vector<double>> raw_data,
+                                                 std::vector<double> offsets,
+                                                 std::vector<double> noises) {
     //===========================================================================================================
     // BLOCK WHERE COMMON MODE CORRECTION FOR ALL APV25 TIME BINS IS COMPUTED
     //===========================================================================================================
@@ -165,7 +167,7 @@ void DecodedDataFactory::Finish() {
         }
         decoded_data.push_back(timebin_data);
     }
-    SingleApvDecodedData result;
+    AdcDecodedData result;
     result.data = decoded_data;
     result.raw_data = raw_data;
     result.PedestalOffsets = offsets;

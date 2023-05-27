@@ -1,13 +1,13 @@
 #include "GEMPedestal.h"
 #include "GEMRawDecoder.h"
-#include "GemMapping.h"
+#include "plugins/gemrecon/GemMapping.h"
 #include "GEMRawPedestal.h"
 #include "GemConfiguration.h"
 #include <stdio.h>
 #include <TCanvas.h>
 #include <iostream>
 #include <filesystem>
-#include "Constants.h"
+#include "plugins/gemrecon/Constants.h"
 
 using namespace std;
 

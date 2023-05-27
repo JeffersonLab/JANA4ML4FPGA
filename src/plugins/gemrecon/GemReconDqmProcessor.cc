@@ -2,7 +2,7 @@
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
 #include "rawdataparser/Df125FDCPulse.h"
-#include "GEMOnlineHitDecoder.h"
+#include "plugins/gemrecon/old_code/GEMOnlineHitDecoder.h"
 #include "Pedestal.h"
 
 #include <JANA/JApplication.h>
@@ -11,11 +11,11 @@
 #include <Math/GenVector/PxPyPzM4D.h>
 
 #include <spdlog/spdlog.h>
-#include <services/root_output/RootFile_service.h>
+#include "services/root_output/RootFile_service.h"
 #include <filesystem>
 #include "RawData.h"
-#include "DecodedDataFactory.h"
-#include "PreReconData.h"
+#include "ApvDecodedDataFactory.h"
+#include "plugins/gemrecon/old_code/PreReconData.h"
 
 namespace ml4fpga::gem {
 //-------------------------------------
@@ -67,20 +67,27 @@ namespace ml4fpga::gem {
 // This function is called every event
     void GemReconDqmProcessor::Process(const std::shared_ptr<const JEvent> &event) {
         m_log->debug(" new event");
-        if(m_events_count++ > 100) {
+        if(m_events_count++ > 500) {
             return;
         }
         try {
             fMapping = GemMapping::GetInstance();
 
             auto evio_raw_data = event->Get<DGEMSRSWindowRawData>();
-            auto decoded_data = event->GetSingle<DecodedData>();
-            if(!decoded_data) {
+            auto apv_data = event->GetSingle<ApvDecodedData>();
+            if(!apv_data) {
                 m_log->warn("No DecodedData for GemReconDqmProcessor");
                 return;
             }
 
-            FillDecodedData(event->GetEventNumber(), m_dir_event_hists, decoded_data);
+            auto plane_data = event->GetSingle<PlaneDecodedData>();
+            if(!plane_data) {
+                m_log->warn("No DecodedData for GemReconDqmProcessor");
+                return;
+            }
+
+            FillApvDecodedData(event->GetEventNumber(), m_dir_event_hists, apv_data);
+            FillPlaneDecodedData(event->GetEventNumber(), m_dir_event_hists, plane_data);
 
 
             FillRawData(event->GetEventNumber(), m_dir_event_hists, evio_raw_data);
@@ -159,7 +166,7 @@ namespace ml4fpga::gem {
         }
     }
 
-    void GemReconDqmProcessor::FillDecodedData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::DecodedData* data) {
+    void GemReconDqmProcessor::FillApvDecodedData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::ApvDecodedData* data) {
         m_dir_event_hists->cd();
 
         // Now lets go over this
@@ -188,7 +195,6 @@ namespace ml4fpga::gem {
 
             histo->Write();
         }
-
     }
 
     void GemReconDqmProcessor::FillPreReconData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::PreReconData* data) {
@@ -224,5 +230,61 @@ namespace ml4fpga::gem {
                 //histo->Write();
             }
         }
+    }
+
+    void GemReconDqmProcessor::FillPlaneDecodedData(uint64_t event_number, TDirectory *directory, const PlaneDecodedData *data) {
+        m_dir_event_hists->cd();
+
+        const auto& plane_data_x = data->plane_data.at("URWELLX");
+        const auto& plane_data_y = data->plane_data.at("URWELLY");
+
+        // Crate histogram
+        std::string histo_name_x = fmt::format("evt_{}_plane_x", event_number);
+        std::string histo_name_y = fmt::format("evt_{}_plane_y", event_number);
+        std::string histo_title_x = fmt::format("URWELLX data for event {}", event_number);
+        std::string histo_title_y = fmt::format("URWELLY data for event {}", event_number);
+
+        int times_count = plane_data_x.data.size();
+        int plane_adc_count = plane_data_x.data[0].size();
+        auto nbins = times_count*plane_adc_count + times_count;
+
+        auto histo_x = new TH1F(histo_name_x.c_str(), histo_title_x.c_str(), nbins, -0.5, nbins - 0.5);
+        histo_x->SetDirectory(directory);
+        auto histo_y = new TH1F(histo_name_y.c_str(), histo_title_y.c_str(), nbins, -0.5, nbins - 0.5);
+        histo_y->SetDirectory(directory);
+
+        // We create m_h1d_gem_prerecon_[x,y] here as here we know their size
+        if(!m_h1d_gem_prerecon_x) {
+            m_h1d_gem_prerecon_x = new TH1F("gem_prerecon_x", "Pre reconstruction ADC for URWELLX", nbins, -0.5, nbins - 0.5);
+            m_h1d_gem_prerecon_x->SetDirectory(m_dir_main);
+        }
+
+        if(!m_h1d_gem_prerecon_y) {
+            m_h1d_gem_prerecon_y = new TH1F("gem_prerecon_y", "Pre reconstruction ADC for URWELLY", nbins, -0.5, nbins - 0.5);
+            m_h1d_gem_prerecon_y->SetDirectory(m_dir_main);
+        }
+
+
+        for(size_t time_i=0; time_i < plane_data_x.data.size(); time_i++) {
+            for(size_t adc_i=0; adc_i < plane_data_x.data[time_i].size(); adc_i++) {
+                int index = plane_adc_count*time_i + time_i + adc_i;
+                histo_x->SetBinContent(index, plane_data_x.data[time_i][adc_i]);
+                histo_y->SetBinContent(index, plane_data_y.data[time_i][adc_i]);
+
+                if(event_number > 50) {
+                    m_h1d_gem_prerecon_x->AddBinContent(index, plane_data_x.data[time_i][adc_i]);
+                    m_h1d_gem_prerecon_x->AddBinContent(index, plane_data_x.data[time_i][adc_i]);
+                }
+            }
+            if(time_i > 0) {
+
+                histo_x->SetBinContent(plane_adc_count*time_i, 0);
+                histo_y->SetBinContent(plane_adc_count*time_i, 0);
+
+            }
+        }
+
+        histo_x->Write();
+        histo_y->Write();
     }
 }

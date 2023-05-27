@@ -5,7 +5,7 @@
 
 #include "RawDataFactory.h"
 #include "GemMapping.h"
-#include <rawdataparser/DGEMSRSWindowRawData.h>
+#include "libraries/rawdataparser/DGEMSRSWindowRawData.h"
 #include <JANA/JEvent.h>
 
 namespace ml4fpga {

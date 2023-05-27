@@ -11,10 +11,10 @@
 #include <Math/GenVector/PxPyPzM4D.h>
 
 #include <spdlog/spdlog.h>
-#include <services/root_output/RootFile_service.h>
+#include "services/root_output/RootFile_service.h"
 #include <filesystem>
-#include "Pedestal.h"
-#include "RawData.h"
+#include "plugins/gemrecon/Pedestal.h"
+#include "plugins/gemrecon/RawData.h"
 
 namespace ml4fpga::gem {
 

@@ -7,7 +7,7 @@
 #include "RawData.h"
 #include "RawDataFactory.h"
 #include <JANA/JFactoryT.h>
-#include <extensions/spdlog/SpdlogMixin.h>
+#include "extensions/spdlog/SpdlogMixin.h"
 
 
 namespace ml4fpga::gem {

@@ -2,16 +2,16 @@
 
 #include <JANA/JEventProcessor.h>
 #include <JANA/JEventProcessorSequentialRoot.h>
-#include <extensions/spdlog/SpdlogMixin.h>
+#include "extensions/spdlog/SpdlogMixin.h"
 #include <TDirectory.h>
 #include <TH1F.h>
 #include <TH2F.h>
-#include "GemConfiguration.h"
-#include "GEMPedestal.h"
+#include "plugins/gemrecon/old_code/GemConfiguration.h"
+#include "plugins/gemrecon/old_code/GEMPedestal.h"
 #include "rawdataparser/DGEMSRSWindowRawData.h"
-#include "GEMHit.h"
+#include "plugins/gemrecon/old_code/GEMHit.h"
 #include "DecodedData.h"
-#include "PreReconData.h"
+#include "plugins/gemrecon/old_code/PreReconData.h"
 
 class JEvent;
 class JApplication;
@@ -61,6 +61,8 @@ namespace ml4fpga::gem {
         /// Directory to store histograms to
         TDirectory *m_dir_main{};
         TH1F *m_histo_1d;
+        TH1F *m_h1d_gem_prerecon_x = nullptr;
+        TH1F *m_h1d_gem_prerecon_y = nullptr;
         TH2F *m_trd_integral_h2d;
         TDirectory *m_dir_event_hists;
         size_t m_events_count = 0;
@@ -69,9 +71,11 @@ namespace ml4fpga::gem {
 
         void FillRawData(uint64_t event_number, TDirectory *hists_dir, std::vector<const DGEMSRSWindowRawData *> srs_data);
 
-        void FillDecodedData(uint64_t number, TDirectory *pDirectory, const ml4fpga::gem::DecodedData* data);
+        void FillApvDecodedData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::ApvDecodedData* data);
 
         void FillPreReconData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::PreReconData* data);
+
+        void FillPlaneDecodedData(uint64_t event_number, TDirectory *directory, const PlaneDecodedData *data);
     };
 }      // namespace ml4fpga::gem
 

@@ -76,9 +76,8 @@ class FieldInfo:
         return f'        std::vector<{self.type}> m_vect_{self.name};'
 
 
-
 @dataclass
-class VectorFieldInfo():
+class VectorFieldInfo:
     """Class for keeping track of an item in inventory."""
     type: str
     name: str
@@ -165,7 +164,7 @@ io_classes = [
         ]),
     ClassInfo(
         name="SrsPreReconRecord",
-        root_name="srs_prerecon_",
+        root_name="srs_prerecon",
         fields=[
             FieldInfo('double', 'y'),
             FieldInfo('double', 'x'),
@@ -256,16 +255,17 @@ io_classes = [
             FieldInfo('uint32_t', 'qf_emulated'),
         ]
     ),
-
     ClassInfo(
         name="GemSimpleCluster",
         root_name="gem_scluster",
         fields=[
+            FieldInfo('uint32_t', 'x_index'),
+            FieldInfo('uint32_t', 'y_index'),
             FieldInfo('double', 'x'),
             FieldInfo('double', 'y'),
             FieldInfo('double', 'energy'),
             FieldInfo('double', 'adc'),
-        ])
+        ]),
 ]
 
 def gen_fields_code(template: str, class_info: ClassInfo, spaces: int):

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "GEMCluster.h"
-#include <extensions/spdlog/SpdlogMixin.h>
+#include "extensions/spdlog/SpdlogMixin.h"
 
 namespace ml4fpga {
 

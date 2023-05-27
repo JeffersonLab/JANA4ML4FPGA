@@ -8,9 +8,9 @@
 #include "rawdataparser/Df125Config.h"
 #include "rawdataparser/Df250WindowRawData.h"
 #include "F250WindowRawRecord.h"
-#include <plugins/gemrecon/DecodedData.h>
+#include "plugins/gemrecon/DecodedData.h"
 
-#include <plugins/gemrecon/SFclust.h>
+#include "plugins/gemrecon/SFclust.h"
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -19,7 +19,7 @@
 
 #include <spdlog/spdlog.h>
 #include <services/root_output/RootFile_service.h>
-
+#include <plugins/gemrecon/Constants.h>
 
 //------------------
 // OccupancyAnalysis (Constructor)
@@ -58,6 +58,7 @@ void FlatTreeWriterProcessor::Init() {
         m_ios.push_back(m_f125_pulse_io);
         m_ios.push_back(m_f250_pulse_io);
         m_ios.push_back(m_gem_scluster_io);
+        m_ios.push_back(m_srs_prerecon_io);
         mEventTree->SetDirectory(m_main_dir);
 
         for(auto &io: m_ios) {
@@ -139,8 +140,8 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
                     // TODO fix it and check for factory
                     auto clusters = event->Get<SFclust>();
                     SaveGEMSimpleClusters(clusters);
-                    auto decodedData = event->GetSingle<ml4fpga::gem::DecodedData>();
-                    //SaveGEMDecodedData(decodedData);
+                    auto plane_decoded_data = event->GetSingle<ml4fpga::gem::PlaneDecodedData>();
+                    SaveGEMDecodedData(plane_decoded_data);
                 }
                 catch(std::exception ex) {
                     m_log->error("event->Get<SFclust>() problem: {}", ex.what());
@@ -275,7 +276,6 @@ void FlatTreeWriterProcessor::SaveGEMSRSWindowRawData(std::vector<const DGEMSRSW
         srs_save.channel = srs_item->channel;
         srs_save.apv_id = srs_item->apv_id;
         srs_save.channel_apv = srs_item->channel_apv;
-        srs_save.best_sample = findBestSrsSamle(srs_item->samples);
 
         for(auto sample: srs_item->samples) {
             srs_save.samples.push_back(sample);
@@ -283,6 +283,7 @@ void FlatTreeWriterProcessor::SaveGEMSRSWindowRawData(std::vector<const DGEMSRSW
         m_srs_record_io.add(srs_save);
     }
 }
+
 
 void FlatTreeWriterProcessor::SaveF125WindowRawData(std::vector<const Df125WindowRawData *> records) {
     for (auto record: records) {
@@ -299,7 +300,6 @@ void FlatTreeWriterProcessor::SaveF125WindowRawData(std::vector<const Df125Windo
 }
 
 
-
 void FlatTreeWriterProcessor::SaveF250WindowRawData(std::vector<const Df250WindowRawData *> records) {
     for (auto record: records) {
         flatio::F250WindowRawRecord f250_wraw_save{};
@@ -314,6 +314,7 @@ void FlatTreeWriterProcessor::SaveF250WindowRawData(std::vector<const Df250Windo
     }
 }
 
+
 void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const SFclust *> clusters) {
     for(auto cluster: clusters) {
         flatio::GemSimpleCluster cluster_save;
@@ -323,7 +324,21 @@ void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const SFclust *>
         cluster_save.adc = cluster->A;
         m_gem_scluster_io.add(cluster_save);
     }
+}
 
+
+void FlatTreeWriterProcessor::SaveGEMDecodedData(const ml4fpga::gem::PlaneDecodedData *data) {
+    const auto& plane_data_x = data->plane_data.at("URWELLX");
+    const auto& plane_data_y = data->plane_data.at("URWELLY");
+
+    for(size_t time_i=0; time_i < plane_data_x.data.size(); time_i++) {
+        for(size_t adc_i=0; adc_i < plane_data_x.data[time_i].size(); adc_i++) {
+            flatio::SrsPreReconRecord record;
+            record.x = plane_data_x.data[time_i][adc_i];
+            record.y = plane_data_y.data[time_i][adc_i];
+            m_srs_prerecon_io.add(record);
+        }
+    }
 }
 
 

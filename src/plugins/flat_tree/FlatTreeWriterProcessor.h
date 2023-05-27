@@ -19,7 +19,8 @@
 #include "F250FDCPulseRecord.h"
 #include "rawdataparser/Df250PulseData.h"
 #include "plugins/gemrecon/DecodedData.h"
-#include <plugins/gemrecon/SFclust.h>
+#include "plugins/gemrecon/SFclust.h"
+#include "SrsPreReconRecord.h"
 
 
 class JEvent;
@@ -72,6 +73,7 @@ private:
     flatio::F125FDCPulseRecordIO m_f125_pulse_io;
     flatio::F250FDCPulseRecordIO m_f250_pulse_io;
     flatio::GemSimpleClusterIO m_gem_scluster_io;
+    flatio::SrsPreReconRecordIO m_srs_prerecon_io;
 
     std::shared_ptr<JGlobalRootLock> m_glb_root_lock;
 
@@ -87,5 +89,7 @@ private:
 
 //    void SaveGEMDecodedData(const ml4fpga::gem::DecodedData *pData);
     TDirectory* m_main_dir;
+
+    void SaveGEMDecodedData(const ml4fpga::gem::PlaneDecodedData *data);
 };
 

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <JANA/JFactoryT.h>
-#include <extensions/spdlog/SpdlogMixin.h>
+#include "extensions/spdlog/SpdlogMixin.h"
 #include "Pedestal.h"
-#include <extmath/Average.h>
-#include <extmath/StandardDeviation.h>
+#include "libraries/extmath/Average.h"
+#include "libraries/extmath/StandardDeviation.h"
 
 namespace ml4fpga::gem {
 
