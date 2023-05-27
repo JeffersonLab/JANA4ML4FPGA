@@ -21,8 +21,7 @@ namespace ml4fpga::gem {
 //-------------------------------------
 // ClusterFactory (Constructor)
 //-------------------------------------
-    ClusterFactory::ClusterFactory(JApplication *app) {
-        m_app = app;
+    ClusterFactory::ClusterFactory() {
     }
 
 //-------------------------------------
@@ -55,14 +54,14 @@ namespace ml4fpga::gem {
         InitLogger(plugin_name + ":ClusterF");
 
         m_histo_1d = new TH1F("test_histo", "Test histogram", 100, -10, 10);
-        m_trd_integral_h2d = new TH2F("trd_integral_events", "TRD events from Df125WindowRawData integral", 250, -0.5,
-                                      249.5, 300, -0.5, 299.5);
+        m_trd_integral_h2d = new TH2F("trd_integral_events", "TRD events from Df125WindowRawData integral",
+                                      250, -0.5, 249.5, 300, -0.5, 299.5);
 
         // P A R A M E T E R S
         // Number of SRS time samples:
         app->SetDefaultParameter("daq:srs_window_raw:ntsamples", m_srs_ntsamples, "Number of SRS time samples");
-        app->SetDefaultParameter(plugin_name + ":min_adc", m_min_adc, "Min ADC value (For histos?)");
-        app->SetDefaultParameter(plugin_name + ":max_adc", m_max_adc, "Max ADC value (For histos?)");
+        app->SetDefaultParameter(plugin_name + ":min_adc", m_min_adc, "Min ADC value (For hists?)");
+        app->SetDefaultParameter(plugin_name + ":max_adc", m_max_adc, "Max ADC value (For hists?)");
 
 
         // I N I T   M A P P I N G
@@ -86,6 +85,14 @@ namespace ml4fpga::gem {
             }
         }
 
+        app->SetDefaultParameter(plugin_name + ":plane_name_x", m_plane_name_x, "X Plane name (like URWELLX)");
+        app->SetDefaultParameter(plugin_name + ":plane_name_y", m_plane_name_y, "Y Plane name (like URWELLY)");
+
+        m_plane_size_x = fMapping->GetPlaneSize(m_plane_name_x);
+        m_plane_size_y = fMapping->GetPlaneSize(m_plane_name_y);
+        m_plane_apv_num_x = fMapping->GetAPVIDListFromPlane(m_plane_name_x).size();
+        m_plane_apv_num_y = fMapping->GetAPVIDListFromPlane(m_plane_name_y).size();
+
         //  D O N E
         logger()->info("This plugin name is: " + GetPluginName());
         logger()->info("ClusterFactory initialization is done");
@@ -96,31 +103,51 @@ namespace ml4fpga::gem {
 //------------------
 // This function is called every event
     void ClusterFactory::Process(const std::shared_ptr<const JEvent> &event) {
-        m_log->debug("new event");
+        using namespace ml4fpga::gem;
+
+        m_log->debug("Event # {}", event->GetEventNumber());
         try {
             auto srs_data = event->GetSingle<PlaneDecodedData>();
-            m_log->trace("DGEMSRSWindowRawData data items: {} ", srs_data->plane_data.size());
+            if(srs_data == nullptr) {
+                m_log->debug("PlaneDecodedData is null. No decoded data? Skipping event");
+                return;
+            }
+
 
             double n_sigmas = 3.0;
             int min_width = 2;
             int min_distance = 2;
             int peak_time_tolerance = 2;
 
-            const auto& plane_data = srs_data->plane_data.at("URWELLX");
+            const auto& plane_data_x = srs_data->plane_data.at(m_plane_name_x);
+            const auto& plane_data_y = srs_data->plane_data.at(m_plane_name_y);
 
-            auto peaksx = ml4fpga::extmath::find_common_peaks(plane_data.data, plane_data.PedestalNoises, n_sigmas, min_width, min_distance, peak_time_tolerance);
-            auto peaksy = ml4fpga::extmath::find_common_peaks(plane_data.data, plane_data.PedestalNoises, n_sigmas, min_width, min_distance, peak_time_tolerance);
+            // Find peaks separately in X and Y planes over all time samples
+            auto peaks_x = ml4fpga::extmath::find_common_peaks(plane_data_x.data, plane_data_x.PedestalNoises, n_sigmas, min_width, min_distance, peak_time_tolerance);
+            auto peaks_y = ml4fpga::extmath::find_common_peaks(plane_data_y.data, plane_data_y.PedestalNoises, n_sigmas, min_width, min_distance, peak_time_tolerance);
 
-            auto matched_peaks = ml4fpga::extmath::match_peaks(peaksx, peaksy, extmath::PeakFindingMode::AUTO);
+            // Match peaks between X and Y
+            auto matched_peaks = ml4fpga::extmath::match_peaks(peaks_x, peaks_y, extmath::PeakFindingMode::AUTO);
 
             std::vector<SFclust *> result_clusters;
 
+            m_log->debug("X: i, x, amp, width, int-l, Y: i, x, amp, width, int-l");
             for(auto &peak: matched_peaks) {
                 auto clust = new SFclust();
-                clust->x = peak.x_data.index;
-                clust->y = peak.y_data.index;
-                result_clusters.push_back(clust);
+                clust->x_index = peak.x_data.index;
+                clust->y_index = peak.y_data.index;
+                clust->x = Constants::CalculateStripPosition(peak.x_data.index, m_plane_size_x, m_plane_apv_num_x);
+                clust->y = Constants::CalculateStripPosition(peak.y_data.index, m_plane_size_y, m_plane_apv_num_y);
+                m_log->debug("X: {:<3}, {:>7.2f}, {:>7.2f}, {:>5}, {:>7.2f} Y: {:>3}, {:>7.2f}, {:>7.2f}, {:>5}, {:>7.2f}",
+                             clust->x_index, clust->x, peak.x_data.height, peak.x_data.width, peak.x_data.area,
+                             clust->y_index, clust->y, peak.y_data.height, peak.y_data.width, peak.y_data.area
+                             );
 
+                clust->A = peak.x_data.height;
+                clust->A = peak.y_data.height;
+
+                // Get peak plane
+                result_clusters.push_back(clust);
             }
             Set(result_clusters);
         }

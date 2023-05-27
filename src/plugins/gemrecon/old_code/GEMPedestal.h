@@ -10,7 +10,7 @@
 #include <TH1F.h>
 #include <TFile.h>
 
-#include "Constants.h"
+#include "plugins/gemrecon/Constants.h"
 
 class GEMRawDecoder;
 

@@ -19,7 +19,7 @@
 
 #include <spdlog/spdlog.h>
 #include <services/root_output/RootFile_service.h>
-
+#include <plugins/gemrecon/Constants.h>
 
 //------------------
 // OccupancyAnalysis (Constructor)
@@ -58,6 +58,7 @@ void FlatTreeWriterProcessor::Init() {
         m_ios.push_back(m_f125_pulse_io);
         m_ios.push_back(m_f250_pulse_io);
         m_ios.push_back(m_gem_scluster_io);
+        m_ios.push_back(m_srs_prerecon_io);
         mEventTree->SetDirectory(m_main_dir);
 
         for(auto &io: m_ios) {
@@ -139,8 +140,8 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
                     // TODO fix it and check for factory
                     auto clusters = event->Get<SFclust>();
                     SaveGEMSimpleClusters(clusters);
-                    auto apv_decoded_data = event->GetSingle<ml4fpga::gem::ApvDecodedData>();
-                    SaveGEMDecodedData(apv_decoded_data);
+                    auto plane_decoded_data = event->GetSingle<ml4fpga::gem::PlaneDecodedData>();
+                    SaveGEMDecodedData(plane_decoded_data);
                 }
                 catch(std::exception ex) {
                     m_log->error("event->Get<SFclust>() problem: {}", ex.what());
@@ -283,6 +284,7 @@ void FlatTreeWriterProcessor::SaveGEMSRSWindowRawData(std::vector<const DGEMSRSW
     }
 }
 
+
 void FlatTreeWriterProcessor::SaveF125WindowRawData(std::vector<const Df125WindowRawData *> records) {
     for (auto record: records) {
         flatio::F125WindowRawRecord f125_wraw_save{};
@@ -296,7 +298,6 @@ void FlatTreeWriterProcessor::SaveF125WindowRawData(std::vector<const Df125Windo
         m_f125_wraw_io.add(f125_wraw_save);
     }
 }
-
 
 
 void FlatTreeWriterProcessor::SaveF250WindowRawData(std::vector<const Df250WindowRawData *> records) {
@@ -313,6 +314,7 @@ void FlatTreeWriterProcessor::SaveF250WindowRawData(std::vector<const Df250Windo
     }
 }
 
+
 void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const SFclust *> clusters) {
     for(auto cluster: clusters) {
         flatio::GemSimpleCluster cluster_save;
@@ -322,11 +324,21 @@ void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const SFclust *>
         cluster_save.adc = cluster->A;
         m_gem_scluster_io.add(cluster_save);
     }
-
 }
 
-void FlatTreeWriterProcessor::SaveGEMDecodedData(const ml4fpga::gem::ApvDecodedData *data) {
 
+void FlatTreeWriterProcessor::SaveGEMDecodedData(const ml4fpga::gem::PlaneDecodedData *data) {
+    const auto& plane_data_x = data->plane_data.at("URWELLX");
+    const auto& plane_data_y = data->plane_data.at("URWELLY");
+
+    for(size_t time_i=0; time_i < plane_data_x.data.size(); time_i++) {
+        for(size_t adc_i=0; adc_i < ml4fpga::gem::Constants::ChannelsCount; adc_i++) {
+            flatio::SrsPreReconRecord record;
+            record.x = plane_data_x.data[time_i][adc_i];
+            record.y = plane_data_y.data[time_i][adc_i];
+            m_srs_prerecon_io.add(record);
+        }
+    }
 }
 
 

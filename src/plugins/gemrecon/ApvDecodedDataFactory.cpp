@@ -31,7 +31,7 @@ void ApvDecodedDataFactory::Init() {
     auto app = GetApplication();
 
     // Get Log level from user parameter or default
-    InitLogger(plugin_name + ":" + JTypeInfo::demangle<GemReconDqmProcessor>());
+    InitLogger(plugin_name + ":ApvDecode");
 
     // P A R A M E T E R S
     // Number of SRS time samples:

@@ -19,10 +19,10 @@ namespace flatio {
     public:
         void bindToTree(TTree *tree) override {
             m_is_bound = true;
-            tree->Branch("srs_prerecon__count", &m_count, "srs_prerecon__count/l");
+            tree->Branch("srs_prerecon_count", &m_count, "srs_prerecon_count/l");
 
-            tree->Branch("srs_prerecon__y", &m_vect_y);
-            tree->Branch("srs_prerecon__x", &m_vect_x);
+            tree->Branch("srs_prerecon_y", &m_vect_y);
+            tree->Branch("srs_prerecon_x", &m_vect_x);
         }
 
         void clear() override {

@@ -164,7 +164,7 @@ io_classes = [
         ]),
     ClassInfo(
         name="SrsPreReconRecord",
-        root_name="srs_prerecon_",
+        root_name="srs_prerecon",
         fields=[
             FieldInfo('double', 'y'),
             FieldInfo('double', 'x'),
@@ -259,6 +259,8 @@ io_classes = [
         name="GemSimpleCluster",
         root_name="gem_scluster",
         fields=[
+            FieldInfo('uint32_t', 'x_index'),
+            FieldInfo('uint32_t', 'y_index'),
             FieldInfo('double', 'x'),
             FieldInfo('double', 'y'),
             FieldInfo('double', 'energy'),

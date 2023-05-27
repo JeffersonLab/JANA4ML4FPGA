@@ -1,23 +1,15 @@
 #include "PlaneDecodedDataFactory.h"
 
-#include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
-#include "rawdataparser/Df125FDCPulse.h"
 #include "plugins/gemrecon/old_code/GEMOnlineHitDecoder.h"
 
-#include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
 
-#include <Math/GenVector/PxPyPzM4D.h>
-
-#include <spdlog/spdlog.h>
-#include "services/root_output/RootFile_service.h"
 #include <filesystem>
 #include "Pedestal.h"
 #include "RawData.h"
 
 namespace ml4fpga::gem {
-
 
 
 //-------------------------------------
@@ -31,13 +23,13 @@ void PlaneDecodedDataFactory::Init() {
     auto app = GetApplication();
 
     // Get Log level from user parameter or default
-    InitLogger(plugin_name + ":" + JTypeInfo::demangle<GemReconDqmProcessor>());
+    InitLogger(plugin_name + ":PlaneDecode");
 
     // P A R A M E T E R S
     // Number of SRS time samples:
     app->SetDefaultParameter("daq:srs_window_raw:ntsamples", m_srs_ntsamples, "Number of SRS time samples");
-    app->SetDefaultParameter( plugin_name + ":min_adc", m_min_adc, "Min ADC value (For histos?)");
-    app->SetDefaultParameter( plugin_name + ":max_adc", m_max_adc, "Max ADC value (For histos?)");
+    app->SetDefaultParameter(plugin_name + ":min_adc", m_min_adc, "Min ADC value (For hists?)");
+    app->SetDefaultParameter(plugin_name + ":max_adc", m_max_adc, "Max ADC value (For hists?)");
 
     //  D O N E
     logger()->info("This plugin name is: " + GetPluginName());
@@ -45,7 +37,6 @@ void PlaneDecodedDataFactory::Init() {
 
     m_mapping = GemMapping::GetInstance();
 }
-
 
 
 //------------------
@@ -65,7 +56,6 @@ void PlaneDecodedDataFactory::Process(const std::shared_ptr<const JEvent> &event
             auto name = pair.first;
             auto det_name = m_mapping->GetDetectorFromPlane(name);
             auto apv_list = pair.second;
-            m_log->info("  Plane: {:<10} from detector {:<10} has {} APVs:", name, det_name, apv_list.size());
 
             // Make a merge for all APVs
             AdcDecodedData merged_data;
@@ -81,7 +71,7 @@ void PlaneDecodedDataFactory::Process(const std::shared_ptr<const JEvent> &event
             result->plane_data[name] = merged_data;
         }
 
-
+        Insert(result);
     }
     catch (std::exception &exp) {
         m_log->error("Error during process");

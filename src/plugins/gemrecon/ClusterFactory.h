@@ -24,14 +24,14 @@ namespace ml4fpga::gem {
         std::vector<double> RawDataAverage;
     };
 
-class ClusterFactory: public JFactoryT<SFclust>, public spdlog::extensions::SpdlogMixin<ClusterFactory>  {
+    class ClusterFactory: public JFactoryT<SFclust>, public spdlog::extensions::SpdlogMixin<ClusterFactory>  {
     public:
-        explicit ClusterFactory(JApplication* app);
+        explicit ClusterFactory();
         void Init() override;
         void Process(const std::shared_ptr<const JEvent>&) override;
         void Finish() override;
     private:
-        JApplication* m_app;
+
 
         /// Directory to store histograms to
         TDirectory *m_dir_main{};
@@ -60,46 +60,13 @@ class ClusterFactory: public JFactoryT<SFclust>, public spdlog::extensions::Spdl
         int fMaxClusterMult = 5;
         std::string fIsHitPeakOrSumADCs = "peakADCs";
         std::string fIsCentralOrAllStripsADCs = "centralStripADCs";
-};
-
-
-
-/// JFactoryGeneratorT works for both JFactories and JMultifactories
-
-    class ClusterFactoryGenerator : public JFactoryGenerator {
-
-        std::string m_tag;
-        bool m_tag_specified;
-
-    public:
-
-        explicit ClusterFactoryGenerator(JApplication *app) :
-                m_app(app),
-                m_tag_specified(false) {};
-
-        explicit ClusterFactoryGenerator(JApplication *app, std::string tag) :
-
-            m_app(app),
-            m_tag(std::move(tag)),
-            m_tag_specified(true) {};
-
-        void GenerateFactories(JFactorySet *factory_set) override {
-            auto* factory = new ClusterFactory(m_app);
-
-            if (m_tag_specified) {
-                // If user specified a tag via the generator (even the empty tag!), use that.
-                // Otherwise, use whatever tag the factory may have set for itself.
-                factory->SetTag(m_tag);
-            }
-            factory->SetFactoryName(JTypeInfo::demangle<ClusterFactory>());
-            factory->SetPluginName(GetPluginName());
-            factory_set->Add(factory);
-        }
-
-        JApplication *m_app;
+        std::string m_plane_name_x = "URWELLX";
+        std::string m_plane_name_y = "URWELLY";
+        double m_plane_size_x;
+        double m_plane_size_y;
+        int m_plane_apv_num_x;
+        int m_plane_apv_num_y;
     };
-
-
 } // namespace ml4fpga::gem
 
 

@@ -3,7 +3,7 @@
 #include <JANA/JEvent.h>
 #include "GemMapping.h"
 #include "Pedestal.h"
-#include "plugins/gemrecon/old_code/Constants.h"
+#include "Constants.h"
 
 namespace ml4fpga::gem {
     void PedestalFactory::Init() {
