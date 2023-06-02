@@ -228,6 +228,9 @@ io_classes = [
         name="F250FDCPulseRecord",
         root_name="f250_pulse",
         fields=[
+            FieldInfo('uint32_t', 'roc'),
+            FieldInfo('uint32_t', 'slot'),
+            FieldInfo('uint32_t', 'channel'),
             FieldInfo('uint32_t', 'event_within_block'),
             FieldInfo('bool', 'qf_pedestal'),
             FieldInfo('uint32_t', 'pedestal'),

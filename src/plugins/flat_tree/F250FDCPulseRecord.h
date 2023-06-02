@@ -10,6 +10,9 @@ namespace flatio {
     struct F250FDCPulseRecord
     {
 
+        uint32_t roc;
+        uint32_t slot;
+        uint32_t channel;
         uint32_t event_within_block;
         bool qf_pedestal;
         uint32_t pedestal;
@@ -44,6 +47,9 @@ namespace flatio {
             m_is_bound = true;
             tree->Branch("f250_pulse_count", &m_count, "f250_pulse_count/l");
 
+            tree->Branch("f250_pulse_roc", &m_vect_roc);
+            tree->Branch("f250_pulse_slot", &m_vect_slot);
+            tree->Branch("f250_pulse_channel", &m_vect_channel);
             tree->Branch("f250_pulse_event_within_block", &m_vect_event_within_block);
             tree->Branch("f250_pulse_qf_pedestal", &m_vect_qf_pedestal);
             tree->Branch("f250_pulse_pedestal", &m_vect_pedestal);
@@ -74,6 +80,9 @@ namespace flatio {
         void clear() override {
             m_count = 0;
 
+            m_vect_roc.clear();
+            m_vect_slot.clear();
+            m_vect_channel.clear();
             m_vect_event_within_block.clear();
             m_vect_qf_pedestal.clear();
             m_vect_pedestal.clear();
@@ -107,6 +116,9 @@ namespace flatio {
             }
             m_count++;
 
+            m_vect_roc.push_back(data.roc);
+            m_vect_slot.push_back(data.slot);
+            m_vect_channel.push_back(data.channel);
             m_vect_event_within_block.push_back(data.event_within_block);
             m_vect_qf_pedestal.push_back(data.qf_pedestal);
             m_vect_pedestal.push_back(data.pedestal);
@@ -140,6 +152,9 @@ namespace flatio {
         bool m_is_bound = false;
         uint64_t m_count;
 
+        std::vector<uint32_t> m_vect_roc;
+        std::vector<uint32_t> m_vect_slot;
+        std::vector<uint32_t> m_vect_channel;
         std::vector<uint32_t> m_vect_event_within_block;
         std::vector<bool> m_vect_qf_pedestal;
         std::vector<uint32_t> m_vect_pedestal;
