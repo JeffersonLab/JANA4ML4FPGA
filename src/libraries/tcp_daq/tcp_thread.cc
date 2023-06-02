@@ -160,8 +160,7 @@ int tcp_get(int socket_fd, int *data, int data_len) {
 
 /*====================================================================*/
 int tcp_listen3(int socket_fd, char *host_name, int len, int *sd_current) {
-    printf("  Doing tcp_listen3::, waiting for replay at  \n");
-    printf("    socket_fd=%d\n len=%d", socket_fd, len);
+    printf("  tcp_listen3: waiting for reply at  socket_fd=%d len=%d\n", socket_fd, len);
 
     int rem_port;
 
