@@ -5,6 +5,8 @@
 #include <chrono>
 #include <JANA/JEvent.h>
 #include <rawdataparser/EVIOBlockedEvent.h>
+#include <rawdataparser/CDaqTCPevent.h>
+#include <tcp_daq/tcp_event.h>
 #include <tcp_daq/tcp_thread.h>
 #include <services/log/Log_service.h>
 #include <rawdataparser/swap_bank.h>
@@ -54,108 +56,171 @@ void CDaqEventSource::Open() {
 
     //================================================================
 
-    m_log->info("Binding socket... {}", getpid());
+    // The tcp_event interface uses the tcp_thread routines underneath
+    // for doing the actual TCP operations. The way it works is the
+    // following:
+    //
+    // 1. Set the host(nb below) and port using tcp_event_host(host, port)
+    // 2. Call either tcp_event_snd() or tcp_event_get(). The first time
+    //    either of these is called, the socket will be opened. If 
+    //    tcp_event_snd() is called, then the connection is initiate
+    //    to the specified host/port and the data sent. If tcp_event_get()
+    //    is called, then the socket is opened on the port and listens for
+    //    a connection. In other words:
+    //
+    //       tcp_event_snd = we are the client
+    //       tcp_event_get = we are the server
+    //
+    // 4. Only the first call to either of these, sets the socket up
+    //    so subsequent calls will just use it.
+    //
+    // 3. This assumes a model where the client is sending data to the 
+    //    server.
+    tcp_event_host((char*)m_remote_host.c_str(), m_port);
 
-    /*--- LISTEN is implied -----*/
-    m_log->info("CDaqEventSource::Open() - open socket, bind port = {}", m_port);
 
-    // Create an endpoint for communication
-    // Get socket file descriptor
-    m_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (m_socket_fd == -1) {
-        ThrowOnErrno("ERROR creating endpoint at 'socket(...)'");
-    }
-    m_log->debug("  Obtained socket file descriptor [socket_fd={}]", m_socket_fd);
+    // //================================================================
+    // m_log->info("Binding socket... {}", getpid());
+
+    // /*--- LISTEN is implied -----*/
+    // m_log->info("CDaqEventSource::Open() - open socket, bind port = {}", m_port);
+
+    // // Create an endpoint for communication
+    // // Get socket file descriptor
+    // m_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    // if (m_socket_fd == -1) {
+    //     ThrowOnErrno("ERROR creating endpoint at 'socket(...)'");
+    // }
+    // m_log->debug("  Obtained socket file descriptor [socket_fd={}]", m_socket_fd);
 
 
-    // Set SO_REUSEADDR the socket options
-    m_log->debug("  Setting SO_REUSEADDR socket option for [socket_fd={}]", m_socket_fd);
-    int opt_value = 1;
-    if (setsockopt(m_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt_value, sizeof(opt_value)) < 0) {
-        close(m_socket_fd);
-        ThrowOnErrno("ERROR Setting SO_REUSEADDR option");
-    }
+    // // Set SO_REUSEADDR the socket options
+    // m_log->debug("  Setting SO_REUSEADDR socket option for [socket_fd={}]", m_socket_fd);
+    // int opt_value = 1;
+    // if (setsockopt(m_socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt_value, sizeof(opt_value)) < 0) {
+    //     close(m_socket_fd);
+    //     ThrowOnErrno("ERROR Setting SO_REUSEADDR option");
+    // }
 
-    // Trying to bind socket.
-    struct sockaddr_in sock_addr{};
-    memset(&sock_addr, 0, sizeof(sock_addr));
-    sock_addr.sin_family = AF_INET;
-    sock_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    sock_addr.sin_port = htons(m_port);
+    // // Trying to bind socket.
+    // struct sockaddr_in sock_addr{};
+    // memset(&sock_addr, 0, sizeof(sock_addr));
+    // sock_addr.sin_family = AF_INET;
+    // sock_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    // sock_addr.sin_port = htons(m_port);
 
-    m_log->debug("  Binding socket [socket_fd={}]", m_socket_fd);
-    /* bind the socket to the port number */
-    if (bind(m_socket_fd, (struct sockaddr *) &sock_addr, sizeof(sock_addr)) == -1) {
-        close(m_socket_fd);
-        ThrowOnErrno("ERROR binding socket at bind(...)");
-    }
+    // m_log->debug("  Binding socket [socket_fd={}]", m_socket_fd);
+    // /* bind the socket to the port number */
+    // if (bind(m_socket_fd, (struct sockaddr *) &sock_addr, sizeof(sock_addr)) == -1) {
+    //     close(m_socket_fd);
+    //     ThrowOnErrno("ERROR binding socket at bind(...)");
+    // }
 
-    // HERE means SUCCESS!
-    m_log->info("Socket binding success. Listening port {} [socket_fd={}]", m_port, m_socket_fd);
-    m_log->info("m_receive_fd.is_lock_free() {}", m_receive_fd.is_lock_free());
+    // // HERE means SUCCESS!
+    // m_log->info("Socket binding success. Listening port {} [socket_fd={}]", m_port, m_socket_fd);
+    // m_log->info("m_receive_fd.is_lock_free() {}", m_receive_fd.is_lock_free());
 
-    // Start a thread that will wait for a client connection
-    m_receive_fd = -1;
-    m_listen_thread = std::thread([this]() { this->WaitForClient(); });
-    m_listen_thread.detach();
+    // // Start a thread that will wait for a client connection
+    // m_receive_fd = -1;
+    // m_listen_thread = std::thread([this]() { this->WaitForClient(); });
+    // m_listen_thread.detach();
 
-    // End of run count
-    m_end_of_runs_count=0;
+    // // End of run count
+    // m_end_of_runs_count=0;
 
-    //m_evio_output_file = new EVIOFileWriter("output.evio");
+    // //m_evio_output_file = new EVIOFileWriter("output.evio");
 }
 
 
-void CDaqEventSource::WaitForClient() {
+// void CDaqEventSource::WaitForClient() {
 
-    char host_name[128];
-    int len = 128;
+//     char host_name[128];
+//     int len = 128;
 
-    m_log->info("Waiting for clients");
-    m_log->debug("   socket_fd={}", m_socket_fd);
-    m_log->debug("   port={}", m_port);
-    m_log->debug("   Start listening");
+//     m_log->info("Waiting for clients");
+//     m_log->debug("   socket_fd={}", m_socket_fd);
+//     m_log->debug("   port={}", m_port);
+//     m_log->debug("   Start listening");
 
-    // Start listening
-    auto result = listen(m_socket_fd, 5);
-    if (result == -1) {
-        ThrowOnErrno("ERROR at socket listen");
-    }
+//     // Start listening
+//     auto result = listen(m_socket_fd, 5);
+//     if (result == -1) {
+//         ThrowOnErrno("ERROR at socket listen");
+//     }
 
-    /* wait for a client to talk to us */
-    struct sockaddr_in pin{};
-    socklen_t addr_len = sizeof(pin);
-    int receive_fd = accept(m_socket_fd, (struct sockaddr *) &pin, &addr_len);
-    if (receive_fd == -1) {
-        ThrowOnErrno("ERROR at socket accept");
-    }
-    m_log->info("Client connected. Checking...");
-    int remote_port = ntohs(pin.sin_port);
-    m_log->info("  Remote port: {}", remote_port);
-    m_log->info("  Try to get host by address: {}", inet_ntoa(pin.sin_addr));
+//     /* wait for a client to talk to us */
+//     struct sockaddr_in pin{};
+//     socklen_t addr_len = sizeof(pin);
+//     int receive_fd = accept(m_socket_fd, (struct sockaddr *) &pin, &addr_len);
+//     if (receive_fd == -1) {
+//         ThrowOnErrno("ERROR at socket accept");
+//     }
+//     m_log->info("Client connected. Checking...");
+//     int remote_port = ntohs(pin.sin_port);
+//     m_log->info("  Remote port: {}", remote_port);
+//     m_log->info("  Try to get host by address: {}", inet_ntoa(pin.sin_addr));
 
-    hostent *hp = gethostbyaddr(&pin.sin_addr, sizeof(pin.sin_addr), AF_INET);
-    if (hp == nullptr) {
-        m_log->warn("gethostbyaddr failed to get host address");
-        strncpy(host_name, inet_ntoa(pin.sin_addr), len);
-        host_name[len - 1] = 0;
-    } else {
-        m_log->info("Client host name: {}", hp->h_name);
-        strncpy(host_name, hp->h_name, len);
-        host_name[len - 1] = 0;
-    }
+//     hostent *hp = gethostbyaddr(&pin.sin_addr, sizeof(pin.sin_addr), AF_INET);
+//     if (hp == nullptr) {
+//         m_log->warn("gethostbyaddr failed to get host address");
+//         strncpy(host_name, inet_ntoa(pin.sin_addr), len);
+//         host_name[len - 1] = 0;
+//     } else {
+//         m_log->info("Client host name: {}", hp->h_name);
+//         strncpy(host_name, hp->h_name, len);
+//         host_name[len - 1] = 0;
+//     }
 
-    m_log->debug("Connection info:");
-    m_log->debug("  Host: {}({})", host_name, inet_ntoa(pin.sin_addr));
-    m_log->debug("  Port: {}", remote_port);
-    m_log->debug("  Accepted sock_sd: {}", receive_fd);
-    m_log->debug("  m_socket_sd     : {}", m_socket_fd);
+//     m_log->debug("Connection info:");
+//     m_log->debug("  Host: {}({})", host_name, inet_ntoa(pin.sin_addr));
+//     m_log->debug("  Port: {}", remote_port);
+//     m_log->debug("  Accepted sock_sd: {}", receive_fd);
+//     m_log->debug("  m_socket_sd     : {}", m_socket_fd);
 
-    m_receive_fd = receive_fd;
-}
+//     m_receive_fd = receive_fd;
+// }
 
 
 void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
+
+    
+    try {
+        // Disable the timeout at this point since the call to tcp_event_get 
+        // may block indefinitely while waiting for an event.
+        static std::once_flag co_to_flag;
+        std::call_once( co_to_flag, [this](){m_log->info("Disabling JANA timeout due to networked event source."); japp->SetTimeoutEnabled(false);});
+
+        // Diable ticker temporarily
+        auto ticker = japp->IsTickerEnabled();
+        japp->SetTicker(false);
+
+        // Read event from TCP.
+        // n.b. the first time this is called it will open a port and listen
+        // for events. Subsequent calls will just listen. In all cases, this
+        // may block indefinitely.
+        auto tcpevent = new CDaqTCPevent( MAXDATA );
+        auto res = tcp_event_get( tcpevent->HOST2, tcpevent->DATA.data(), &tcpevent->lenDATA, &tcpevent->Nr_Modules, &tcpevent->ModuleID, &tcpevent->TriggerID );
+
+        // Restore ticker
+        japp->SetTicker(ticker);
+
+        // Check results
+        if( res ){
+            // Error reading event
+            delete tcpevent;
+        }else{
+            // TCP event read OK. Insert into JANA event.
+            std::vector<CDaqTCPevent*> tcpevents = {tcpevent};
+            event->Insert(tcpevents);
+        }
+
+
+    } catch (std::exception exp) {
+        printf("EXCEPTION IN CDAQEVENTSOURCE %s\n", exp.what());
+        throw RETURN_STATUS::kTRY_AGAIN;
+    }
+
+    return;
 
     try {
 
