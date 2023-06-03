@@ -13,7 +13,7 @@ CDaqTCPEventSender::CDaqTCPEventSender() {
 
 void CDaqTCPEventSender::Init() {
 
-    m_port = 20250;
+    m_port = 0;
     m_remote_host = "localhost";
     GetApplication()->SetDefaultParameter("cdaq:remote_host", m_remote_host, "TCP remote host to connect to");
     GetApplication()->SetDefaultParameter("cdaq:remote_port", m_port, "TCP port on remote host to connect to");
@@ -36,25 +36,35 @@ void CDaqTCPEventSender::Init() {
     // printf("CDAQ LOG LEVEL %s\n", log_level_str.c_str());
     m_log->set_level(spdlog::extensions::ParseLogLevel(log_level_str));
 
-    m_log->info("GetResourceName() = {}", GetResourceName());
-
 
     //================================================================
 
-    // Tell the tcp_event library which host/port to connect to when 
-    // we (eventually) try and send the first event.
-    tcp_event_host((char*)m_remote_host.c_str(), m_port);
+    if( m_port != 0){
+        // Tell the tcp_event library which host/port to connect to when 
+        // we (eventually) try and send the first event.
+        tcp_event_host((char*)m_remote_host.c_str(), m_port);
+    }else{
+        m_log->info("Sending of events over TCP disabled. To enable, set the cdaq:remote_port");
+        m_log->info("to the port number to send to. cdaq:remote_host can also be used to specify");
+        m_log->info("a host other than the localhost. E.g.:");
+        m_log->info("   jana4ml4fpga -Pcdaq:remote_host=gluon200.jlab.org -Pcdaq:remote_port=20249 ...");
+    }
+    
 
 }
 
 void CDaqTCPEventSender::Process(const std::shared_ptr<const JEvent> &event) {
+
+    // If the port number was not changed from 0 then user has not enabled
+    // us to send TCP events.
+    if( m_port ==0 ) return;
 
     // Get the full event buffer. We support if the event was read from
     // a file or if it was read from a TCP socket. 
     auto evioblockedevents = event->Get<EVIOBlockedEvent>();
     auto cdaqtcpevents = event->Get<CDaqTCPevent>();
 
-    std::cout << "CDaqTCPevent: " << cdaqtcpevents.size() << "  EVIOBlockedEvent:" << evioblockedevents.size() << std::endl;
+    // std::cout << "CDaqTCPevent: " << cdaqtcpevents.size() << "  EVIOBlockedEvent:" << evioblockedevents.size() << std::endl;
 
     // Get pointer to data and copy up all metadata
     unsigned int *DATA = nullptr;
@@ -83,6 +93,7 @@ void CDaqTCPEventSender::Process(const std::shared_ptr<const JEvent> &event) {
     std::lock_guard<std::mutex>lock(m_mutex);
 
     // Send event, establishing the connection if not already established.
+    tcp_event_host((char*)m_remote_host.c_str(), m_port, false);
     auto res = tcp_event_snd(DATA, lenDATA ,Nr_Modules ,ModuleID ,evtHDR ,TriggerID);
     if( res != 0 ) m_log->info("Error sending CDAQ TCP event!");
 
