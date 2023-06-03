@@ -7,10 +7,10 @@ static int current_sd=0;
 static int HOLD_TIME=0; //--- assume only one sender (DC) !!!
 
 //-------------------------------------------------------------------------------------------------------
-int tcp_event_host(char *host, int port) {    
+int tcp_event_host(char *host, int port, bool report) {    
     strncpy(HOST,host,128);
     PORT=port;
-    printf("==>> jana_tcp:: set HOST=%s PORT=%d \n",HOST,PORT);
+    if( report ) printf("==>> jana_tcp:: set HOST=%s PORT=%d \n",HOST,PORT);
     return 0;
 }
 //-------------------------------------------------------------------------------------------------------
