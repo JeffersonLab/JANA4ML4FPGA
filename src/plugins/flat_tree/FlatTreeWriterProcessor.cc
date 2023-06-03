@@ -238,6 +238,9 @@ void FlatTreeWriterProcessor::SaveF125FDCPulse(const std::vector<const Df125FDCP
 void FlatTreeWriterProcessor::SaveF250FDCPulse(const std::vector<const Df250PulseData *>& records) {
     for (auto record: records) {
         flatio::F250FDCPulseRecord save_struct{};
+        save_struct.roc = record->rocid;
+        save_struct.slot = record->slot;
+        save_struct.channel = record->channel;
         save_struct.event_within_block = record->event_within_block;
         save_struct.qf_pedestal = record->QF_pedestal;
         save_struct.pedestal = record->pedestal;
