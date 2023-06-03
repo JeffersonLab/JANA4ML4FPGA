@@ -86,9 +86,7 @@ void CDAQEVIOFileSource::GetEvent(std::shared_ptr<JEvent> event) {
     block->swap_needed = m_hdevio->swap_needed;
     block->data.resize(cur_len);
 
-    std::vector<EVIOBlockedEvent*> v;
-    event->Insert( v );
-    // EVIOBlockedEvent* cur_block = GetBlockFromBuffer(cur_len);
+    event->Insert( block );
 
     // Get events from current block
     EVIOBlockedEventParser parser;
