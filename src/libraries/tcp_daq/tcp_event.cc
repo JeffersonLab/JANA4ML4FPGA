@@ -70,7 +70,7 @@ int tcp_event_snd( unsigned int *DATA, int lenDATA,int n,int k, unsigned int evt
 
        sd = tcp_open_th(-PORT,HOST); // connect to remote port 
 
-        printf("jana_tcp:: CONNECTED to %s  port=%d  local_sock=%d port=%d\n",hostname,PORT,sd,ntohs(pin.sin_port));
+        if( sd>=0 ) printf("jana_tcp:: CONNECTED to %s  port=%d  local_sock=%d port=%d\n",hostname,PORT,sd,ntohs(pin.sin_port));
 
         TCP_FLAG=1;  //---  server OK, send DATA 
    } else if (TCP_FLAG==-1) { //--- no server (error connect)
