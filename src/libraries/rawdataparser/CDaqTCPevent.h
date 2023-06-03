@@ -22,7 +22,7 @@ struct CDaqTCPevent : public JObject {
 
 
     /// Make it convenient to construct one of these things
-    CDaqTCPevent(int lenDATA) : lenDATA(lenDATA) { DATA.reserve(lenDATA); };
+    CDaqTCPevent(int lenDATA) : lenDATA(lenDATA) { DATA.resize(lenDATA); };
 
 
     /// Override className to tell JANA to store the exact name of this class where we can
