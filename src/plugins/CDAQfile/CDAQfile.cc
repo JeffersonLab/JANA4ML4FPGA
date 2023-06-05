@@ -5,7 +5,7 @@
 
 #include "CDAQEVIOFileSource.h"
 
-// put a real path for simplicity
+// put a real path for simplicity (on gluon200)
 /*
  * [hdtrdops@gluon200 ~]$ ls /gluonraid3/data4/rawdata/trd/DATA/hd_rawdata_002539_00
 hd_rawdata_002539_000.evio  hd_rawdata_002539_003.evio  hd_rawdata_002539_006.evio
