@@ -3,6 +3,7 @@
 //
 
 #include <rawdataparser/EVIOBlockedEventParser.h>
+#include <rawdataparser/CDaqTCPevent.h>
 
 
 #include "CDAQEVIOFileSource.h"
@@ -42,23 +43,28 @@ void CDAQEVIOFileSource::OpenEVIOFile(std::string filename) {
     m_log->info("Open EVIO file {} successfully", filename);
 }
 
-EVIOBlockedEvent CDAQEVIOFileSource::GetBlockFromBuffer(uint32_t event_len) {
-    EVIOBlockedEvent block;
+// EVIOBlockedEvent* CDAQEVIOFileSource::GetBlockFromBuffer(uint32_t event_len) {
+//     auto block = new EVIOBlockedEvent();
 
-    block.block_number = m_block_number++;
-    block.swap_needed = m_hdevio->swap_needed;
-    block.data.insert(block.data.begin(), m_buff, m_buff + event_len);
+//     block->block_number = m_block_number++;
+//     block->swap_needed = m_hdevio->swap_needed;
+//     block->data.insert(block->data.begin(), m_buff, m_buff + event_len);
 
-    return block;
-}
+//     return block;
+// }
 
 /**
  * Read the evio file with HDEVIO::readNoFileBuff().
  * Handle three cases: read_ok, HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL, HDEVIO::HDEVIO_EOF.
  */
 void CDAQEVIOFileSource::GetEvent(std::shared_ptr<JEvent> event) {
-    m_buff = new uint32_t[m_buff_len];
-    bool read_ok = m_hdevio->readNoFileBuff(m_buff, m_buff_len);
+
+    auto block = new EVIOBlockedEvent();
+    block->data.resize(m_buff_len);
+
+    // m_buff = new uint32_t[m_buff_len];
+    bool read_ok = m_hdevio->readNoFileBuff(block->data.data(), block->data.capacity());
+    // bool read_ok = m_hdevio->readNoFileBuff(m_buff, m_buff_len);
     uint32_t cur_len = m_hdevio->last_event_len;
 
     // Handle not read_ok
@@ -67,21 +73,26 @@ void CDAQEVIOFileSource::GetEvent(std::shared_ptr<JEvent> event) {
             throw RETURN_STATUS::kNO_MORE_EVENTS;
         } else if (m_hdevio->err_code == HDEVIO::HDEVIO_USER_BUFFER_TOO_SMALL) {
             m_buff_len = cur_len;
-            delete[] m_buff;
-            m_buff = nullptr;
+            delete block;
+            // delete[] m_buff;
+            // m_buff = nullptr;
             throw RETURN_STATUS::kTRY_AGAIN;
         } else {
             throw JException("Unhandled EVIO file reading return status " + m_hdevio->err_code, __FILE__, __LINE__);
         }
     }
 
-    EVIOBlockedEvent cur_block = GetBlockFromBuffer(cur_len);
+    block->block_number = m_block_number++;
+    block->swap_needed = m_hdevio->swap_needed;
+    block->data.resize(cur_len);
+
+    event->Insert( block );
 
     // Get events from current block
     EVIOBlockedEventParser parser;
     parser.Configure(m_parser_config);
-    auto events = parser.ParseEVIOBlockedEvent(cur_block, event);
-    m_log->debug("Parsed block {} had {} events, swap_needed={}", cur_block.block_number, events.size(), cur_block.swap_needed);
+    auto events = parser.ParseEVIOBlockedEvent(*block, event);
+    m_log->debug("Parsed block {} had {} events, swap_needed={}", block->block_number, events.size(), block->swap_needed);
     for (size_t i = 0; i < events.size(); i++) {
         auto &parsed_event = events[i];
         m_log->trace("  Event #{} got event-number={}:", i, parsed_event->GetEventNumber());
@@ -92,9 +103,9 @@ void CDAQEVIOFileSource::GetEvent(std::shared_ptr<JEvent> event) {
     }
 
     // Reset buff to prevent memory leakage
-    delete[] m_buff;
-    m_buff = nullptr;
-    m_buff_len = DEFAULT_READ_BUFF_LEN;
+    // delete[] m_buff;
+    // m_buff = nullptr;
+    // m_buff_len = DEFAULT_READ_BUFF_LEN;
 }
 
 void CDAQEVIOFileSource::Open() {

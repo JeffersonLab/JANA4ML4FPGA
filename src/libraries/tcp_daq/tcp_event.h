@@ -42,7 +42,7 @@
 
 int tcp_event_pack( unsigned int *DATA, int lenDATA,int n,int k, unsigned int evtHDR, unsigned int TriggerID );
 //int tcp_event( unsigned int *DATA, int lenDATA ,int n, int i, unsigned int evtHDR, unsigned int TriggerID);
-int tcp_event_host(char *host, int port);
+int tcp_event_host(char *host, int port, bool report=false);
 int tcp_event_get_sd();
 int tcp_event_hold(int hflag);
 //-- for tcp_main ---

@@ -55,7 +55,7 @@ private:
 
     void OpenEVIOFile(std::string filename);
 
-    EVIOBlockedEvent GetBlockFromBuffer(uint32_t event_len);
+    // EVIOBlockedEvent* GetBlockFromBuffer(uint32_t event_len);
 
 
 };

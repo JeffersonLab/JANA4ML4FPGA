@@ -167,6 +167,8 @@ hd_rawdata_002633_000.evio          # <= input file
 
 ### CDAQ TCP via EVIO
 
+*(please refer to the [cdaq plugin](src/plugins/cdaq) for details on writing events to TCP using the `cdaq` plugin)*
+
 ```sh
 jana4ml4fpga
 -Pplugins=log,root_output,flat_tree,cdaq

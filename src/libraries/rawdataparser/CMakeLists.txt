@@ -14,6 +14,8 @@ find_package(ROOT REQUIRED)
 set(lib_rawdataparser_SRC
         EVIOBlockedEventParser.cc
         EVIOBlockedEventParser.h
+        EVIOBlockedEvent.h
+        CDaqTCPevent.h
         swap_bank.cc
         )
 
