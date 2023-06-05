@@ -28,39 +28,33 @@
 
 class CDAQEVIOFileSource :
         public JEventSource,
-        public spdlog::extensions::SpdlogMixin<CDAQEVIOFileSource>
-        {
+        public spdlog::extensions::SpdlogMixin<CDAQEVIOFileSource> {
 
 public:
 
-    CDAQEVIOFileSource(std::string resource_name, JApplication* app);
+    CDAQEVIOFileSource(std::string resource_name, JApplication *app);
 
     virtual ~CDAQEVIOFileSource();
 
     void Open() override;
 
-    void GetEvent(std::shared_ptr<JEvent>);
+    void GetEvent(std::shared_ptr <JEvent>);
 
     static std::string GetDescription();
 
 private:
     std::string m_evio_filename = "";
-    std::unique_ptr<HDEVIO> m_hdevio;
+    std::unique_ptr <HDEVIO> m_hdevio;
     EVIOBlockedEventParserConfig m_parser_config;
 
     uint32_t *m_buff = nullptr;
     uint32_t m_buff_len = DEFAULT_READ_BUFF_LEN;
     int m_block_number = 1;
 
-
     void OpenEVIOFile(std::string filename);
-
-    // EVIOBlockedEvent* GetBlockFromBuffer(uint32_t event_len);
-
-
 };
 
-template <>
+template<>
 double JEventSourceGeneratorT<CDAQEVIOFileSource>::CheckOpenable(std::string);
 
 #endif //JANA4ML4FPGA_CDAQEVIOFILESOURCE_H
