@@ -97,7 +97,7 @@ message(STATUS "\n-------------------------------")
 # Install ml4fpga script
 #---------------------------------------------------------------------------
 # Set the path for your script
-set(SCRIPT_SRC "${CMAKE_CURRENT_SOURCE_DIR}/scripts/ml4fpga.py")
+set(SCRIPT_SRC "${CMAKE_CURRENT_SOURCE_DIR}/python/ml4fpga.py")
 
 # Set the path where the script will be copied
 set(SCRIPT_DST "${TARGET_BINARY_DIR}/ml4fpga")
