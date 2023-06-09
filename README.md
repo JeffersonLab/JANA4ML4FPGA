@@ -3,7 +3,7 @@
 EIC R&amp;D supported project developing ML on FPGA for streaming readout systems
 
 ## How to run
-!!!
+
 ### Docker images
 
 There are two images:
