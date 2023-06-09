@@ -1,3 +1,5 @@
-DATA/
-ROOT/
+DATA
+ROOT
+LOG
+setup_env*
 RootOutput/

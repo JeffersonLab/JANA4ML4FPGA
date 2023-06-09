@@ -1,6 +1,8 @@
 # The directory is used to build and install everything by default
 build/
 install/
+include/
+bin/
 .vscode/
 
 # Temp folder
