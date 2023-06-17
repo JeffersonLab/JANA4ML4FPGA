@@ -73,29 +73,55 @@ namespace ml4fpga::gem {
         try {
             fMapping = GemMapping::GetInstance();
 
+            // Raw GEM data
             auto evio_raw_data = event->Get<DGEMSRSWindowRawData>();
+
+            // ID why but sometimes there is no the last sample data
+            if(evio_raw_data.size() > 0) {
+                int samples_size_0 = evio_raw_data[0]->samples.size();
+                for(auto srs_item: evio_raw_data) {
+
+                    if (samples_size_0 != srs_item->samples.size()) {
+                        m_log->warn("samples_size_0 = {} != srs_item->samples.size() = {} at event# = {}", samples_size_0,  srs_item->samples.size(), event->GetEventNumber());
+                        continue;
+                    }
+                }
+                FillRawData(event->GetEventNumber(), m_dir_event_hists, evio_raw_data);
+            }
+
+            // Data decoded for each APV
             auto apv_data = event->GetSingle<ApvDecodedData>();
             if(!apv_data) {
                 m_log->warn("No DecodedData for GemReconDqmProcessor");
                 return;
             }
+            FillApvDecodedData(event->GetEventNumber(), m_dir_event_hists, apv_data);
 
+            // Data decoded for a plane
             auto plane_data = event->GetSingle<PlaneDecodedData>();
             if(!plane_data) {
                 m_log->warn("No DecodedData for GemReconDqmProcessor");
                 return;
             }
 
-            FillApvDecodedData(event->GetEventNumber(), m_dir_event_hists, apv_data);
             FillPlaneDecodedData(event->GetEventNumber(), m_dir_event_hists, plane_data);
 
-
-            FillRawData(event->GetEventNumber(), m_dir_event_hists, evio_raw_data);
             auto raw_data = event->Get<ml4fpga::gem::RawData>();
             auto pedestal = event->GetSingle<ml4fpga::gem::Pedestal>();
             m_log->trace("data items: {} ", raw_data.size());
         }
         catch (std::exception &exp) {
+            std::string no_factory_message = "Could not find JFactoryT<DGEMSRSWindowRawData>";
+            if (std::string(exp.what()).find(no_factory_message) != std::string::npos) {
+                // The first events might be some technical data and maybe DGEMSRSWindowRawData is not yet there so
+                // we skip this. For later events we make it a warning
+                std::string log_message = fmt::format(no_factory_message + " at event {}", event->GetEventNumber());
+                if(event->GetEventNumber() < 10) {
+                    m_log->debug(log_message);
+                } else {
+                    m_log->warn(log_message);
+                }
+            }
             m_log->error("Error during process");
             m_log->error("Exception what()='{}', type='{}'", exp.what(), typeid(exp).name());
         }
@@ -116,7 +142,10 @@ namespace ml4fpga::gem {
         // check srs data is valid. At least assertions of what we have
         assert(srs_data.size() > 0);
         assert(srs_data[0]->samples.size() > 0);
-        assert(srs_data[0]->samples.size() == srs_data[srs_data.size()-1]->samples.size());  // At least some test of samples size consistency
+
+        // ID why but sometimes there is no the last sample data
+        int samples_size_0 = srs_data[0]->samples.size();
+        //assert( == srs_data[srs_data.size()-1]->samples.size());  // At least some test of samples size consistency
 
         int samples_size = srs_data[0]->samples.size();
         int nbins = samples_size * 128 + (samples_size-1);
@@ -125,6 +154,11 @@ namespace ml4fpga::gem {
         std::map<int, std::map<int, std::vector<int> > > event_map;
 
         for(auto srs_item: srs_data) {
+
+            if(samples_size_0 != srs_item->samples.size())  {
+                // m_log->warn("samples_size_0 != srs_item->samples.size()");
+                continue;
+            }
 
             // Dumb copy of samples because one is int and the other is uint16_t
             std::vector<int> samples;
