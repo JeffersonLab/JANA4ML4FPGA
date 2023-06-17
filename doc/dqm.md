@@ -22,15 +22,17 @@ This is a brief overview of what DQM goals are:
 flowchart LR
   subgraph JANA4ML4FPGA
     direction LR
+    
     subgraph SERVICES
         direction BT
-        dqm(DQM)-->gemrecon
+        dqm(DQM)
     end
+    
     subgraph PLUGINS
         direction BT
         gemrecon
     end
+    
+    dqm --> gemrecon
   end
-  A --> TOP --> B
-  B1 --> B2
 ```
