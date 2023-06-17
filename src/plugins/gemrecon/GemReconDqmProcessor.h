@@ -2,16 +2,21 @@
 
 #include <JANA/JEventProcessor.h>
 #include <JANA/JEventProcessorSequentialRoot.h>
-#include "extensions/spdlog/SpdlogMixin.h"
+
 #include <TDirectory.h>
 #include <TH1F.h>
 #include <TH2F.h>
-#include "plugins/gemrecon/old_code/GemConfiguration.h"
-#include "plugins/gemrecon/old_code/GEMPedestal.h"
-#include "rawdataparser/DGEMSRSWindowRawData.h"
-#include "plugins/gemrecon/old_code/GEMHit.h"
+
+#include <plugins/gemrecon/old_code/PreReconData.h>
+#include <plugins/gemrecon/old_code/GemConfiguration.h>
+#include <plugins/gemrecon/old_code/GEMPedestal.h>
+#include <plugins/gemrecon/old_code/GEMHit.h>
+#include <extensions/spdlog/SpdlogMixin.h>
+#include <rawdataparser/DGEMSRSWindowRawData.h>
+#include <services/dqm/DataQualityMonitor_service.h>
+
 #include "DecodedData.h"
-#include "plugins/gemrecon/old_code/PreReconData.h"
+
 
 class JEvent;
 class JApplication;
@@ -58,13 +63,9 @@ namespace ml4fpga::gem {
 
     private:
 
-        /// Directory to store histograms to
-        TDirectory *m_dir_main{};
-        TH1F *m_histo_1d;
         TH1F *m_h1d_gem_prerecon_x = nullptr;
         TH1F *m_h1d_gem_prerecon_y = nullptr;
-        TH2F *m_trd_integral_h2d;
-        TDirectory *m_dir_event_hists;
+
         size_t m_events_count = 0;
 
         GemMapping *fMapping;
@@ -76,6 +77,9 @@ namespace ml4fpga::gem {
         void FillPreReconData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::PreReconData* data);
 
         void FillPlaneDecodedData(uint64_t event_number, TDirectory *directory, const PlaneDecodedData *data);
+
+        std::shared_ptr<DataQualityMonitor_service> m_dqm_service;
+        TH2F *m_trd_integral_h2d;
     };
 }      // namespace ml4fpga::gem
 

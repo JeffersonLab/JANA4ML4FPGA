@@ -49,3 +49,5 @@ scripts/*.root
 
 # CLion cmake build directories
 cmake-build-*/
+
+python/__pycache__/

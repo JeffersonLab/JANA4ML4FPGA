@@ -9,6 +9,7 @@ from datetime import datetime
 
 
 class ConsoleRunSink:
+    """The ConsoleRunSink class serves as a handler for the output of the subprocess that will be started."""
 
     def __init__(self):
         self.to_show = []
@@ -78,46 +79,55 @@ def _run_command(command, sink=default_sink, cwd=None, shell=False, retval_raise
     return retval, start_time, end_time, lines
 
 
-def run_jana():
-    jana_path = shutil.which("jana4ml4fpga")
-    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    jana_plugin_path_env = os.environ.get("JANA_PLUGIN_PATH", "")
+class JanaConfigurator:
+    def __init__(self):
+        self.jana_path = shutil.which("jana4ml4fpga")
+        self.root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        self.jana_plugin_path_env = os.environ.get("JANA_PLUGIN_PATH", "")
+        self.plugin_dirs = [
+            os.path.join(self.root_dir, "lib")
+        ]
+        self.histsfile = "output.root"
+        self.plugins = [
+            "log",
+            "root_output",
+            "cdaq",
+            "test_cdaq"
+        ]
+        self.flags = []
 
-    print(f"Using JANA2 executable:\n {jana_path}")
-    print(f"root_dir: {root_dir}")
-    print(f"jana_plugin_path_env BEFORE : {jana_plugin_path_env}")
+    def configure_dev(self):
+        self.plugin_dirs = [
+            os.path.join(self.root_dir, "cmake-build-debug-docker-ml4fpga/src/plugins/cdaq"),
+            os.path.join(self.root_dir, "cmake-build-debug-docker-ml4fpga/src/plugins/test_cdaq"),
+            os.path.join(self.root_dir, "cmake-build-debug-docker-ml4fpga/src/services/log"),
+            os.path.join(self.root_dir, "cmake-build-debug-docker-ml4fpga/src/services/root_output"),
+        ]
 
-    plugin_dirs = [
-        os.path.join(root_dir, "cmake-build-debug/src/plugins/cdaq"),
-        os.path.join(root_dir, "cmake-build-debug/src/plugins/test_cdaq"),
-        os.path.join(root_dir, "cmake-build-debug/src/services/log"),
-        os.path.join(root_dir, "cmake-build-debug/src/services/root_output"),
-    ]
+    def print(self):
+        print(f"Using JANA2 executable:\n {self.jana_path}")
+        print(f"root_dir: {self.root_dir}")
+        print(f"jana_plugin_path_env BEFORE : {self.jana_plugin_path_env}")
 
-    plugins = [
-        "log",
-        "root_output",
-        "cdaq",
-        "test_cdaq"
-    ]
+    def run(self):
 
-    for plugin_dir in plugin_dirs:
-        jana_plugin_path_env = plugin_dir + ":" + jana_plugin_path_env
+        jana_plugin_path_env = self.jana_plugin_path_env
+        for plugin_dir in self.plugin_dirs:
+            jana_plugin_path_env += plugin_dir + ":" + jana_plugin_path_env
 
-    print(f"jana_plugin_path_env AFTER : {jana_plugin_path_env}")
+        print(f"jana_plugin_path_env AFTER : {jana_plugin_path_env}")
 
-    os.environ["JANA_PLUGIN_PATH"] = jana_plugin_path_env
+        os.environ["JANA_PLUGIN_PATH"] = jana_plugin_path_env
+
+        _run_command([
+            self.jana_path,
+            "-Pplugins="+",".join(self.plugins),
+            "-Pjana:debug_plugin_loading=1",
+            "-Pjana:timeout=0",
+            "-Pnthreads=1",
+        ] + self.flags)
 
 
-    _run_command([
-        jana_path,
-        "-Pplugins="+",".join(plugins),
-        "-Pjana:debug_plugin_loading=1",
-        "-Pcdaq:LogLevel=trace",
-        "-Pjana:timeout=0",
-        "-Pnthreads=1",
-        "tcp-cdaq-evio"
-    ])
 
 
 def cdaq(args):
@@ -130,6 +140,58 @@ def convert(args):
     print("Executing convert command with:")
     print(f"  - Input: {args.input}")
     print(f"  - Output: {args.output}")
+
+    jana = JanaConfigurator()
+    jana.flags += [
+        "-Pdaq:srs_window_raw:ntsamples=${SRSBIN}",
+        "-Pgemrecon:LogLevel=info",
+        "-Pgemrecon:ClusterF:LogLevel=info",
+        "-Pgemrecon:mapping=${SRS_MAPPING}",
+        "-Phistsfile=ROOT/Run_${RUNNUM}.root  $FILELIST"
+    ]
+
+
+
+    # jana_path = shutil.which("jana4ml4fpga")
+    # root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    # jana_plugin_path_env = os.environ.get("JANA_PLUGIN_PATH", "")
+    #
+    # print(f"Using JANA2 executable:\n {jana_path}")
+    # print(f"root_dir: {root_dir}")
+    # print(f"jana_plugin_path_env BEFORE : {jana_plugin_path_env}")
+    #
+    # plugin_dirs = [
+    #     os.path.join(root_dir, "cmake-build-debug/src/plugins/cdaq"),
+    #     os.path.join(root_dir, "cmake-build-debug/src/plugins/test_cdaq"),
+    #     os.path.join(root_dir, "cmake-build-debug/src/services/log"),
+    #     os.path.join(root_dir, "cmake-build-debug/src/services/root_output"),
+    # ]
+    #
+    # plugins = [
+    #     "CDAQfile",
+    #     "flat_tree",
+    #     "root_output",
+    #     "gemrecon"
+    # ]
+    #
+    # for plugin_dir in plugin_dirs:
+    #     jana_plugin_path_env = plugin_dir + ":" + jana_plugin_path_env
+    #
+    # print(f"jana_plugin_path_env AFTER : {jana_plugin_path_env}")
+    #
+    # os.environ["JANA_PLUGIN_PATH"] = jana_plugin_path_env
+    #
+    # _run_command([
+    #     jana_path,
+    #     "-Pplugins="+",".join(plugins),
+    #     "-Pjana:debug_plugin_loading=1",
+    #     "-Pcdaq:LogLevel=trace",
+    #     "-Pjana:timeout=0",
+    #     "-Pnthreads=1",
+    #     "tcp-cdaq-evio"
+    # ])
+
+
 
 
 def run(args):

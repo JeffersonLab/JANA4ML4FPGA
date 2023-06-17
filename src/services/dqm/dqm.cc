@@ -9,6 +9,6 @@
 extern "C" {
 void InitPlugin(JApplication *app) {
     InitJANAPlugin(app);
-    app->ProvideService(std::make_shared<RootFile_service>(app) );
+    app->ProvideService(std::make_shared<DataQualityMonitor_service>(app) );
 }
 }

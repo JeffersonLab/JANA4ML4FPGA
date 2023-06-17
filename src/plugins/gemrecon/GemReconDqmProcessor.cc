@@ -1,21 +1,24 @@
-#include "GemReconDqmProcessor.h"
-#include "rawdataparser/DGEMSRSWindowRawData.h"
-#include "rawdataparser/Df125WindowRawData.h"
-#include "rawdataparser/Df125FDCPulse.h"
-#include "plugins/gemrecon/old_code/GEMOnlineHitDecoder.h"
-#include "Pedestal.h"
+#include <filesystem>
+
+#include <spdlog/spdlog.h>
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
 
 #include <Math/GenVector/PxPyPzM4D.h>
 
-#include <spdlog/spdlog.h>
-#include "services/root_output/RootFile_service.h"
-#include <filesystem>
+#include <rawdataparser/DGEMSRSWindowRawData.h>
+#include <rawdataparser/Df125WindowRawData.h>
+#include <rawdataparser/Df125FDCPulse.h>
+#include <plugins/gemrecon/old_code/GEMOnlineHitDecoder.h>
+
+#include <services/dqm/DataQualityMonitor_service.h>
+
 #include "RawData.h"
+#include "Pedestal.h"
+#include "GemReconDqmProcessor.h"
 #include "ApvDecodedDataFactory.h"
-#include "plugins/gemrecon/old_code/PreReconData.h"
+
 
 namespace ml4fpga::gem {
 //-------------------------------------
@@ -36,25 +39,13 @@ namespace ml4fpga::gem {
         auto app = GetApplication();
 
         // Ask service locator a file to write histograms to
-        auto root_file_service = app->GetService<RootFile_service>();
-
-        // Get TDirectory for histograms root file
-        auto globalRootLock = app->GetService<JGlobalRootLock>();
-        globalRootLock->acquire_write_lock();
-        auto file = root_file_service->GetHistFile();
-        globalRootLock->release_lock();
-
-        // Create a directory for this plugin. And subdirectories for series of histograms
-        m_dir_main = file->mkdir(plugin_name.c_str());
-        m_dir_event_hists = m_dir_main->mkdir("gem_dqm", "TRD events visualization");
-        m_dir_main->cd();
+        m_dqm_service = app->GetService<DataQualityMonitor_service>();
 
         // Get Log level from user parameter or default
         InitLogger(plugin_name + ":" + JTypeInfo::demangle<GemReconDqmProcessor>());
 
-        m_histo_1d = new TH1F("test_histo", "Test histogram", 100, -10, 10);
-        m_trd_integral_h2d = new TH2F("trd_integral_events", "TRD events from Df125WindowRawData integral", 250, -0.5,
-                                      249.5, 300, -0.5, 299.5);
+        m_dqm_service->GetIntegralDir()->cd();
+        m_trd_integral_h2d = new TH2F("gemtrd_events", "TRD events from Df125WindowRawData integral", 250, -0.5, 249.5, 300, -0.5, 299.5);
 
         //  D O N E
         logger()->info("initialization done");
@@ -73,6 +64,8 @@ namespace ml4fpga::gem {
         try {
             fMapping = GemMapping::GetInstance();
 
+            auto event_gem_raq_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_raw");
+
             // Raw GEM data
             auto evio_raw_data = event->Get<DGEMSRSWindowRawData>();
 
@@ -86,17 +79,17 @@ namespace ml4fpga::gem {
                         continue;
                     }
                 }
-                FillRawData(event->GetEventNumber(), m_dir_event_hists, evio_raw_data);
+                FillRawData(event->GetEventNumber(), event_gem_raq_dir, evio_raw_data);
             }
 
-            // Data decoded for each APV
-            auto apv_data = event->GetSingle<ApvDecodedData>();
-            if(!apv_data) {
-                m_log->warn("No DecodedData for GemReconDqmProcessor");
-                return;
-            }
-            FillApvDecodedData(event->GetEventNumber(), m_dir_event_hists, apv_data);
-
+//            // Data decoded for each APV
+//            auto apv_data = event->GetSingle<ApvDecodedData>();
+//            if(!apv_data) {
+//                m_log->warn("No DecodedData for GemReconDqmProcessor");
+//                return;
+//            }
+//            FillApvDecodedData(event->GetEventNumber(), event_hist_dir, apv_data);
+//
             // Data decoded for a plane
             auto plane_data = event->GetSingle<PlaneDecodedData>();
             if(!plane_data) {
@@ -104,11 +97,13 @@ namespace ml4fpga::gem {
                 return;
             }
 
-            FillPlaneDecodedData(event->GetEventNumber(), m_dir_event_hists, plane_data);
+            auto event_gem_plane_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_plane");
 
-            auto raw_data = event->Get<ml4fpga::gem::RawData>();
-            auto pedestal = event->GetSingle<ml4fpga::gem::Pedestal>();
-            m_log->trace("data items: {} ", raw_data.size());
+            FillPlaneDecodedData(event->GetEventNumber(), event_gem_plane_dir, plane_data);
+//
+//            auto raw_data = event->Get<ml4fpga::gem::RawData>();
+//            auto pedestal = event->GetSingle<ml4fpga::gem::Pedestal>();
+//            m_log->trace("data items: {} ", raw_data.size());
         }
         catch (std::exception &exp) {
             std::string no_factory_message = "Could not find JFactoryT<DGEMSRSWindowRawData>";
@@ -143,22 +138,16 @@ namespace ml4fpga::gem {
         assert(srs_data.size() > 0);
         assert(srs_data[0]->samples.size() > 0);
 
-        // ID why but sometimes there is no the last sample data
-        int samples_size_0 = srs_data[0]->samples.size();
-        //assert( == srs_data[srs_data.size()-1]->samples.size());  // At least some test of samples size consistency
-
         int samples_size = srs_data[0]->samples.size();
         int nbins = samples_size * 128 + (samples_size-1);
 
         // This is going to be map<apvId, map<channelNum, vector<samples>>>
         std::map<int, std::map<int, std::vector<int> > > event_map;
 
+        // Making a map
         for(auto srs_item: srs_data) {
 
-            if(samples_size_0 != srs_item->samples.size())  {
-                // m_log->warn("samples_size_0 != srs_item->samples.size()");
-                continue;
-            }
+            if(samples_size != srs_item->samples.size()) continue;
 
             // Dumb copy of samples because one is int and the other is uint16_t
             std::vector<int> samples;
@@ -167,20 +156,20 @@ namespace ml4fpga::gem {
             }
 
             event_map[(int)srs_item->apv_id][(int)srs_item->channel_apv] = samples;
-            fMapping->APVchannelCorrection(srs_item->channel_apv);
         }
-        auto storeDir = gDirectory;
 
-        m_dir_event_hists->cd();
+        auto saved_gdir = gDirectory;  // save current directory
+        hists_dir->cd();
 
-        // Now lets go over this
+        // Now lets go over this map
         for(auto apvPair: event_map) {
             auto apv_id = apvPair.first;
             auto apv_channels = apvPair.second;
 
             // Crate histogram
-            std::string histo_name = fmt::format("evt_{}_{}", event_number, fMapping->GetAPVFromID(apv_id));
-            std::string histo_title = fmt::format("SRS Raw Window data for Event# {} APV {}", event_number, apv_id);
+            std::string apv_name = fMapping->GetAPVFromID(apv_id);
+            std::string histo_name = fmt::format("raw_{}", apv_name);
+            std::string histo_title = fmt::format("SRSRawWindowSata for Event# {} APV {}-{}", event_number, apv_id, apv_name);
 
             auto histo= new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
             histo->SetDirectory(hists_dir);
@@ -196,12 +185,16 @@ namespace ml4fpga::gem {
                 }
             }
 
-            histo->Write();
+            //histo->Write();
         }
+
+        // Restore current directory
+        if(saved_gdir) saved_gdir->cd();
     }
 
-    void GemReconDqmProcessor::FillApvDecodedData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::ApvDecodedData* data) {
-        m_dir_event_hists->cd();
+    void GemReconDqmProcessor::FillApvDecodedData(uint64_t event_number, TDirectory *hists_dir, const ml4fpga::gem::ApvDecodedData* data) {
+        auto saved_gdir = gDirectory;  // save current directory
+        hists_dir->cd();
 
         // Now lets go over this
         for(auto apv_pair: data->apv_data) {
@@ -215,7 +208,7 @@ namespace ml4fpga::gem {
             std::string histo_title = fmt::format("SRS Raw Window data for Event# {} APV {}", event_number, apv_id);
 
             auto histo= new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
-            histo->SetDirectory(pDirectory);
+            histo->SetDirectory(hists_dir);
 
             // go over channels
             for(size_t time_i = 0; time_i < timebins.size(); time_i++) {
@@ -226,13 +219,13 @@ namespace ml4fpga::gem {
                     histo->SetBinContent(bin_index, timebins[time_i][ch_i]);
                 }
             }
-
-            histo->Write();
         }
+
+        if(saved_gdir) saved_gdir->cd();  // restore gDirectory
     }
 
-    void GemReconDqmProcessor::FillPreReconData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::PreReconData* data) {
-        m_dir_event_hists->cd();
+    void GemReconDqmProcessor::FillPreReconData(uint64_t event_number, TDirectory *hists_dir, const ml4fpga::gem::PreReconData* data) {
+        hists_dir->cd();
 
         // Now lets go over this
         for(auto smpl_x: data->samples_x) {
@@ -266,15 +259,17 @@ namespace ml4fpga::gem {
         }
     }
 
-    void GemReconDqmProcessor::FillPlaneDecodedData(uint64_t event_number, TDirectory *directory, const PlaneDecodedData *data) {
-        m_dir_event_hists->cd();
+    void GemReconDqmProcessor::FillPlaneDecodedData(uint64_t event_number, TDirectory *hists_dir, const PlaneDecodedData *data) {
+
+        auto saved_gdir = gDirectory;  // save current directory
+        hists_dir->cd();
 
         const auto& plane_data_x = data->plane_data.at("URWELLX");
         const auto& plane_data_y = data->plane_data.at("URWELLY");
 
         // Crate histogram
-        std::string histo_name_x = fmt::format("evt_{}_plane_x", event_number);
-        std::string histo_name_y = fmt::format("evt_{}_plane_y", event_number);
+        std::string histo_name_x = fmt::format("plane_x", event_number);
+        std::string histo_name_y = fmt::format("plane_y", event_number);
         std::string histo_title_x = fmt::format("URWELLX data for event {}", event_number);
         std::string histo_title_y = fmt::format("URWELLY data for event {}", event_number);
 
@@ -283,20 +278,19 @@ namespace ml4fpga::gem {
         auto nbins = times_count*plane_adc_count + times_count;
 
         auto histo_x = new TH1F(histo_name_x.c_str(), histo_title_x.c_str(), nbins, -0.5, nbins - 0.5);
-        histo_x->SetDirectory(directory);
         auto histo_y = new TH1F(histo_name_y.c_str(), histo_title_y.c_str(), nbins, -0.5, nbins - 0.5);
-        histo_y->SetDirectory(directory);
 
-        // We create m_h1d_gem_prerecon_[x,y] here as here we know their size
-        if(!m_h1d_gem_prerecon_x) {
-            m_h1d_gem_prerecon_x = new TH1F("gem_prerecon_x", "Pre reconstruction ADC for URWELLX", nbins, -0.5, nbins - 0.5);
-            m_h1d_gem_prerecon_x->SetDirectory(m_dir_main);
-        }
-
-        if(!m_h1d_gem_prerecon_y) {
-            m_h1d_gem_prerecon_y = new TH1F("gem_prerecon_y", "Pre reconstruction ADC for URWELLY", nbins, -0.5, nbins - 0.5);
-            m_h1d_gem_prerecon_y->SetDirectory(m_dir_main);
-        }
+        // TODO
+//        // We create m_h1d_gem_prerecon_[x,y] here as here we know their size
+//        if(!m_h1d_gem_prerecon_x) {
+//            m_h1d_gem_prerecon_x = new TH1F("gem_prerecon_x", "Pre reconstruction ADC for URWELLX", nbins, -0.5, nbins - 0.5);
+//            m_h1d_gem_prerecon_x->SetDirectory(m_);
+//        }
+//
+//        if(!m_h1d_gem_prerecon_y) {
+//            m_h1d_gem_prerecon_y = new TH1F("gem_prerecon_y", "Pre reconstruction ADC for URWELLY", nbins, -0.5, nbins - 0.5);
+//            m_h1d_gem_prerecon_y->SetDirectory(hists_dir);
+//        }
 
 
         for(size_t time_i=0; time_i < plane_data_x.data.size(); time_i++) {
@@ -305,10 +299,10 @@ namespace ml4fpga::gem {
                 histo_x->SetBinContent(index, plane_data_x.data[time_i][adc_i]);
                 histo_y->SetBinContent(index, plane_data_y.data[time_i][adc_i]);
 
-                if(event_number > 50) {
-                    m_h1d_gem_prerecon_x->AddBinContent(index, plane_data_x.data[time_i][adc_i]);
-                    m_h1d_gem_prerecon_x->AddBinContent(index, plane_data_x.data[time_i][adc_i]);
-                }
+//                if(event_number > 50) {
+//                    m_h1d_gem_prerecon_x->AddBinContent(index, plane_data_x.data[time_i][adc_i]);
+//                    m_h1d_gem_prerecon_x->AddBinContent(index, plane_data_x.data[time_i][adc_i]);
+//                }
             }
             if(time_i > 0) {
 
@@ -317,8 +311,8 @@ namespace ml4fpga::gem {
 
             }
         }
-
-        histo_x->Write();
-        histo_y->Write();
+        // Restore current directory
+        if(saved_gdir) saved_gdir->cd();
     }
+
 }
