@@ -33,6 +33,17 @@ flowchart LR
         gemrecon
     end
     
-    dqm --> gemrecon
+    dqm -->|config| gemrecon
   end
+  
+  root_file[(ROOT<br>HistsFile)]
+  
+  gemrecon -->|histograms| root_file
 ```
+
+DQM service provide configuration for any plugins that want to add data to DQM: 
+
+- Should event be displayed in DQM or not
+- TDirectory* for this event histograms
+- TDirectory* for integral histograms for many events
+- Other information modules may need to add data to DQM
