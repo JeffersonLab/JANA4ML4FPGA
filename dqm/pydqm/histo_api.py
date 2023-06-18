@@ -2,71 +2,52 @@ from flask import Blueprint, jsonify, g
 from flask import request
 import plotly.express as px
 import plotly.graph_objects as go
-
+import uproot
+from uproot import KeyInFileError
+from uproot.models.TH import Model_TH1F_v3
+from werkzeug.utils import secure_filename
 
 histo_api = Blueprint('histo_api', __name__)
 
 
-@histo_api.route('/volatility/<crypto_name>/<vol>')
-@histo_api.route('/volatility/<plot_request_str>')
-@histo_api.route('/volatility')
-def volatility(plot_request_str=' ', crypto_name='BTC-USD'):
-    '''
-    1. each plot divided by -
-    2. each plot starts with:
-       - 's' - standard deviation
-       - 'v' - volatility (common)
-       - 'p' - parkinson volatility
-    3. Then goes number of days. Now discreet [7, 30, 60, 90, 180]
+@histo_api.route('/hist1d/<run>/<path:path>')
+def hist1d(run, path):
 
-    v7-v30-p7-p30
+    # Get the histogram
+    run = int(run)
 
-    '''
+    try:
 
-    'vol_7_day'
-    
-    if not plot_request_str:
-        message = 'plot_request_str is empty or None'
-        print(message)
-        return jsonify({'message':message}), 400
-    
-    plot_requests = plot_request_str.split('-')
+        hist_path = f"dqm/events/evt_{run}/{path}"
+        print(f"serving as hist1d: {hist_path}")
+        histogram = g.root_file[hist_path]
+    except Exception as e:
+        response = jsonify({"error": str(e)})
+        response.status_code = 500
+        return response
+        # Get the data from the histogram
+    data = histogram.to_numpy()
 
-    # get data
-    ochl_df = g.dp.get_daily_vochl_values('BTC-USD')
+    # # Create a Plotly figure
+    fig = go.Figure(data=[go.Bar(x=data[1][:-1], y=data[0])])
+    fig.update_layout(bargap=0)
 
-    # calculate volatility
-    vol_df = calculate_historical(ochl_df)
-
-    # creating picture
-    fig = go.Figure()
-
-    request_to_data_prefix_map = {
-        's': 'sd', 
-        'v': 'vol', 
-        'p': 'park_vol'
-    }
-
-    for plot_request in plot_requests:
-        
-        if plot_request[0] not in request_to_data_prefix_map.keys():
-            message = f"Plot request format is bad. It should start with {request_to_data_prefix_map.keys()}"
-            print(message)
-            return jsonify({'error': message}), 400
-        
-        prefix = request_to_data_prefix_map[plot_request[0]]
-
-        try:
-            days = int(plot_request[1:])
-        except Exception as err:
-            message = f"Plot request format is bad. Error parsing number of days {err}"
-            print(message)
-            return jsonify({'error': message}), 400
-        
-        data_name = f"{prefix}_{days}_day"
-        
-        fig.add_trace(go.Scatter(x=vol_df['Date'], y=vol_df[data_name], mode='lines', name=data_name))
-
-    response = jsonify(fig.to_dict())
+    # fig.add_trace(go.Scatter(x=vol_df['Date'], y=vol_df[data_name], mode='lines', name=data_name))
+    #
+    response = jsonify(fig)
     return response
 
+
+@histo_api.route('/geminfo/')
+def geminfo(run, path):
+
+    # Get the histogram
+    histogram = g.root_file["dqm/events/evt_24/gem_plane/plane_x"]
+    isinstance(histogram, Model_TH1F_v3)
+    # Get the data from the histogram
+    data = histogram.to_numpy()
+
+    # fig.add_trace(go.Scatter(x=vol_df['Date'], y=vol_df[data_name], mode='lines', name=data_name))
+    #
+    response = jsonify(histogram.to_numpy())
+    return response

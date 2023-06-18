@@ -1,7 +1,16 @@
-import React from "react";
+import React, {useContext, useState} from "react";
 import {NavLink} from "react-router-dom";
+import DqmContext from "../DqmContext";
 
 function Header() {
+
+    const { runNumber, setRunNumber } = useContext(DqmContext);
+    const [localRunNumber, setLocalRunNumber] = useState(1); // Local state for the input field
+
+    const handleSubmit = (event) => {
+        event.preventDefault();
+        setRunNumber(localRunNumber); // Set the global query state when the form is submitted
+    };
 
   return (
       <>
@@ -16,10 +25,16 @@ function Header() {
             </div>{/* End Logo */}
 
             <div className="search-bar">
-                <form className="search-form d-flex align-items-center" method="POST" action="#">
-                    <input type="text" name="query" placeholder="Search" title="Enter search keyword"/>
-                        <button type="submit" title="Search"><i className="bi bi-search"></i></button>
-
+                <form className="search-form d-flex align-items-center" onSubmit={handleSubmit}>
+                    <input
+                        type="text"
+                        name="runNumber"
+                        placeholder="Run Number"
+                        title="Enter Run Number"
+                        value={localRunNumber}
+                        onChange={e => setLocalRunNumber(e.target.value)} // Update the local state when the user types
+                    />
+                    <button type="submit" title="Search"><i className="bi bi-search"></i></button>
                 </form>
             </div>{/* End Search Bar */}
 

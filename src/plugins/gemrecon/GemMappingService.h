@@ -15,28 +15,49 @@
 #include <services/log/Log_service.h>
 #include <services/root_output/RootFile_service.h>
 #include <JANA/JApplication.h>
+#include "GemMapping.h"
 
 /**
  * This Service centralizes creation of Data quality monitor
  */
-class GemMappingService : public JService {
-public:
-    explicit GemMappingService(JApplication *app) : m_app(app) {}
+ namespace ml4fpga::gem {
+     class GemMappingService : public JService {
+     public:
+         explicit GemMappingService(JApplication *app) : m_app(app) {}
 
-    ~GemMappingService() override = default;
+         ~GemMappingService() override = default;
 
-    void acquire_services(JServiceLocator *locater) override {
-        auto log_service = m_app->GetService<Log_service>();
-        auto root_file_service = m_app->GetService<RootFile_service>();
-        m_log = log_service->logger("dqm-service");
-        m_root_file = root_file_service->GetHistFile();
-        m_top_dir = m_root_file->mkdir("dqm", "Data Quality Monitoring ", /*returnExistingDirectory*/ true);
-        m_events_dir = m_top_dir->mkdir("events", "Plots per event", /*returnExistingDirectory*/ true);
-        m_integral_dir = m_top_dir->mkdir("integral", "Plots over events range", /*returnExistingDirectory*/ true);
+         void acquire_services(JServiceLocator *locater) override {
+             auto log_service = m_app->GetService<Log_service>();
+             auto root_file_service = m_app->GetService<RootFile_service>();
+             m_log = log_service->logger("gemrecon:MappingService");
+             m_mapping = GemMapping::GetInstance();
 
-        // Get TDirectory for histograms root file
-        m_glb_lock = m_app->GetService<JGlobalRootLock>();
+             // I N I T   M A P P I N G
+             std::string mapping_file = "mapping.cfg";
+             m_app->SetDefaultParameter("gemrecon:mapping", mapping_file, "Full path to gem config");
+             m_log->info("Mapping file file: {}", mapping_file);
+             m_mapping->LoadMapping(mapping_file.c_str());
+             m_mapping->PrintMapping();
 
+             auto plane_map = m_mapping->GetAPVIDListFromPlaneMap();
+             m_log->info("MAPPING EXPLAINED:");
+             for (auto pair: plane_map) {
+                 auto name = pair.first;
+                 auto det_name = m_mapping->GetDetectorFromPlane(name);
+                 auto apv_list = pair.second;
+                 m_log->info("  Plane: {:<10} from detector {:<10} has {} APVs:", name, det_name, apv_list.size());
+                 for (auto apv_id: apv_list) {
+                     m_log->info("    {}", apv_id);
+                 }
+             }
+         }
 
+         GemMapping* GetMapping() { return m_mapping; }
 
-};
+     private:
+         JApplication *m_app = nullptr;
+         std::shared_ptr<spdlog::logger> m_log;
+         GemMapping* m_mapping;
+     };
+ }

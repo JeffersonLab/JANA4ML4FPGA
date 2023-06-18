@@ -9,6 +9,7 @@
 #include "GemReconDqmProcessor.h"
 #include "ApvDecodedDataFactory.h"
 #include "PlaneDecodedDataFactory.h"
+#include "GemMappingService.h"
 #include <JANA/JFactoryGenerator.h>
 
 
@@ -25,6 +26,8 @@ extern "C" {
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::RawDataFactory>());
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::ApvDecodedDataFactory>());
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::PlaneDecodedDataFactory>());
+        app->Add(new JFactoryGeneratorT<ml4fpga::gem::PeakFactory>());
+        app->ProvideService(std::make_shared<ml4fpga::gem::GemMappingService>(app));
     }
 }
     

@@ -4,16 +4,14 @@ import plotly
 from flask import Flask, g
 from flask.json.provider import DefaultJSONProvider
 
-from cryptosmart.data_providers.pandas_provider import PandasProvider
 import os
 import json
 import typing as t
 
-from .volatility_page import volatility_page
+from .histo_api import histo_api
 from flask_cors import CORS
-
-from cryptosmart.math.volatility import calculate_historical
-
+from flask import current_app
+import uproot
 
 # This address beginning will be added to API bueprints
 API_PREFIX = '/api/v1'
@@ -73,7 +71,8 @@ CORS(app)
 app.json = PlotlyCompatibleJsonProvider(app)
 
 
-app.register_blueprint(volatility_page, url_prefix=API_PREFIX)
+app.register_blueprint(histo_api, url_prefix=API_PREFIX)
+
 
 # api = Api(app)
 # api.add_resource(VolatilityPage, '/volatility')
@@ -88,17 +87,18 @@ this_folder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(ins
 # Debug print
 config = app.config
 config["BACKEND_ROOT_PATH"] = this_folder
-config["CRYPTOSMART_DATA_SOURCE"] = "path://" + os.path.abspath(os.path.join(this_folder, "..", "..", "data"))
-
 
 @app.before_request
-def before_requiest():
-    g.dp = PandasProvider(app.config["CRYPTOSMART_DATA_SOURCE"])
+def before_request():
+    g.root_file = uproot.open(current_app.config["ROOT_FILE_PATH"])
 
 
 @app.route('/')
 def index():
-    return "REST API backend. This is a placeholder for index. You probably need some other link"
+    print(current_app.config)  # Prints the configuration dictionary for your application
+
+    return "REST API backend. This is a placeholder for index. You probably need some other link " \
+        + repr(current_app.config["ROOT_FILE_PATH"])
 
 
 if __name__ == "__main__":
