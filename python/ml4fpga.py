@@ -132,7 +132,7 @@ class JanaConfigurator:
 
 def cdaq(args):
     print("Executing cdaq command with:")
-    print(f"  - Channel: {args.channel}")
+    print(f"  - Channel: {args.index}")
     print(f"  - Filename: {args.filename}")
 
 
@@ -210,7 +210,7 @@ def main():
     subparsers = parser.add_subparsers()
 
     cdaq_parser = subparsers.add_parser("cdaq", help="cdaq command help")
-    cdaq_parser.add_argument("channel", type=int, help="Channel number")
+    cdaq_parser.add_argument("index", type=int, help="Channel number")
     cdaq_parser.add_argument("filename", type=str, help="Filename for output")
     cdaq_parser.set_defaults(func=cdaq)
 

@@ -59,6 +59,7 @@ void FlatTreeWriterProcessor::Init() {
         m_ios.push_back(m_f250_pulse_io);
         m_ios.push_back(m_gem_scluster_io);
         m_ios.push_back(m_srs_prerecon_io);
+        m_ios.push_back(m_gem_peak_io);
         mEventTree->SetDirectory(m_main_dir);
 
         for(auto &io: m_ios) {
@@ -142,6 +143,8 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
                     SaveGEMSimpleClusters(clusters);
                     auto plane_decoded_data = event->GetSingle<ml4fpga::gem::PlaneDecodedData>();
                     SaveGEMDecodedData(plane_decoded_data);
+                    auto peaks = event->Get<ml4fpga::gem::PlanePeak>();
+                    SaveGEMPlanePeak(peaks);
                 }
                 catch(std::exception ex) {
                     m_log->error("event->Get<SFclust>() problem: {}", ex.what());
@@ -321,10 +324,11 @@ void FlatTreeWriterProcessor::SaveF250WindowRawData(std::vector<const Df250Windo
 void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const SFclust *> clusters) {
     for(auto cluster: clusters) {
         flatio::GemSimpleCluster cluster_save;
-        cluster_save.x = cluster->x;
-        cluster_save.y = cluster->y;
-        cluster_save.energy = cluster->E;
-        cluster_save.adc = cluster->A;
+        cluster_save.x = cluster->pos_x;
+        cluster_save.y = cluster->pos_y;
+
+        cluster_save.energy = cluster->energy;
+        cluster_save.adc = cluster->amplitude;
         m_gem_scluster_io.add(cluster_save);
     }
 }
@@ -341,6 +345,21 @@ void FlatTreeWriterProcessor::SaveGEMDecodedData(const ml4fpga::gem::PlaneDecode
             record.y = plane_data_y.data[time_i][adc_i];
             m_srs_prerecon_io.add(record);
         }
+    }
+}
+
+void FlatTreeWriterProcessor::SaveGEMPlanePeak(const std::vector<const ml4fpga::gem::PlanePeak *> &peaks) {
+    for(const auto peak: peaks) {
+        flatio::GemPlanePeak save_peak;
+        save_peak.apv_id = peak->apv_id;
+        save_peak.plane_id = peak->plane_id;
+        save_peak.plane_name = peak->plane_name;
+        save_peak.height = peak->height;
+        save_peak.width = peak->width;
+        save_peak.area = peak->area;
+        save_peak.index = peak->index;
+        save_peak.real_pos = peak->real_pos;
+        m_gem_peak_io.add(save_peak);
     }
 }
 

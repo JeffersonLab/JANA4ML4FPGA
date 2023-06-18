@@ -147,7 +147,7 @@ io_classes = [
         fields=[
             FieldInfo('uint32_t', 'roc'),
             FieldInfo('uint32_t', 'slot'),
-            FieldInfo('uint32_t', 'channel'),
+            FieldInfo('uint32_t', 'index'),
             FieldInfo('uint32_t', 'apv_id'),
             FieldInfo('uint32_t', 'channel_apv'),
             FieldInfo('uint16_t', 'best_sample'),
@@ -176,7 +176,7 @@ io_classes = [
         fields=[
             FieldInfo('uint32_t', 'roc'),
             FieldInfo('uint32_t', 'slot'),
-            FieldInfo('uint32_t', 'channel'),
+            FieldInfo('uint32_t', 'index'),
             FieldInfo('bool',     'invalid_samples'),
             FieldInfo('bool',     'overflow'),
             FieldInfo('uint32_t', 'itrigger'),
@@ -189,7 +189,7 @@ io_classes = [
         fields=[
             FieldInfo('uint32_t', 'roc'),
             FieldInfo('uint32_t', 'slot'),
-            FieldInfo('uint32_t', 'channel'),
+            FieldInfo('uint32_t', 'index'),
             FieldInfo('bool',     'invalid_samples'),
             FieldInfo('bool',     'overflow'),
             FieldInfo('uint32_t', 'itrigger'),
@@ -202,7 +202,7 @@ io_classes = [
         fields=[
             FieldInfo('uint32_t', 'roc'),
             FieldInfo('uint32_t', 'slot'),
-            FieldInfo('uint32_t', 'channel'),
+            FieldInfo('uint32_t', 'index'),
             FieldInfo('uint32_t', 'npk',                       'from first word'),
             FieldInfo('uint32_t', 'le_time',                   'from first word'),
             FieldInfo('uint32_t', 'time_quality_bit',          'from first word'),
@@ -230,7 +230,7 @@ io_classes = [
         fields=[
             FieldInfo('uint32_t', 'roc'),
             FieldInfo('uint32_t', 'slot'),
-            FieldInfo('uint32_t', 'channel'),
+            FieldInfo('uint32_t', 'index'),
             FieldInfo('uint32_t', 'event_within_block'),
             FieldInfo('bool', 'qf_pedestal'),
             FieldInfo('uint32_t', 'pedestal'),
@@ -268,6 +268,20 @@ io_classes = [
             FieldInfo('double', 'y'),
             FieldInfo('double', 'energy'),
             FieldInfo('double', 'adc'),
+        ]),
+
+    ClassInfo(
+        name="GemPlanePeak",
+        root_name="gem_peak",
+        fields=[
+            FieldInfo('uint32_t', 'plane_id'),
+            FieldInfo('std::string', 'plane_name'),
+            FieldInfo('uint32_t', 'index'),
+            FieldInfo('uint32_t', 'apv_id'),
+            FieldInfo('double', 'height'),
+            FieldInfo('double', 'width'),
+            FieldInfo('double', 'area'),
+            FieldInfo('double', 'real_pos'),
         ]),
 ]
 

@@ -34,6 +34,8 @@ public:
 
         // Get TDirectory for histograms root file
         m_glb_lock = m_app->GetService<JGlobalRootLock>();
+
+
     }
 
     /// This will return a pointer to the top-level directory for current file
@@ -62,9 +64,21 @@ public:
     /// This will return a pointer to the top-level directory for current file
     ///
     /// \return main DQM directory
+    TDirectory* GetIntegralSubDir(const std::string& subdir_name){
+        m_glb_lock->acquire_write_lock();
+        auto result  = m_integral_dir->mkdir(subdir_name.c_str(), /*title=*/"", /*returnExistingDirectory=*/true);
+        m_glb_lock->release_lock();
+        return result;
+    }
+
+    /// This will return a pointer to the top-level directory for current file
+    ///
+    /// \return main DQM directory
     TDirectory* GetIntegralDir(){
         return m_integral_dir;
     }
+
+
 
 
 

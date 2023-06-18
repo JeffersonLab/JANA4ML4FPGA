@@ -8,12 +8,12 @@ function Sidebar() {
             <ul className="sidebar-nav" id="sidebar-nav">
 
                 <li className="nav-item">
-                    <a class="nav-link ">
-                        <NavLink to="volatility">
+
+                        <NavLink to="gemraw" className="nav-link ">
                             <i className="bi bi-graph-up"></i>
-                            <span>SWRFetch</span>
+                            <span>GEM raw</span>
                         </NavLink>
-                    </a>
+
                 </li>{/* End Dashboard Nav */}
 
                 {/*<li className="nav-item">*/}

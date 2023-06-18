@@ -1,6 +1,6 @@
 {
-  "name": "crypto-ai",
-  "version": "2.0.2",
+  "name": "pydqm-frontend",
+  "version": "2.0.3",
   "dependencies": {
     "@fortawesome/fontawesome-free": "5.15.2",
     "bootstrap": "5.2.3",

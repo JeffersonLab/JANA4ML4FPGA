@@ -15,16 +15,7 @@
 
 namespace ml4fpga::gem {
 
-    class GemApvDecodingResult {
-    public:
-        std::vector<float> PedestalOffsets;
-        std::vector<float> PedestalNoises;
-        std::vector<std::vector<int>> RawData;
-        std::vector<double> CommonModeOffsets;
-        std::vector<double> RawDataAverage;
-    };
-
-class ClusterFactory: public JFactoryT<SFclust>, public spdlog::extensions::SpdlogMixin<ClusterFactory>  {
+    class ClusterFactory: public JFactoryT<SFclust>, public spdlog::extensions::SpdlogMixin<ClusterFactory>  {
     public:
         explicit ClusterFactory(JApplication* app);
         void Init() override;

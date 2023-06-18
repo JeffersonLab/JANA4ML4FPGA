@@ -640,11 +640,11 @@ int GemMapping::GetFECIDFromFECIP(std::string ip) {
 //=====================================================
 int GemMapping::GetPlaneID(std::string planeName) {
     std::string readoutType = GetReadoutBoardFromDetector(GetDetectorFromPlane(planeName));
-    int planeIDorEtaSector = (int) (fCartesianPlaneMap[planeName])[0];
-    if (readoutType == "1DSTRIPS") planeIDorEtaSector = (int) (f1DStripsPlaneMap[planeName])[0];
-    if (readoutType == "CMSGEM") planeIDorEtaSector = (int) (fCMSGEMDetectorMap[planeName])[0];
-    if (readoutType == "UV_ANGLE") planeIDorEtaSector = (int) (fUVangleReadoutMap[planeName])[0];
-    return planeIDorEtaSector;
+    if (readoutType == "CARTESIAN") return (int) (fCartesianPlaneMap[planeName])[0];
+    if (readoutType == "1DSTRIPS") return (int) (f1DStripsPlaneMap[planeName])[0];
+    if (readoutType == "CMSGEM") return (int) (fCMSGEMDetectorMap[planeName])[0];
+    if (readoutType == "UV_ANGLE") return (int) (fUVangleReadoutMap[planeName])[0];
+    return -1;
 }
 
 //=====================================================
@@ -660,7 +660,8 @@ int GemMapping::GetEtaSector(std::string planeName) {
 //=====================================================
 float GemMapping::GetPlaneSize(std::string planeName) {
     std::string readoutType = GetReadoutBoardFromDetector(GetDetectorFromPlane(planeName));
-    float planeSize = (fCartesianPlaneMap[planeName])[1];
+    float planeSize = 0;
+    if (readoutType == "CARTESIAN") planeSize = (fCartesianPlaneMap[planeName])[1];
     if (readoutType == "1DSTRIPS") planeSize = (f1DStripsPlaneMap[planeName])[1];
     if (readoutType == "CMSGEM") planeSize = (fCMSGEMDetectorMap[planeName])[1];
     if (readoutType == "UV_ANGLE") planeSize = (fUVangleReadoutMap[planeName])[3];

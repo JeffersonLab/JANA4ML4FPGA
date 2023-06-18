@@ -2,13 +2,13 @@
 #define SFCLUST_H
 
   typedef struct {
-    double x_index;
-    double y_index;
-    double x;
-    double y;
+    double index_x;
+    double index_y;
+    double pos_x;
+    double pos_y;
 
-    double E;
-    double A;
+    double energy;
+    double amplitude;
     int N;
   } SFclust;
 

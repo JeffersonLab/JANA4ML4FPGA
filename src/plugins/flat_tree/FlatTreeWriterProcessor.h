@@ -21,7 +21,8 @@
 #include "plugins/gemrecon/DecodedData.h"
 #include "plugins/gemrecon/SFclust.h"
 #include "SrsPreReconRecord.h"
-
+#include "GemPlanePeak.h"
+#include <plugins/gemrecon/PlanePeak.h>
 
 class JEvent;
 class JApplication;
@@ -74,6 +75,7 @@ private:
     flatio::F250FDCPulseRecordIO m_f250_pulse_io;
     flatio::GemSimpleClusterIO m_gem_scluster_io;
     flatio::SrsPreReconRecordIO m_srs_prerecon_io;
+    flatio::GemPlanePeakIO m_gem_peak_io;
 
     std::shared_ptr<JGlobalRootLock> m_glb_root_lock;
 
@@ -91,5 +93,6 @@ private:
     TDirectory* m_main_dir;
 
     void SaveGEMDecodedData(const ml4fpga::gem::PlaneDecodedData *data);
+    void SaveGEMPlanePeak(const std::vector<const ml4fpga::gem::PlanePeak *> &peaks);
 };
 
