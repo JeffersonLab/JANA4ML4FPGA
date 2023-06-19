@@ -374,6 +374,11 @@ void ml4fpga::gem::GemReconDqmProcessor::FillIntegralPlaneData(uint64_t event_nu
     const auto& plane_data_y = data->plane_data.at(m_name_plane_y);
 
     int times_count = plane_data_x.data.size();
+    if(times_count == 0) {
+        // This might happen during the end of run
+        return;
+    }
+
     int plane_adc_count = plane_data_x.data[0].size();
     auto nbins = times_count*plane_adc_count + times_count;
 
@@ -405,6 +410,7 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventClusters(uint64_t event_num, T
 
 void ml4fpga::gem::GemReconDqmProcessor::FillIntegralClusters(uint64_t evt_num, TDirectory *directory, std::vector<const SFclust *> clusters)
 {
+
     m_h1d_cluster_count->Fill(clusters.size());
 
     for(auto &cluster: clusters) {
