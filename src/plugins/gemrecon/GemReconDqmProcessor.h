@@ -102,12 +102,6 @@ namespace ml4fpga::gem {
          TH2F* m_h2d_clust_idx_xy = nullptr;
          TH1F* m_h2d_clust_amp = nullptr;
          TH1F* m_h2d_clust_energy = nullptr;
-
-
-
-
-
-
     };
 }      // namespace ml4fpga::gem
 

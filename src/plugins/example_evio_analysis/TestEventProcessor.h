@@ -10,13 +10,13 @@
 class JEvent;
 class JApplication;
 
-class TestEventProcessor:
+class AllInOneDqmProcessor:
         public JEventProcessor,
-        public spdlog::extensions::SpdlogMixin<TestEventProcessor>   // this automates proper Log initialization
+        public spdlog::extensions::SpdlogMixin<AllInOneDqmProcessor>   // this automates proper Log initialization
 {
 public:
-    explicit TestEventProcessor(JApplication *);
-    ~TestEventProcessor() override = default;
+    explicit AllInOneDqmProcessor(JApplication *);
+    ~AllInOneDqmProcessor() override = default;
 
     //----------------------------
     // Init
@@ -47,7 +47,7 @@ public:
 private:
 
     /// Directory to store histograms to
-    TDirectory *m_dir_main{};
+    TDirectory *m_trd_integral_dir{};
     TH1F* m_histo_1d;
     TH2F* m_trd_integral_h2d;
     TDirectory *m_dir_event_hists;

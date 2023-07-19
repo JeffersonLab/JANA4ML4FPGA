@@ -79,7 +79,7 @@ void ml4fpga::gem::GemReconDqmProcessor::Process(const std::shared_ptr<const JEv
     try {
         fMapping = GemMapping::GetInstance();
 
-        bool can_fill_event = event->GetEventNumber() < 500;
+        bool can_fill_event = m_dqm_service->ShouldProcessEvent(event->GetEventNumber());
 
         // Raw GEM data
         auto evio_raw_data = event->Get<DGEMSRSWindowRawData>();
