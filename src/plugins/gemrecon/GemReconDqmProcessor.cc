@@ -12,7 +12,7 @@
 #include <rawdataparser/Df125FDCPulse.h>
 #include <plugins/gemrecon/old_code/GEMOnlineHitDecoder.h>
 #include <extensions/root/DirectorySwitcher.h>
-#include <services/dqm/DataQualityMonitor_service.h>
+#include <services/dqm/DataQualityMonitorService.h>
 
 #include "RawData.h"
 #include "Pedestal.h"
@@ -40,7 +40,7 @@ void ml4fpga::gem::GemReconDqmProcessor::Init() {
     auto app = GetApplication();
 
     // Ask service locator a file to write histograms to
-    m_dqm_service = app->GetService<DataQualityMonitor_service>();
+    m_dqm_service = app->GetService<DataQualityMonitorService>();
 
     // Spawn gem reco directory
     auto dir_gem_reco = m_dqm_service->GetIntegralSubDir("gem_reco");
@@ -79,7 +79,7 @@ void ml4fpga::gem::GemReconDqmProcessor::Process(const std::shared_ptr<const JEv
     try {
         fMapping = GemMapping::GetInstance();
 
-        bool can_fill_event = m_dqm_service->ShouldProcessEvent(event->GetEventNumber());
+        bool should_fill_event = m_dqm_service->ShouldProcessEvent(event->GetEventNumber());
 
         // Raw GEM data
         auto evio_raw_data = event->Get<DGEMSRSWindowRawData>();
@@ -88,35 +88,37 @@ void ml4fpga::gem::GemReconDqmProcessor::Process(const std::shared_ptr<const JEv
         if(evio_raw_data.size() > 0) {
             int samples_size_0 = evio_raw_data[0]->samples.size();
             for(auto srs_item: evio_raw_data) {
-
                 if (samples_size_0 != srs_item->samples.size()) {
                     m_log->warn("samples_size_0 = {} != srs_item->samples.size() = {} at event# = {}", samples_size_0,  srs_item->samples.size(), event->GetEventNumber());
                     continue;
                 }
             }
-            if(can_fill_event) {
+            if(should_fill_event) {
                 auto event_gem_raw_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_raw");
                 FillEventRawData(event->GetEventNumber(), event_gem_raw_dir, evio_raw_data);
             }
         }
 
-//            // Data decoded for each APV
-//            auto apv_data = event->GetSingle<ApvDecodedData>();
-//            if(!apv_data) {
-//                m_log->warn("No DecodedData for GemReconDqmProcessor");
-//                return;
-//            }
-//            FillApvDecodedData(event->GetEventNumber(), event_hist_dir, apv_data);
-//
+        // Data decoded for each APV
+        auto apv_data = event->GetSingle<ApvDecodedData>();
+        if(!apv_data) {
+            m_log->warn("No ApvDecodedData for GemReconDqmProcessor");
+            return;
+        }
+
+        if(should_fill_event) {
+            FillApvDecodedData(event->GetEventNumber(), event_hist_dir, apv_data);
+        }
+
         // -----------------------------------------------
         // Data decoded for a plane
         auto plane_data = event->GetSingle<PlaneDecodedData>();
         if(!plane_data) {
-            m_log->warn("No DecodedData for GemReconDqmProcessor");
+            m_log->warn("No PlaneDecodedData for GemReconDqmProcessor");
             return;
         }
 
-        if(can_fill_event) {
+        if(should_fill_event) {
             auto dir_evt_plane = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_plane");
             FillEventPlaneData(event->GetEventNumber(), dir_evt_plane, plane_data);
         }
@@ -130,7 +132,7 @@ void ml4fpga::gem::GemReconDqmProcessor::Process(const std::shared_ptr<const JEv
 //            m_log->trace("data items: {} ", raw_data.size());
 
         auto clusters = event->Get<SFclust>();
-        if(can_fill_event) {
+        if(should_fill_event) {
             auto dir_evt_reco = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_reco");
             FillEventClusters(event->GetEventNumber(), dir_evt_reco, clusters);
         }
@@ -139,7 +141,7 @@ void ml4fpga::gem::GemReconDqmProcessor::Process(const std::shared_ptr<const JEv
         FillIntegralClusters(event->GetEventNumber(), dir_int_reco, clusters);
 
         auto peaks = event->GetSingle<PlanePeakFindingResult>();
-        if(can_fill_event) {
+        if(should_fill_event) {
             auto dir_evt_peaks = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_reco");
             FillEventPeaks(event->GetEventNumber(), dir_evt_peaks, peaks);
         }
@@ -173,10 +175,6 @@ void ml4fpga::gem::GemReconDqmProcessor::Finish() {
 
 
 void ml4fpga::gem::GemReconDqmProcessor::FillEventRawData(uint64_t event_number, TDirectory *hists_dir, std::vector<const DGEMSRSWindowRawData *> srs_data) {
-
-    if(m_events_count++ > 500) {
-        return;
-    }
 
     // check srs data is valid. At least assertions of what we have
     assert(srs_data.size() > 0);

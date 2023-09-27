@@ -6,7 +6,7 @@
 #include <TDirectory.h>
 #include <TH1F.h>
 #include <TH2F.h>
-#include "services/dqm/DataQualityMonitor_service.h"
+#include "services/dqm/DataQualityMonitorService.h"
 
 class JEvent;
 class JApplication;
@@ -51,6 +51,6 @@ private:
     TDirectory *m_trd_integral_dir{};
     TH2F* m_trd_integral_h2d;
     TDirectory *m_dir_event_hists;
-    std::shared_ptr<DataQualityMonitor_service> m_dqm_service;
+    std::shared_ptr<DataQualityMonitorService> m_dqm_service;
 };
 

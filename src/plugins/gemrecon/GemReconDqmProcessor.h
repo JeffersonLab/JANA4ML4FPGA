@@ -13,7 +13,7 @@
 #include <plugins/gemrecon/old_code/GEMHit.h>
 #include <extensions/spdlog/SpdlogMixin.h>
 #include <rawdataparser/DGEMSRSWindowRawData.h>
-#include <services/dqm/DataQualityMonitor_service.h>
+#include <services/dqm/DataQualityMonitorService.h>
 
 #include "DecodedData.h"
 #include "SFclust.h"
@@ -80,7 +80,7 @@ namespace ml4fpga::gem {
         void FillEventPlaneData(uint64_t event_number, TDirectory *directory, const PlaneDecodedData *data);
         void FillIntegralPlaneData(uint64_t event_number, TDirectory *directory, const PlaneDecodedData *data);
 
-        std::shared_ptr<DataQualityMonitor_service> m_dqm_service;
+        std::shared_ptr<DataQualityMonitorService> m_dqm_service;
         std::string m_name_plane_x = "URWELLX";
         std::string m_name_plane_y = "URWELLY";
 

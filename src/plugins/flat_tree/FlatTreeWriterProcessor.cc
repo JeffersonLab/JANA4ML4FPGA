@@ -327,6 +327,7 @@ void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const SFclust *>
         cluster_save.x = cluster->pos_x;
         cluster_save.y = cluster->pos_y;
 
+
         cluster_save.energy = cluster->energy;
         cluster_save.adc = cluster->amplitude;
         m_gem_scluster_io.add(cluster_save);

@@ -2,7 +2,7 @@
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
 #include "rawdataparser/Df125FDCPulse.h"
-#include "services/dqm/DataQualityMonitor_service.h"
+#include "services/dqm/DataQualityMonitorService.h"
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -81,7 +81,7 @@ void AllInOneDqmProcessor::Init() {
     auto app = GetApplication();
 
     // Ask service locator a DQM histograms to
-    m_dqm_service = app->GetService<DataQualityMonitor_service>();
+    m_dqm_service = app->GetService<DataQualityMonitorService>();
 
     // Get TDirectory for histograms root file
 //    auto globalRootLock = app->GetService<JGlobalRootLock>();

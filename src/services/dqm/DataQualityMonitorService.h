@@ -17,11 +17,11 @@
 /**
  * This Service centralizes creation of Data quality monitor
  */
-class DataQualityMonitor_service : public JService
+class DataQualityMonitorService : public JService
 {
 public:
-    explicit DataQualityMonitor_service(JApplication *app ):m_app(app){}
-    ~DataQualityMonitor_service() override = default;
+    explicit DataQualityMonitorService(JApplication *app ):m_app(app){}
+    ~DataQualityMonitorService() override = default;
 
     void acquire_services(JServiceLocator *locater) override {
         auto log_service = m_app->GetService<Log_service>();
@@ -90,7 +90,7 @@ public:
 
 private:
 
-    DataQualityMonitor_service()=default;
+    DataQualityMonitorService()=default;
 
     JApplication *m_app=nullptr;
     std::shared_ptr<spdlog::logger> m_log;
