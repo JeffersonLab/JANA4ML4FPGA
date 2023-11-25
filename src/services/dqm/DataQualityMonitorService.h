@@ -80,7 +80,7 @@ public:
         bool is_step_ok = event_index > 1 && (event_index % m_step) == 0;
         if(is_step_ok
            && event_index >= m_min_event_index
-           && event_index) {
+           && event_index <= m_max_event_index) {
             return true;
         }
         return false;
@@ -99,8 +99,8 @@ private:
     TDirectory *m_events_dir;                       /// TDirectory where each event subdir is stored
     std::shared_ptr<JGlobalRootLock> m_glb_lock;    /// Global ROOT lock
     TDirectory *m_integral_dir;
-    size_t m_min_event_index = 0;
-    size_t m_max_event_index = 500;
+    size_t m_min_event_index = 100;
+    size_t m_max_event_index = 5000;
     size_t m_step = 1;
 };
 

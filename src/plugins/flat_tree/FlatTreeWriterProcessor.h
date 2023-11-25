@@ -86,7 +86,7 @@ private:
     void SaveGEMSRSWindowRawData(std::vector<const DGEMSRSWindowRawData *> records);
     void SaveF125WindowRawData(std::vector<const Df125WindowRawData *> records);
     void SaveF250WindowRawData(std::vector<const Df250WindowRawData *> records);
-    void SaveGEMSimpleClusters(std::vector<const SFclust *> clusters);
+    void SaveGEMSimpleClusters(std::vector<const ml4fpga::gem::SFclust *> clusters);
 
 
 //    void SaveGEMDecodedData(const ml4fpga::gem::DecodedData *pData);

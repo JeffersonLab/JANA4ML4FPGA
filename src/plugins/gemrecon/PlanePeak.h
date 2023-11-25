@@ -7,12 +7,14 @@ namespace ml4fpga::gem {
     struct PlanePeak {
         uint32_t plane_id;         /// Plane id
         std::string plane_name;    /// Plane name
+        uint32_t time_id;          /// Time bin ID which has the max peak
         int index;                 /// The index of the peak in the input data
         int apv_id;                /// ID of APV with this adc
         double height;             /// The height of the peak
         int width;                 /// The width of the peak (number of consecutive data points that are part of the peak)
         double area;               /// The area under the peak (sum of the data values that are part of the peak)
         double real_pos;           /// Real position calculated from plane size
+
     };
 
     struct PlanePeakFindingResult {

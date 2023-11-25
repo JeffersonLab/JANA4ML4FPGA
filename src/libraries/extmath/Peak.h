@@ -9,13 +9,11 @@ namespace ml4fpga::extmath {
 
 /// Data structure to hold information about a single peak in one dimension
     struct Peak {
-        int index;      /// The index of the peak in the input data
-        double height;  /// The height of the peak
-        int width;      /// The width of the peak (number of consecutive data points that are part of the peak)
-        double area;    /// The area under the peak (sum of the data values that are part of the peak)
-
-        Peak(int index, double height, int width, double area)
-                : index(index), height(height), width(width), area(area) {}
+        int    index;        /// The index of the peak in the input data
+        double height;       /// The height of the peak
+        int    width;        /// The width of the peak (number of consecutive data points that are part of the peak)
+        double area;         /// The area under the peak (sum of the data values that are part of the peak)
+        int    time_index;   /// Index of a time slice where the peak has the maximum
 
         /// Equality operator for comparing peaks based on their data
         bool operator==(const Peak &other) const {

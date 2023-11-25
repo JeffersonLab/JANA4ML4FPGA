@@ -1,15 +1,8 @@
 #include "ClusterFactory.h"
-
-#include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
-#include "rawdataparser/Df125FDCPulse.h"
-#include "plugins/gemrecon/old_code/GEMOnlineHitDecoder.h"
-
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
-
 #include <Math/GenVector/PxPyPzM4D.h>
-
 #include <spdlog/spdlog.h>
 #include "services/root_output/RootFile_service.h"
 #include <filesystem>

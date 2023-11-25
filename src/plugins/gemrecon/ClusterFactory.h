@@ -3,15 +3,13 @@
 #include <JANA/JMultifactory.h>
 #include <JANA/JFactoryGenerator.h>
 #include <JANA/JFactoryT.h>
-#include "plugins/gemrecon/old_code/GEMCluster.h"
 #include <TH2F.h>
-#include "plugins/gemrecon/old_code/GEMPedestal.h"
-#include "plugins/gemrecon/old_code/GemConfiguration.h"
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "GemReconDqmProcessor.h"
 #include "extensions/spdlog/SpdlogExtensions.h"
 #include "SFclust.h"
 #include "ApvDecodingResult.h"
+#include "Constants.h"
 #include "extmath/PeakFinder.h"
 #include "GemMapping.h"
 #include "PlanePeak.h"

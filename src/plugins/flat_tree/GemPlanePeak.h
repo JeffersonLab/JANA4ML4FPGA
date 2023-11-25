@@ -9,10 +9,12 @@
 namespace flatio {
     struct GemPlanePeak
     {
+
         uint32_t plane_id;
         std::string plane_name;
         uint32_t index;
         uint32_t apv_id;
+        uint32_t time_id;
         double height;
         double width;
         double area;
@@ -30,6 +32,7 @@ namespace flatio {
             tree->Branch("gem_peak_plane_name", &m_vect_plane_name);
             tree->Branch("gem_peak_index", &m_vect_index);
             tree->Branch("gem_peak_apv_id", &m_vect_apv_id);
+            tree->Branch("gem_peak_time_id", &m_vect_time_id);
             tree->Branch("gem_peak_height", &m_vect_height);
             tree->Branch("gem_peak_width", &m_vect_width);
             tree->Branch("gem_peak_area", &m_vect_area);
@@ -43,6 +46,7 @@ namespace flatio {
             m_vect_plane_name.clear();
             m_vect_index.clear();
             m_vect_apv_id.clear();
+            m_vect_time_id.clear();
             m_vect_height.clear();
             m_vect_width.clear();
             m_vect_area.clear();
@@ -59,6 +63,7 @@ namespace flatio {
             m_vect_plane_name.push_back(data.plane_name);
             m_vect_index.push_back(data.index);
             m_vect_apv_id.push_back(data.apv_id);
+            m_vect_time_id.push_back(data.time_id);
             m_vect_height.push_back(data.height);
             m_vect_width.push_back(data.width);
             m_vect_area.push_back(data.area);
@@ -75,6 +80,7 @@ namespace flatio {
         std::vector<std::string> m_vect_plane_name;
         std::vector<uint32_t> m_vect_index;
         std::vector<uint32_t> m_vect_apv_id;
+        std::vector<uint32_t> m_vect_time_id;
         std::vector<double> m_vect_height;
         std::vector<double> m_vect_width;
         std::vector<double> m_vect_area;

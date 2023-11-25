@@ -4,13 +4,18 @@
 //
 
 #pragma once
+#include <JANA/JMultifactory.h>
+
 
 namespace ml4fpga {
 namespace gem {
 
-class GemMultifactory {
+    class GemMultifactory : public JMultifactory {
+    public:
+        GemMultifactory();
 
-};
+        void Process(const std::shared_ptr<const JEvent>&) override;
+    };
 
 } // gem
 } // ml4fpga

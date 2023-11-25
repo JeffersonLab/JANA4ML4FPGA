@@ -7,10 +7,6 @@
 #include <TH1F.h>
 #include <TH2F.h>
 
-#include <plugins/gemrecon/old_code/PreReconData.h>
-#include <plugins/gemrecon/old_code/GemConfiguration.h>
-#include <plugins/gemrecon/old_code/GEMPedestal.h>
-#include <plugins/gemrecon/old_code/GEMHit.h>
 #include <extensions/spdlog/SpdlogMixin.h>
 #include <rawdataparser/DGEMSRSWindowRawData.h>
 #include <services/dqm/DataQualityMonitorService.h>
@@ -19,6 +15,7 @@
 #include "SFclust.h"
 #include "PlanePeak.h"
 
+class GemMapping;
 class JEvent;
 class JApplication;
 
@@ -71,37 +68,42 @@ namespace ml4fpga::gem {
 
         GemMapping *fMapping;
 
-        void FillEventRawData(uint64_t event_number, TDirectory *hists_dir, std::vector<const DGEMSRSWindowRawData *> srs_data);
-
-        void FillApvDecodedData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::ApvDecodedData* data);
-
-        void FillPreReconData(uint64_t event_number, TDirectory *pDirectory, const ml4fpga::gem::PreReconData* data);
-
-        void FillEventPlaneData(uint64_t event_number, TDirectory *directory, const PlaneDecodedData *data);
-        void FillIntegralPlaneData(uint64_t event_number, TDirectory *directory, const PlaneDecodedData *data);
-
         std::shared_ptr<DataQualityMonitorService> m_dqm_service;
         std::string m_name_plane_x = "URWELLX";
         std::string m_name_plane_y = "URWELLY";
 
+        void FillEventRawData(const std::shared_ptr<const JEvent> &event);
 
-        void FillEventClusters(uint64_t event_num, TDirectory *directory, std::vector<const SFclust *> clusters);
+        void FillApvDecodedData(const std::shared_ptr<const JEvent> &event);
 
-        void FillIntegralClusters(uint64_t evt_num, TDirectory *directory, std::vector<const SFclust *> clusters);
+        void FillPreReconData(const std::shared_ptr<const JEvent> &event);
 
-        void FillEventPeaks(uint64_t evt_num, TDirectory *directory, const ml4fpga::gem::PlanePeakFindingResult *pf_result);
+        void FillEventPlaneData(const std::shared_ptr<const JEvent> &event);
+        void FillIntegralPlaneData(const std::shared_ptr<const JEvent> &event);
 
-        void FillIntegralPeaks(uint64_t evt_num, TDirectory *directory, const PlanePeakFindingResult *pf_result);
+
+
+
+        void FillEventClusters(const std::shared_ptr<const JEvent> &event);
+
+        void FillIntegralClusters(const std::shared_ptr<const JEvent> &event);
+
+        void FillEventPeaks(const std::shared_ptr<const JEvent> &event);
+
+        void FillIntegralPeaks(const std::shared_ptr<const JEvent> &event);
 
          TH1F* m_h1d_cluster_count = nullptr;
          TH1F* m_h1d_cluster_pos_x = nullptr;
          TH1F* m_h1d_cluster_pos_y = nullptr;
-         TH2F* m_h2d_clust_pos_xy = nullptr;
+         TH2F* m_h2d_cluster_pos_xy = nullptr;
          TH1F* m_h1d_cluster_idx_x = nullptr;
          TH1F* m_h1d_cluster_idx_y = nullptr;
-         TH2F* m_h2d_clust_idx_xy = nullptr;
-         TH1F* m_h2d_clust_amp = nullptr;
-         TH1F* m_h2d_clust_energy = nullptr;
+         TH2F* m_h2d_cluster_idx_xy = nullptr;
+         TH1F* m_h2d_cluster_amp = nullptr;
+         TH1F* m_h2d_cluster_energy = nullptr;
+
+         std::map<std::string, TH1F*> m_planes_h1d_data;
+         std::map<std::string, TH2F*> m_planes_h2d_data;
     };
 }      // namespace ml4fpga::gem
 

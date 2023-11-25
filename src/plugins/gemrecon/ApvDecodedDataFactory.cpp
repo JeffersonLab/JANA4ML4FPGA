@@ -3,7 +3,6 @@
 #include "rawdataparser/DGEMSRSWindowRawData.h"
 #include "rawdataparser/Df125WindowRawData.h"
 #include "rawdataparser/Df125FDCPulse.h"
-#include "plugins/gemrecon/old_code/GEMOnlineHitDecoder.h"
 
 #include <JANA/JApplication.h>
 #include <JANA/JEvent.h>
@@ -13,6 +12,9 @@
 #include <spdlog/spdlog.h>
 #include "services/root_output/RootFile_service.h"
 #include <filesystem>
+#include <numeric>
+
+#include "GemMapping.h"
 #include "Pedestal.h"
 #include "RawData.h"
 
@@ -95,14 +97,14 @@ void ApvDecodedDataFactory::Finish() {
     //===========================================================================================================
     // BLOCK WHERE COMMON MODE CORRECTION FOR ALL APV25 TIME BINS IS COMPUTED
     //===========================================================================================================
-    static const int NCH = 128;
+
     int fComModeCut = 20;       // TODO parameter
     double fZeroSupCut = 10;    // TODO parameter
     int fAPVBaseline = 2500;
     int time_bins_size = raw_data.size();
     assert(time_bins_size>0);
-    assert(raw_data[0].size() == NCH);
-    assert(offsets.size() == NCH);
+    assert(raw_data[0].size() == Constants::ChannelsCount);
+    assert(offsets.size() == Constants::ChannelsCount);
 
     std::vector<double> commonModeOffsets(time_bins_size, 0);
     std::vector<double> rawDataZS(time_bins_size, 0);
@@ -117,7 +119,7 @@ void ApvDecodedDataFactory::Finish() {
         }
 
         std::map<double, int> values_index_map;
-        for (int i = 0; i < NCH; i++) {
+        for (int i = 0; i < Constants::ChannelsCount; i++) {
             double val = channel_values[i];
             values_index_map[val] = i;
         }
@@ -133,8 +135,8 @@ void ApvDecodedDataFactory::Finish() {
         }
 
         // COMPUTE COMMON MODE FOR A GIVEN APV AND TIME BIN
-        double commonMode = std::accumulate(dataTest.begin(), dataTest.end(), 0.0) / NCH;
-        commonModeOffsets.push_back(commonMode);
+        double commonMode = std::accumulate(dataTest.begin(), dataTest.end(), 0.0) / Constants::ChannelsCount;
+        commonModeOffsets[timebin] = commonMode;
         //    if(fAPVID == 0) printf(" Enter  GEMHitDecoder::APVEventDecoder(), timebin = %d, commonMode = %d \n",  timebin, commonMode) ;
 
         // PERFORM COMMON MODE CORRECTION FOR A GIVEN TIME BIN
@@ -159,11 +161,11 @@ void ApvDecodedDataFactory::Finish() {
         // EXTRACT APV25 DATA FOR A GIVEN TIME BIN
         std::vector<double> timebin_data(Constants::ChannelsCount);
         std::vector<double> rawDataTS = raw_data[timebin];
-        for (int ch_i = 0; ch_i < NCH; ch_i++) {
+        for (int ch_i = 0; ch_i < Constants::ChannelsCount; ch_i++) {
 
             double data = -(rawDataTS[ch_i] - offsets[ch_i] - commonModeOffsets[timebin]);
-            int decoded_index = Constants::ApvChannelCorrection(ch_i);
-            timebin_data[decoded_index] = data;
+            //int decoded_index = Constants::ApvChannelCorrection(ch_i);
+            timebin_data[ch_i] = data;
         }
         decoded_data.push_back(timebin_data);
     }

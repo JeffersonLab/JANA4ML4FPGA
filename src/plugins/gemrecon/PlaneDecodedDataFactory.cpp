@@ -1,7 +1,6 @@
 #include "PlaneDecodedDataFactory.h"
 
 #include "rawdataparser/Df125WindowRawData.h"
-#include "plugins/gemrecon/old_code/GEMOnlineHitDecoder.h"
 
 #include <JANA/JEvent.h>
 
