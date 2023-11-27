@@ -13,10 +13,19 @@
 #include <extensions/root/DirectorySwitcher.h>
 #include <services/dqm/DataQualityMonitorService.h>
 #include <TROOT.h>
+#include <TCanvas.h>
+#include <TBox.h>
+#include <TPaveText.h>
+#include <TLine.h>
+#include <TPaveStats.h>
+#include <TLegend.h>
 
 #include "RawData.h"
 #include "Pedestal.h"
 #include "GemReconDqmProcessor.h"
+
+#include <TCanvas.h>
+
 #include "ApvDecodedDataFactory.h"
 #include "ClusterFactory.h"
 #include "GemMappingService.h"
@@ -335,6 +344,12 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(const std::shared_pt
     auto integral_dir = m_dqm_service->GetIntegralSubDir("gem_plane");
     auto event_number = event->GetEventNumber();
 
+    std::unordered_map<std::string, TH1F*> event_data_histos_by_plane;
+    std::unordered_map<std::string, TH1F*> event_noise_histos_by_plane;
+    int time_frame_count = 0;
+    int nbins = 0;
+    int adc_count = 0;
+
     // Iterate over planes
     for(const auto& kv: data->plane_data) {
         auto plane_name = kv.first;
@@ -342,13 +357,15 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(const std::shared_pt
 
         std::string histo_name = fmt::format("plane_{}", plane_name);
         std::string histo_title = fmt::format("{} data for event {}", plane_name, event_number);
-        int time_frame_count = plane_data.data.size();
-        int adc_count = plane_data.data[0].size();
-        auto nbins = time_frame_count * adc_count + time_frame_count;
+        time_frame_count = plane_data.data.size();
+        adc_count = plane_data.data[0].size();
+        nbins = time_frame_count * adc_count;
 
         // Initialize for this event histogram
-        auto event_histo = new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
-        event_histo->SetDirectory(events_dir);
+        auto event_data_histo = new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
+        auto event_noise_histo = new TH1F(("noise_" + histo_name).c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
+        event_data_histo->SetDirectory(events_dir);
+        event_noise_histo->SetDirectory(events_dir);
 
         // Initialize 1D integral histo
         TH1F* integral_1d_histo;
@@ -380,16 +397,114 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(const std::shared_pt
         // Fill the histogram
         for(size_t time_i=0; time_i < time_frame_count; time_i++) {
             for(size_t adc_i=0; adc_i < adc_count; adc_i++) {
-                int index = adc_count * time_i + time_i + adc_i;
-                event_histo->SetBinContent(index, plane_data.data[time_i][adc_i]);
+                int index = adc_count * time_i + adc_i;
+                event_data_histo->SetBinContent(index, plane_data.data[time_i][adc_i]);
+                event_noise_histo->SetBinContent(index, plane_data.PedestalNoises[adc_i]);
                 integral_1d_histo->AddBinContent(index, plane_data.data[time_i][adc_i]);
                 integral_2d_histo->Fill(adc_i, plane_data.data[time_i][adc_i]);
             }
 
             if(time_i > 0) {
-                event_histo->SetBinContent(adc_count * time_i, 0);
+                event_data_histo->SetBinContent(adc_count * time_i, 0);
             }
         }
+
+        event_data_histos_by_plane[plane_name] = event_data_histo;
+        event_noise_histos_by_plane[plane_name] = event_noise_histo;
+    }
+
+    // Fill peaks on the instagram
+    gROOT->SetBatch(kTRUE);
+
+    auto peaks = event->Get<PlanePeak>();
+    std::unordered_map<std::string, TCanvas*> peak_canvases_by_plane;
+    std::unordered_map<std::string, TLegend*> peak_paves_by_plane;
+    for(auto &peak: peaks) {
+
+        TCanvas *canvas = nullptr;
+        TLegend *legend = nullptr;
+        auto data_hist = event_data_histos_by_plane[peak->plane_name];
+        auto noise_hist = event_noise_histos_by_plane[peak->plane_name];
+
+        if(!peak_canvases_by_plane.count(peak->plane_name)) {
+            events_dir->cd();
+
+            // Create canvas
+            auto cnv_name = fmt::format("{}_peaks", peak->plane_name);
+            canvas = new TCanvas(cnv_name.c_str(),"Histogram Drawing Options",200,10,700,900);
+            peak_canvases_by_plane[peak->plane_name] = canvas;
+
+            // Draw a histogram
+            data_hist->Draw();
+            //noise_hist->SetLineColor(kGreen);
+            //noise_hist->Draw("same");
+
+            canvas->Update();
+
+            // Draw lines
+            double xmin, ymin, xmax, ymax;
+            canvas->GetRangeAxis(xmin, ymin, xmax, ymax);
+            for(size_t time_i=0; time_i < time_frame_count; time_i++) {
+                if(time_i == 0) continue;
+                int line_x = time_i * adc_count;
+                TLine *line = new TLine(line_x, ymin, line_x, ymax);
+                line->SetLineColor(kGray); // Set the line color to red
+                line->SetLineStyle(kDashed);
+                line->Draw(); // Draw the line
+            }
+
+            // Description pave
+            legend = new TLegend(0.1,0.9 - peaks.size()*0.05 ,0.3,0.9, "Peaks info");
+            legend->SetFillColorAlpha(kWhite, 0);
+            legend->SetBorderSize(1);
+            legend->SetLineColor(kBlack);
+            legend->SetTextAlign(12);
+            legend->Clear();
+            // Save canvas and TLegend
+
+            peak_paves_by_plane[peak->plane_name] = legend;
+        }
+        else {
+            canvas = peak_canvases_by_plane[peak->plane_name];
+            legend = peak_paves_by_plane[peak->plane_name];
+        }
+
+        canvas->cd();
+        double bin_width = data_hist->GetBinWidth(peak->index);
+        double xmin = peak->index + (peak->time_id * adc_count) - peak->width/2.0 - 1.5;  // 1.5 - histo bins are aligned
+        auto peak_box = new TBox(xmin, 0, xmin + peak->width, peak->height);
+        peak_box->SetLineColor(kRed);
+        peak_box->SetFillColorAlpha(kRed, 0.5);
+        peak_box->Draw();
+
+        auto peak_desc = fmt::format("Peak channel={}, width={}, height={:.1f}, time={}",
+            peak->index, peak->width, peak->height, peak->time_id);
+        // double xmin, ymin, xmax, ymax;
+        // canvas->GetRangeAxis(xmin, ymin, xmax, ymax);
+        legend->AddEntry((TObject*) nullptr, peak_desc.c_str());
+        canvas->Update();
+        // TPaveStats *ps = (TPaveStats*) canvas->GetPrimitive("stats");
+        // ps->AddText(peak_desc.c_str());
+
+        // delete c1;
+    }
+
+    // So the next has to do with cern root automated ownership
+    for(auto pair: peak_canvases_by_plane) {
+        auto plane_name = pair.first;
+        auto canvas = pair.second;
+        canvas->cd();
+        auto pave = peak_paves_by_plane[plane_name];
+        pave->Draw();
+        canvas->Update();
+        canvas->Write();
+        delete pair.second;
+    }
+
+
+
+    for(auto pair: event_data_histos_by_plane) {
+        //pair.second->Write();
     }
 }
 
@@ -424,7 +539,6 @@ void ml4fpga::gem::GemReconDqmProcessor::FillIntegralClusters(const std::shared_
 
 void ml4fpga::gem::GemReconDqmProcessor::FillEventPeaks(const std::shared_ptr<const JEvent> &event)
 {
-
     gROOT->SetBatch(kFALSE);
 
 }

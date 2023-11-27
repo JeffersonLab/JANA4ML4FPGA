@@ -10,6 +10,7 @@
 #include "ApvDecodedDataFactory.h"
 #include "PlaneDecodedDataFactory.h"
 #include "GemMappingService.h"
+#include "PeakFactory.h"
 #include <JANA/JFactoryGenerator.h>
 
 
