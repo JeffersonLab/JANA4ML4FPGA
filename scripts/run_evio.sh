@@ -23,13 +23,14 @@ if [[ $RUN == "help" ]] || [[ $RUN == "--help" ]] ; then
 fi
 
 SRS_MAPPING=
-if   (( 3000 < $RUN && $RUN <= 3139 )) ; then
-    SRS_MAPPING="db/2023_mapping_fermilab1.cfg"
-elif   (( 3140 < $RUN && $RUN <= 3147 )) ; then
-    SRS_MAPPING="db/2023_mapping_fermilab3.cfg"
-elif (( 3147 < $RUN && $RUN <= 4000 )) ; then
-    SRS_MAPPING="db/2023_mapping_fermilab3.cfg"
+if ((3000 < $RUN && $RUN <= 3156)) ; then 
+    SRS_MAPPING="db/2023_fermi_SRSmap0.cfg"
+elif (( 3156 < $RUN && $RUN <= 3261)) ; then 
+    SRS_MAPPING="db/2023_fermi_SRSmap1.cfg"
+elif ((3261 < $RUN && $RUN <=3199)) ; then
+    SRS_MAPPING="db/2023_fermi_SRSmap2.cfg"
 fi
+
 echo "SRS_MAPPING = $SRS_MAPPING"
 
 
