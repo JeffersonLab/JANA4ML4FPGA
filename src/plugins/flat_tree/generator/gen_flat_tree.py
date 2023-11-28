@@ -278,6 +278,7 @@ io_classes = [
             FieldInfo('std::string', 'plane_name'),
             FieldInfo('uint32_t', 'index'),
             FieldInfo('uint32_t', 'apv_id'),
+            FieldInfo('uint32_t', 'time_id'),
             FieldInfo('double', 'height'),
             FieldInfo('double', 'width'),
             FieldInfo('double', 'area'),

@@ -39,8 +39,9 @@ namespace ml4fpga {
                     samples.push_back(sample);
                 }
 
-                apvid_chan_sampls[(int) srs_item->apv_id][(int) srs_item->channel_apv] = samples;
-                fMapping->APVchannelCorrection(srs_item->channel_apv);
+                apvid_chan_sampls[(int) srs_item->apv_id][Constants::ApvChannelCorrection(srs_item->channel_apv)] = samples;
+                int bin_index = fMapping->APVchannelCorrection(srs_item->channel_apv);
+                //;
             }
 
             // Now lets go over this
@@ -52,8 +53,8 @@ namespace ml4fpga {
                 auto time_samples = apv_pair.second;
 
                 // Crate histogram
-                size_t samples_size = time_samples[0].size();
-                size_t raw_data_len = samples_size * 128;
+                const size_t samples_size = time_samples[0].size();
+                const size_t raw_data_len = samples_size * 128;
                 std::vector<double> all_samples(raw_data_len, 0);
 
                 RawSingleApvData apv_data;

@@ -65,14 +65,14 @@ inline static void FillTrdHistogram(uint64_t event_number,
 //------------------
 // OccupancyAnalysis (Constructor)
 //------------------
-TestEventProcessor::TestEventProcessor(JApplication *app) :
+AllInOneDqmProcessor::AllInOneDqmProcessor(JApplication *app) :
         JEventProcessor(app) {
 }
 
 //------------------
 // Init
 //------------------
-void TestEventProcessor::Init() {
+void AllInOneDqmProcessor::Init() {
     std::string plugin_name = GetPluginName();
 
     // Get JANA application
@@ -88,9 +88,9 @@ void TestEventProcessor::Init() {
     globalRootLock->release_lock();
 
     // Create a directory for this plugin. And subdirectories for series of histograms
-    m_dir_main = file->mkdir(plugin_name.c_str());
-    m_dir_event_hists = m_dir_main->mkdir("trd_events", "TRD events visualization");
-    m_dir_main->cd();
+    m_trd_integral_dir = file->mkdir(plugin_name.c_str());
+    m_dir_event_hists = m_trd_integral_dir->mkdir("trd_events", "TRD events visualization");
+    m_trd_integral_dir->cd();
 
     // Get Log level from user parameter or default
     InitLogger(plugin_name);
@@ -107,7 +107,7 @@ void TestEventProcessor::Init() {
 // Process
 //------------------
 // This function is called every event
-void TestEventProcessor::Process(const std::shared_ptr<const JEvent> &event) {
+void AllInOneDqmProcessor::Process(const std::shared_ptr<const JEvent> &event) {
     m_log->debug("new event");
     try {
         auto f125_records = event->Get<Df125WindowRawData>();
@@ -138,7 +138,7 @@ void TestEventProcessor::Process(const std::shared_ptr<const JEvent> &event) {
 //------------------
 // Finish
 //------------------
-void TestEventProcessor::Finish() {
+void AllInOneDqmProcessor::Finish() {
 //    m_log->trace("TestEventProcessor finished\n");
 
 }

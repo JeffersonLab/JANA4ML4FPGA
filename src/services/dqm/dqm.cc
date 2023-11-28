@@ -3,12 +3,12 @@
 //
 //
 
-#include "DataQualityMonitor_service.h"
+#include "DataQualityMonitorService.h"
 
 
 extern "C" {
 void InitPlugin(JApplication *app) {
     InitJANAPlugin(app);
-    app->ProvideService(std::make_shared<DataQualityMonitor_service>(app) );
+    app->ProvideService(std::make_shared<DataQualityMonitorService>(app) );
 }
 }

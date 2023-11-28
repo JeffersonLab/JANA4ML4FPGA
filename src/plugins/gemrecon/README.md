@@ -14,3 +14,4 @@ jana4ml4fpga
 -Phistsfile=/home/romanov/eic/JANA4ML4FPGA/cmake-build-debug/test.root
 /mnt/work/data/gemtrd/hd_rawdata_001068_000.evio
 ```
+

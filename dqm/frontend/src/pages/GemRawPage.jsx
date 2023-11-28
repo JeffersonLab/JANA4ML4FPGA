@@ -7,8 +7,8 @@ import DqmContext from "../DqmContext";
 function GemRawPage() {
     const { runNumber } = useContext(DqmContext);
 
-    let link_x =  `${BackendInfo.baseUrl}/api/v1/hist1d/${runNumber}/gem_plane/plane_x`
-    let link_y =  `${BackendInfo.baseUrl}/api/v1/hist1d/${runNumber}/gem_plane/plane_y`
+    let link_x =  `${BackendInfo.baseUrl}/api/v1/hist1d/${runNumber}/gem_plane/plane_URWELLX`
+    let link_y =  `${BackendInfo.baseUrl}/api/v1/hist1d/${runNumber}/gem_plane/plane_URWELLY`
 
     return(
         <div>

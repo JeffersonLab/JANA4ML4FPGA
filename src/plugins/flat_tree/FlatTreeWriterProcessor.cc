@@ -139,7 +139,7 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
                 try
                 {
                     // TODO fix it and check for factory
-                    auto clusters = event->Get<SFclust>();
+                    auto clusters = event->Get<ml4fpga::gem::SFclust>();
                     SaveGEMSimpleClusters(clusters);
                     auto plane_decoded_data = event->GetSingle<ml4fpga::gem::PlaneDecodedData>();
                     SaveGEMDecodedData(plane_decoded_data);
@@ -321,11 +321,12 @@ void FlatTreeWriterProcessor::SaveF250WindowRawData(std::vector<const Df250Windo
 }
 
 
-void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const SFclust *> clusters) {
+void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const ml4fpga::gem::SFclust *> clusters) {
     for(auto cluster: clusters) {
         flatio::GemSimpleCluster cluster_save;
         cluster_save.x = cluster->pos_x;
         cluster_save.y = cluster->pos_y;
+
 
         cluster_save.energy = cluster->energy;
         cluster_save.adc = cluster->amplitude;
@@ -353,6 +354,7 @@ void FlatTreeWriterProcessor::SaveGEMPlanePeak(const std::vector<const ml4fpga::
         flatio::GemPlanePeak save_peak;
         save_peak.apv_id = peak->apv_id;
         save_peak.plane_id = peak->plane_id;
+        save_peak.time_id = peak->time_id;
         save_peak.plane_name = peak->plane_name;
         save_peak.height = peak->height;
         save_peak.width = peak->width;

@@ -17,11 +17,11 @@
 /**
  * This Service centralizes creation of Data quality monitor
  */
-class DataQualityMonitor_service : public JService
+class DataQualityMonitorService : public JService
 {
 public:
-    explicit DataQualityMonitor_service(JApplication *app ):m_app(app){}
-    ~DataQualityMonitor_service() override = default;
+    explicit DataQualityMonitorService(JApplication *app ):m_app(app){}
+    ~DataQualityMonitorService() override = default;
 
     void acquire_services(JServiceLocator *locater) override {
         auto log_service = m_app->GetService<Log_service>();
@@ -34,8 +34,6 @@ public:
 
         // Get TDirectory for histograms root file
         m_glb_lock = m_app->GetService<JGlobalRootLock>();
-
-
     }
 
     /// This will return a pointer to the top-level directory for current file
@@ -78,13 +76,21 @@ public:
         return m_integral_dir;
     }
 
-
+    bool ShouldProcessEvent(size_t event_index) {
+        bool is_step_ok = event_index > 1 && (event_index % m_step) == 0;
+        if(is_step_ok
+           && event_index >= m_min_event_index
+           && event_index <= m_max_event_index) {
+            return true;
+        }
+        return false;
+    }
 
 
 
 private:
 
-    DataQualityMonitor_service()=default;
+    DataQualityMonitorService()=default;
 
     JApplication *m_app=nullptr;
     std::shared_ptr<spdlog::logger> m_log;
@@ -93,5 +99,8 @@ private:
     TDirectory *m_events_dir;                       /// TDirectory where each event subdir is stored
     std::shared_ptr<JGlobalRootLock> m_glb_lock;    /// Global ROOT lock
     TDirectory *m_integral_dir;
+    size_t m_min_event_index = 100;
+    size_t m_max_event_index = 5000;
+    size_t m_step = 1;
 };
 

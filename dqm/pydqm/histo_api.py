@@ -22,8 +22,9 @@ def hist1d(run, path):
         print(f"serving as hist1d: {hist_path}")
         histogram = g.root_file[hist_path]
     except Exception as e:
-        response = jsonify({"error": str(e)})
+        response = jsonify({"message": str(e)})
         response.status_code = 500
+        print(f"Getting response error: {str(e)}")
         return response
         # Get the data from the histogram
     data = histogram.to_numpy()

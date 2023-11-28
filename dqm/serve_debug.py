@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import inspect
+import uproot
 
 
 if __name__ == "__main__":
@@ -20,6 +21,11 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_false', help='Include this flag to enable debug mode')
 
     args = parser.parse_args()
+
+    print(f"File path is: {args.filepath}")
+    root_file = uproot.open(args.filepath)
+    print(f"File keys: {root_file.items()}")
+
 
     # run application
     app.config["ROOT_FILE_PATH"] = args.filepath

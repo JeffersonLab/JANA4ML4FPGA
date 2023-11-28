@@ -59,13 +59,13 @@ namespace ml4fpga::extmath {
     /// @param n_sigmas A double value representing the threshold multiplier. This is used in conjunction with noise_data to determine the minimum height for a peak.
     /// @param min_width An integer representing the minimum width of a peak. Any detected peak with a width smaller than this value will be discarded.
     /// @param min_distance An integer representing the minimum distance between two peaks. Peaks closer than this value to each other will be treated as a single peak.
-    /// @param max_time_shift A double value representing the tolerance for peak position when comparing peaks across different time slices. Peaks within this tolerance are treated as the same peak.
+    /// @param max_channel_shift A double value representing the tolerance for peak position when comparing peaks across different time slices. Peaks within this tolerance are treated as the same peak.
     ///
     /// @return Returns a vector of SingleDimensionPeakData objects, each representing a common peak detected across all time slices. For each unique peak position, only the peak with the highest amplitude is returned.
     ///
     inline std::vector<Peak>
     find_common_peaks(const std::vector<std::vector<double>> &time_slices, const std::vector<double> &noise_data, double n_sigmas,
-                      int min_width, int min_distance, double max_time_shift);
+                      int min_width, int min_distance, double max_channel_shift);
 
     // Match peaks in the X and Y dimensions using the specified mode.
     // Return a vector of Peak, each representing a pair of matching peaks.
@@ -82,7 +82,7 @@ namespace ml4fpga::extmath {
                                                       std::vector<Peak> y_peaks);
 
 
-    std::vector<Peak>
+    inline std::vector<Peak>
     find_peaks(std::vector<double> input_data, std::vector<double> noise_data, double n_sigmas, int min_width, int min_distance) {
         std::vector<Peak> peaks;
         if (input_data.empty()) return peaks;        // No data no peaks
@@ -121,7 +121,7 @@ namespace ml4fpga::extmath {
     }
 
 
-    std::vector<PeakPair> match_peaks(const std::vector<Peak> &x_peaks,
+    inline std::vector<PeakPair> match_peaks(const std::vector<Peak> &x_peaks,
                                       const std::vector<Peak> &y_peaks, PeakFindingMode mode) {
         if (mode == PeakFindingMode::AUTO) {
             if (x_peaks.size() == y_peaks.size()) {
@@ -141,7 +141,7 @@ namespace ml4fpga::extmath {
         }
     }
 
-    std::vector<PeakPair>
+    inline std::vector<PeakPair>
     match_peaks_sorting(std::vector<Peak> x_peaks, std::vector<Peak> y_peaks) {
         std::vector<PeakPair> matched_peaks;
 
@@ -158,7 +158,7 @@ namespace ml4fpga::extmath {
         return matched_peaks;
     }
 
-    std::vector<PeakPair> match_peaks_area_comparison(std::vector<Peak> x_peaks,
+    inline std::vector<PeakPair> match_peaks_area_comparison(std::vector<Peak> x_peaks,
                                                       std::vector<Peak> y_peaks) {
         struct Match {
             Peak x_peak;
@@ -198,62 +198,87 @@ namespace ml4fpga::extmath {
         return matched_peaks;
     }
 
-
-    std::vector<Peak>
-    find_common_peaks(const std::vector<std::vector<double>> &time_slices, const std::vector<double> &noise_data, double n_sigmas, int min_width, int min_distance, double max_time_shift) {
-        // Step 1: Detect peaks in each time slice
-        std::vector<std::vector<Peak>> all_peaks;
-        for (auto &slice: time_slices) {
-            all_peaks.push_back(find_peaks(slice, noise_data, n_sigmas, min_width, min_distance));
-        }
-
-        std::vector<Peak> common_peaks;
-
+    /// This function accepts time_slices[peaks] and returns peaks[time_slice]
+    /// the array of peaks that exist in all time_slices
+    inline std::vector<std::vector<Peak>> combine_common_peaks(std::vector<std::vector<Peak>>& peaks_by_time, int max_channel_shift) {
         // Step 2: Check for common peaks
-        // Step 2: Check for common peaks
-        for (size_t i = 0; i < all_peaks.size(); ++i) {
-            for (auto &peak: all_peaks[i]) {
-                bool common = true;
+        std::vector<std::vector<Peak>> combined_peaks;
 
-                // Check if this peak exists in all other time slices
-                for (size_t j = 0; j < all_peaks.size(); ++j) {
-                    if (i != j) {
-                        if (std::none_of(all_peaks[j].begin(), all_peaks[j].end(),
-                                         [&peak, max_time_shift](const Peak &other_peak) {
-                                             return abs(peak.index - other_peak.index) <= max_time_shift;
-                                         })) {
-                            common = false;
-                            break;
+        // If there is no input data, return empty output
+        if(peaks_by_time.empty()) return combined_peaks;
+
+        for (auto &t0_peak: peaks_by_time[0]) {
+            std::vector<Peak> peaks_bin;
+            peaks_bin.push_back(t0_peak);
+
+
+            // Go through other time slices
+            if(peaks_by_time.size() > 1)    // Check that we have more than 1 time slice
+            {
+                // For each other time slice
+                for (size_t time_slice = 1; time_slice < peaks_by_time.size(); ++time_slice) {
+
+                    // For each peak in this time slice
+                    auto &peaks  = peaks_by_time[time_slice];
+                    for(int i = 0; i < peaks.size(); i++) {
+                        // Compare if the peak is there
+                        if(abs(t0_peak.index - peaks[i].index) <= max_channel_shift) {
+                            peaks_bin.push_back(peaks[i]);
+                            peaks.erase(peaks.begin() + i);  // remove it so it doesn't go to another bin
                         }
                     }
                 }
-
-                if (common) {
-                    // This peak is common to all time slices, add it to the list
-                    common_peaks.push_back(peak);
-                }
             }
+
+            combined_peaks.push_back(peaks_bin);
+        }
+        return std::move(combined_peaks);
+    }
+
+
+    inline std::vector<Peak>
+    find_common_peaks(const std::vector<std::vector<double>> &time_slices, const std::vector<double> &noise_data, double n_sigmas, int min_width, int min_distance, double max_channel_shift) {
+        // Step 1: Detect peaks in each time slice
+        std::vector<std::vector<Peak>> peaks_by_time;
+        for (size_t time_slice=0; time_slice < time_slices.size(); time_slice++) {
+            auto& slice = time_slices[time_slice];
+            auto found_peaks = find_peaks(slice, noise_data, n_sigmas, min_width, min_distance);
+            for (auto& peak: found_peaks) {
+                peak.time_index = time_slice;
+            }
+            peaks_by_time.push_back(found_peaks);
         }
 
-        // Step 3: Keep only the peak with the maximum amplitude for each position
+        // in peaks_by_time[i][j] i - is a time slice and j is a peak in this time slice
+        // in combined_peaks[i][j] i - is a peak and j is a time slice (peak in different time slices)
+        auto combined_peaks = combine_common_peaks(peaks_by_time, max_channel_shift);
+
+        // create the end result
         std::vector<Peak> max_amplitude_peaks;
-        for (auto &peak: common_peaks) {
-            auto it = std::find_if(max_amplitude_peaks.begin(), max_amplitude_peaks.end(),
-                                   [&peak, max_time_shift](const Peak &max_peak) {
-                                       return abs(max_peak.index - peak.index) <= max_time_shift;
-                                   });
 
-            if (it == max_amplitude_peaks.end()) {
-                // This position is not in the list yet, add this peak
-                max_amplitude_peaks.push_back(peak);
-            } else {
-                // This position is already in the list, update the peak if this one has a higher amplitude
-                if (peak.height > it->height) {
-                    *it = peak;
+        for (auto& peaks_bucket: combined_peaks) {
+
+            // Skip if a peak is not presented on all time slices
+            if(peaks_bucket.size() != peaks_by_time.size()) continue;
+
+            // Select peak with the maximum amplitude for each position
+            // Case when we have only the one peak
+            if(peaks_bucket.size() == 1) {
+                max_amplitude_peaks.push_back(peaks_bucket[0]);
+            }
+            else if(peaks_bucket.size() > 1) {
+                // We have at least 2 or more peaks
+                auto sel_peak = peaks_bucket[0];
+                for(size_t i=1; i<peaks_bucket.size(); i++) {
+
+                    if(sel_peak.height < peaks_bucket[i].height) {
+                        sel_peak = peaks_bucket[i];
+                    }
                 }
+
+                max_amplitude_peaks.push_back(sel_peak);
             }
         }
-
         return max_amplitude_peaks;
     }
 }

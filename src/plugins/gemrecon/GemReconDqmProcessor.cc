@@ -10,13 +10,22 @@
 #include <rawdataparser/DGEMSRSWindowRawData.h>
 #include <rawdataparser/Df125WindowRawData.h>
 #include <rawdataparser/Df125FDCPulse.h>
-#include <plugins/gemrecon/old_code/GEMOnlineHitDecoder.h>
 #include <extensions/root/DirectorySwitcher.h>
-#include <services/dqm/DataQualityMonitor_service.h>
+#include <services/dqm/DataQualityMonitorService.h>
+#include <TROOT.h>
+#include <TCanvas.h>
+#include <TBox.h>
+#include <TPaveText.h>
+#include <TLine.h>
+#include <TPaveStats.h>
+#include <TLegend.h>
 
 #include "RawData.h"
 #include "Pedestal.h"
 #include "GemReconDqmProcessor.h"
+
+#include <TCanvas.h>
+
 #include "ApvDecodedDataFactory.h"
 #include "ClusterFactory.h"
 #include "GemMappingService.h"
@@ -40,7 +49,7 @@ void ml4fpga::gem::GemReconDqmProcessor::Init() {
     auto app = GetApplication();
 
     // Ask service locator a file to write histograms to
-    m_dqm_service = app->GetService<DataQualityMonitor_service>();
+    m_dqm_service = app->GetService<DataQualityMonitorService>();
 
     // Spawn gem reco directory
     auto dir_gem_reco = m_dqm_service->GetIntegralSubDir("gem_reco");
@@ -58,12 +67,12 @@ void ml4fpga::gem::GemReconDqmProcessor::Init() {
     m_h1d_cluster_count = new TH1F("gem_clust_count", "Number of clusters in event", 10, -0.5, 9.5);
     m_h1d_cluster_pos_x = new TH1F("gem_clust_pos_x", "Reconstructed clusters for plane X", 100, -plane_size_x, plane_size_x);
     m_h1d_cluster_pos_y = new TH1F("gem_clust_pos_y", "Reconstructed clusters for plane Y", 100, -plane_size_y, plane_size_y);
-    m_h2d_clust_pos_xy = new TH2F("gem_clust_pos_xy", "Reconstructed clusters XY", 128, -plane_size_x, plane_size_x, 128, -plane_size_y, plane_size_y);
+    m_h2d_cluster_pos_xy = new TH2F("gem_clust_pos_xy", "Reconstructed clusters XY", 128, -plane_size_x, plane_size_x, 128, -plane_size_y, plane_size_y);
     m_h1d_cluster_idx_x = new TH1F("gem_clust_idx_x", "Reconstructed clusters for plane X", nbins, -0.5, nbins - 0.5);
     m_h1d_cluster_idx_y = new TH1F("gem_clust_idx_y", "Reconstructed clusters for plane Y", nbins, -0.5, nbins - 0.5);
-    m_h2d_clust_idx_xy = new TH2F("gem_cluster_idx_xy", "Reconstructed clusters XY indexes", nbins, -0.5, nbins - 0.5, nbins, -0.5, nbins - 0.5);
-    m_h2d_clust_energy = new TH1F("gem_cluster_energy", "Reconstructed clusters Amplitude",  100, 0, 100);
-    m_h2d_clust_amp = new TH1F("gem_cluster_amp", "Reconstructed clusters Amplitude",  100, 0, 3000);
+    m_h2d_cluster_idx_xy = new TH2F("gem_cluster_idx_xy", "Reconstructed clusters XY indexes", nbins, -0.5, nbins - 0.5, nbins, -0.5, nbins - 0.5);
+    m_h2d_cluster_energy = new TH1F("gem_cluster_energy", "Reconstructed clusters Amplitude", 100, 0, 100);
+    m_h2d_cluster_amp = new TH1F("gem_cluster_amp", "Reconstructed clusters Amplitude", 100, 0, 3000);
 
     //  D O N E
     logger()->info("Initialization done");
@@ -79,72 +88,30 @@ void ml4fpga::gem::GemReconDqmProcessor::Process(const std::shared_ptr<const JEv
     try {
         fMapping = GemMapping::GetInstance();
 
-        bool can_fill_event = event->GetEventNumber() < 500;
+        bool should_fill_event = m_dqm_service->ShouldProcessEvent(event->GetEventNumber());
 
-        // Raw GEM data
-        auto evio_raw_data = event->Get<DGEMSRSWindowRawData>();
-
-        // ID why but sometimes there is no the last sample data
-        if(evio_raw_data.size() > 0) {
-            int samples_size_0 = evio_raw_data[0]->samples.size();
-            for(auto srs_item: evio_raw_data) {
-
-                if (samples_size_0 != srs_item->samples.size()) {
-                    m_log->warn("samples_size_0 = {} != srs_item->samples.size() = {} at event# = {}", samples_size_0,  srs_item->samples.size(), event->GetEventNumber());
-                    continue;
-                }
-            }
-            if(can_fill_event) {
-                auto event_gem_raw_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_raw");
-                FillEventRawData(event->GetEventNumber(), event_gem_raw_dir, evio_raw_data);
-            }
-        }
-
-//            // Data decoded for each APV
-//            auto apv_data = event->GetSingle<ApvDecodedData>();
-//            if(!apv_data) {
-//                m_log->warn("No DecodedData for GemReconDqmProcessor");
-//                return;
-//            }
-//            FillApvDecodedData(event->GetEventNumber(), event_hist_dir, apv_data);
-//
-        // -----------------------------------------------
-        // Data decoded for a plane
-        auto plane_data = event->GetSingle<PlaneDecodedData>();
-        if(!plane_data) {
-            m_log->warn("No DecodedData for GemReconDqmProcessor");
+        if(!should_fill_event) {
             return;
         }
 
-        if(can_fill_event) {
-            auto dir_evt_plane = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_plane");
-            FillEventPlaneData(event->GetEventNumber(), dir_evt_plane, plane_data);
-        }
+        // Raw GEM data
+        FillEventRawData(event);
 
-        auto dir_int_plane = m_dqm_service->GetIntegralSubDir("gem_plane");
-        FillIntegralPlaneData(event->GetEventNumber(), dir_int_plane, plane_data);
+        // Fill APV data
+        FillApvDecodedData(event);
 
-//
-//            auto raw_data = event->Get<ml4fpga::gem::RawData>();
-//            auto pedestal = event->GetSingle<ml4fpga::gem::Pedestal>();
-//            m_log->trace("data items: {} ", raw_data.size());
 
-        auto clusters = event->Get<SFclust>();
-        if(can_fill_event) {
-            auto dir_evt_reco = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_reco");
-            FillEventClusters(event->GetEventNumber(), dir_evt_reco, clusters);
-        }
+        // Data decoded for a plane
+        FillEventPlaneData(event);
+        FillIntegralPlaneData(event);
 
-        auto dir_int_reco = m_dqm_service->GetIntegralSubDir("gem_reco");
-        FillIntegralClusters(event->GetEventNumber(), dir_int_reco, clusters);
+        // Clusters
+        FillEventClusters(event);
+        FillIntegralClusters(event);
 
-        auto peaks = event->GetSingle<PlanePeakFindingResult>();
-        if(can_fill_event) {
-            auto dir_evt_peaks = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_reco");
-            FillEventPeaks(event->GetEventNumber(), dir_evt_peaks, peaks);
-        }
-        auto dir_int_peaks = m_dqm_service->GetIntegralSubDir("gem_reco");
-        FillIntegralPeaks(event->GetEventNumber(), dir_int_peaks, peaks);
+        // Peaks
+        FillEventPeaks(event);
+        FillIntegralPeaks(event);
     }
     catch (std::exception &exp) {
         std::string no_factory_message = "Could not find JFactoryT<DGEMSRSWindowRawData>";
@@ -172,26 +139,35 @@ void ml4fpga::gem::GemReconDqmProcessor::Finish() {
 }
 
 
-void ml4fpga::gem::GemReconDqmProcessor::FillEventRawData(uint64_t event_number, TDirectory *hists_dir, std::vector<const DGEMSRSWindowRawData *> srs_data) {
+void ml4fpga::gem::GemReconDqmProcessor::FillEventRawData(const std::shared_ptr<const JEvent> &event) {
 
-    if(m_events_count++ > 500) {
+    // Get data
+    auto srs_data = event->Get<DGEMSRSWindowRawData>();
+    auto  hists_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_raw");
+    uint64_t event_number = event->GetEventNumber();
+
+    // check srs data is not empty and there are samples
+    if(srs_data.size() == 0 || srs_data[0]->samples.size() == 0) {
         return;
     }
 
-    // check srs data is valid. At least assertions of what we have
-    assert(srs_data.size() > 0);
-    assert(srs_data[0]->samples.size() > 0);
-
+    // get sample size and number of bins
     int samples_size = srs_data[0]->samples.size();
     int nbins = samples_size * 128 + (samples_size-1);
+
+    // Sometimes there is no last sample. We NEED it to be coherent. Check, warn and skip if there are problems
+    for(auto srs_item: srs_data) {
+        if (samples_size != srs_item->samples.size()) {
+            m_log->warn("samples_size_0 = {} != srs_item->samples.size() = {} at event# = {}", samples_size,  srs_item->samples.size(), event->GetEventNumber());
+            return;
+        }
+    }
 
     // This is going to be map<apvId, map<channelNum, vector<samples>>>
     std::map<int, std::map<int, std::vector<int> > > event_map;
 
     // Making a map
     for(auto srs_item: srs_data) {
-
-        if(samples_size != srs_item->samples.size()) continue;
 
         // Dumb copy of samples because one is int and the other is uint16_t
         std::vector<int> samples;
@@ -228,31 +204,47 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventRawData(uint64_t event_number,
                 histo->SetBinContent(bin_index, samples[sample_i]);
             }
         }
-
-        //histo->Write();
     }
 
     // Restore current directory
     if(saved_gdir) saved_gdir->cd();
 }
 
-void ml4fpga::gem::GemReconDqmProcessor::FillApvDecodedData(uint64_t event_number, TDirectory *hists_dir, const ml4fpga::gem::ApvDecodedData* data) {
+void ml4fpga::gem::GemReconDqmProcessor::FillApvDecodedData(const std::shared_ptr<const JEvent> &event) {
+
+
+    auto  hists_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_apv");
+    uint64_t event_number = event->GetEventNumber();
+
+    // Data decoded for each APV
+    auto data = event->GetSingle<ApvDecodedData>();
+    if(!data) {
+        m_log->warn("No ApvDecodedData for GemReconDqmProcessor");
+        return;
+    }
+
     auto saved_gdir = gDirectory;  // save current directory
     hists_dir->cd();
 
     // Now lets go over this
     for(auto apv_pair: data->apv_data) {
         auto apv_id = apv_pair.first;
-        auto &timebins = apv_pair.second.data;
+        auto &adc_data = apv_pair.second;
+        auto &timebins = adc_data.data;
+
+        // Have data for this APV?
+        if(timebins.size() == 0) {
+            return;
+        }
 
         size_t nbins = timebins.size() * 128 + (timebins.size()-1);
+        auto apv_name = fmt::format("apv_{}_{}", apv_id,  fMapping->GetPlaneFromAPVID(apv_id));
 
-        // Crate histogram
-        std::string histo_name = fmt::format("evt_{}_dec_{}", event_number, fMapping->GetAPVFromID(apv_id));
-        std::string histo_title = fmt::format("SRS Raw Window data for Event# {} APV {}", event_number, apv_id);
-
-        auto histo= new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
-        histo->SetDirectory(hists_dir);
+        // Crate DATA histogram
+        std::string histo_name = fmt::format("{}_data", apv_name);
+        std::string histo_title = fmt::format("SRS Raw Window data for Event# {} APV {}", event_number, apv_name);
+        auto data_hist= new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
+        data_hist->SetDirectory(hists_dir);
 
         // go over channels
         for(size_t time_i = 0; time_i < timebins.size(); time_i++) {
@@ -260,8 +252,39 @@ void ml4fpga::gem::GemReconDqmProcessor::FillApvDecodedData(uint64_t event_numbe
             {
                 // go over samples
                 int bin_index = time_i*128 + time_i + ch_i;  // + time_i to make gaps in between samples
-                histo->SetBinContent(bin_index, timebins[time_i][ch_i]);
+                data_hist->SetBinContent(bin_index, timebins[time_i][ch_i]);
             }
+        }
+
+        // HISTOGRAM Common modes offsets
+        histo_name = fmt::format("{}_common_mode", apv_name);
+        histo_title = fmt::format("CommonModeOffsets for Event# {} APV {} {}", event_number, apv_id, apv_name);
+        auto cm_count = adc_data.CommonModeOffsets.size();
+        auto cm_hist = new TH1F(histo_name.c_str(), histo_title.c_str(), cm_count, -0.5, cm_count - 0.5);
+        cm_hist->SetDirectory(hists_dir);
+        for(size_t i=0; i < adc_data.CommonModeOffsets.size(); i++) {
+            cm_hist->SetBinContent(i, adc_data.CommonModeOffsets[i]);
+        }
+
+        // HISTOGRAM Pedestals
+        histo_name = fmt::format("{}_pedestals", apv_name);
+        histo_title = fmt::format("Pedestals for Event# {} APV {} {}", event_number, apv_id, apv_name);
+        auto pedestals_count = adc_data.PedestalOffsets.size();
+        assert(pedestals_count == 128);
+        auto pd_hist = new TH1F(histo_name.c_str(), histo_title.c_str(), pedestals_count, -0.5, pedestals_count - 0.5);
+        pd_hist->SetDirectory(hists_dir);
+        for(size_t i=0; i < pedestals_count; i++) {
+            pd_hist->SetBinContent(i, adc_data.PedestalOffsets[i]);
+        }
+
+        // HISTOGRAM Noises
+        histo_name = fmt::format("{}_noises", apv_name);
+        histo_title = fmt::format("Noises for Event# {} APV {} {}", event_number, apv_id, apv_name);
+        auto noises_count = adc_data.PedestalNoises.size();
+        auto noise_hist = new TH1F(histo_name.c_str(), histo_title.c_str(), noises_count, -0.5, noises_count - 0.5);
+        noise_hist->SetDirectory(hists_dir);
+        for(size_t i=0; i < adc_data.PedestalNoises.size(); i++) {
+            noise_hist->SetBinContent(i, adc_data.PedestalNoises[i]);
         }
     }
 
@@ -269,169 +292,260 @@ void ml4fpga::gem::GemReconDqmProcessor::FillApvDecodedData(uint64_t event_numbe
 }
 
 
-void ml4fpga::gem::GemReconDqmProcessor::FillPreReconData(uint64_t event_number, TDirectory *hists_dir, const ml4fpga::gem::PreReconData* data) {
-    hists_dir->cd();
+void ml4fpga::gem::GemReconDqmProcessor::FillPreReconData(const std::shared_ptr<const JEvent> &event) {
 
-    // Now lets go over this
-    for(auto smpl_x: data->samples_x) {
-        for(auto smpl_x: data->samples_y) {
-
-
-
-//            }
-//            auto apv_id = apv_pair.first;
-//            auto &timebins = apv_pair.second.data;
+//     auto data = event->GetSingle<PreReconData>();
 //
-//            size_t nbins = timebins.size() * 128 + (timebins.size()-1);
 //
-//            // Crate histogram
-//            std::string histo_name = fmt::format("evt_{}_xy_{}", event_number, fMapping->GetAPVFromID(apv_id));
-//            std::string histo_title = fmt::format("SRS Raw Window data for Event# {} APV {}", event_number, apv_id);
+//     // Now lets go over this
+//     for(auto smpl_x: data->samples_x) {
+//         for(auto smpl_x: data->samples_y) {
 //
-//            auto histo= new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
-//            histo->SetDirectory(pDirectory);
 //
-//            // go over channels
-//            for(size_t time_i = 0; time_i < timebins.size(); time_i++) {
-//                for(size_t ch_i = 0; ch_i < Constants::ChannelsCount; ch_i++)
-//                {
-//                    // go over samples
-//                    int bin_index = time_i*128 + time_i + ch_i;  // + time_i to make gaps in between samples
-//                    histo->SetBinContent(bin_index, timebins[time_i][ch_i]);
-//                }
-//            }
-
-                //histo->Write();
-        }
-    }
+//
+// //            }
+// //            auto apv_id = apv_pair.first;
+// //            auto &timebins = apv_pair.second.data;
+// //
+// //            size_t nbins = timebins.size() * 128 + (timebins.size()-1);
+// //
+// //            // Crate histogram
+// //            std::string histo_name = fmt::format("evt_{}_xy_{}", event_number, fMapping->GetAPVFromID(apv_id));
+// //            std::string histo_title = fmt::format("SRS Raw Window data for Event# {} APV {}", event_number, apv_id);
+// //
+// //            auto histo= new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
+// //            histo->SetDirectory(pDirectory);
+// //
+// //            // go over channels
+// //            for(size_t time_i = 0; time_i < timebins.size(); time_i++) {
+// //                for(size_t ch_i = 0; ch_i < Constants::ChannelsCount; ch_i++)
+// //                {
+// //                    // go over samples
+// //                    int bin_index = time_i*128 + time_i + ch_i;  // + time_i to make gaps in between samples
+// //                    histo->SetBinContent(bin_index, timebins[time_i][ch_i]);
+// //                }
+// //            }
+//
+//                 //histo->Write();
+//         }
+//     }
 }
 
-void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(uint64_t event_number, TDirectory *directory, const PlaneDecodedData *data) {
+void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(const std::shared_ptr<const JEvent> &event) {
 
-    if(m_events_count++ > 500) {
-        return;
-    }
+    /// This function fills 3 types of histograms for each plane:
+    /// 1. Plane data for all channels all time bins for this event
+    /// 2. Same but for all events
+    /// 3. Same as 2 but 2d
 
-    auto saved_gdir = gDirectory;  // save current directory
-    directory->cd();
+    // Get data
+    auto data = event->GetSingle<PlaneDecodedData>();
+    auto events_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_plane");
+    auto integral_dir = m_dqm_service->GetIntegralSubDir("gem_plane");
+    auto event_number = event->GetEventNumber();
 
-    const auto& plane_data_x = data->plane_data.at("URWELLX");
-    const auto& plane_data_y = data->plane_data.at("URWELLY");
+    std::unordered_map<std::string, TH1F*> event_data_histos_by_plane;
+    std::unordered_map<std::string, TH1F*> event_noise_histos_by_plane;
+    int time_frame_count = 0;
+    int nbins = 0;
+    int adc_count = 0;
 
-    // Crate histogram
-    std::string histo_name_x = fmt::format("plane_x", event_number);
-    std::string histo_name_y = fmt::format("plane_y", event_number);
-    std::string histo_title_x = fmt::format("URWELLX data for event {}", event_number);
-    std::string histo_title_y = fmt::format("URWELLY data for event {}", event_number);
+    // Iterate over planes
+    for(const auto& kv: data->plane_data) {
+        auto plane_name = kv.first;
+        const auto& plane_data = kv.second;
 
-    int times_count = plane_data_x.data.size();
-    int plane_adc_count = plane_data_x.data[0].size();
-    auto nbins = times_count*plane_adc_count + times_count;
+        std::string histo_name = fmt::format("plane_{}", plane_name);
+        std::string histo_title = fmt::format("{} data for event {}", plane_name, event_number);
+        time_frame_count = plane_data.data.size();
+        adc_count = plane_data.data[0].size();
+        nbins = time_frame_count * adc_count;
 
-    auto histo_x = new TH1F(histo_name_x.c_str(), histo_title_x.c_str(), nbins, -0.5, nbins - 0.5);
-    auto histo_y = new TH1F(histo_name_y.c_str(), histo_title_y.c_str(), nbins, -0.5, nbins - 0.5);
+        // Initialize for this event histogram
+        auto event_data_histo = new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
+        auto event_noise_histo = new TH1F(("noise_" + histo_name).c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
+        event_data_histo->SetDirectory(events_dir);
+        event_noise_histo->SetDirectory(events_dir);
 
-    // TODO
-//        // We create m_h1d_gem_prerecon_[x,y] here as here we know their size
-//        if(!m_h1d_gem_prerecon_x) {
-//            m_h1d_gem_prerecon_x = new TH1F("gem_prerecon_x", "Pre reconstruction ADC for URWELLX", nbins, -0.5, nbins - 0.5);
-//            m_h1d_gem_prerecon_x->SetDirectory(m_);
-//        }
-//
-//        if(!m_h1d_gem_prerecon_y) {
-//            m_h1d_gem_prerecon_y = new TH1F("gem_prerecon_y", "Pre reconstruction ADC for URWELLY", nbins, -0.5, nbins - 0.5);
-//            m_h1d_gem_prerecon_y->SetDirectory(hists_dir);
-//        }
-
-
-    for(size_t time_i=0; time_i < plane_data_x.data.size(); time_i++) {
-        for(size_t adc_i=0; adc_i < plane_data_x.data[time_i].size(); adc_i++) {
-            int index = plane_adc_count*time_i + time_i + adc_i;
-            histo_x->SetBinContent(index, plane_data_x.data[time_i][adc_i]);
-            histo_y->SetBinContent(index, plane_data_y.data[time_i][adc_i]);
-
-//                if(event_number > 50) {
-//                    m_h1d_gem_prerecon_x->AddBinContent(index, plane_data_x.data[time_i][adc_i]);
-//                    m_h1d_gem_prerecon_x->AddBinContent(index, plane_data_x.data[time_i][adc_i]);
-//                }
+        // Initialize 1D integral histo
+        TH1F* integral_1d_histo;
+        histo_title = fmt::format("{} data for processed events", plane_name);
+        if(!m_planes_h1d_data.count(histo_name)) {
+            integral_1d_histo = new TH1F(histo_name.c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
+            integral_1d_histo->SetDirectory(integral_dir);
+            m_planes_h1d_data[histo_name] = integral_1d_histo;
         }
-        if(time_i > 0) {
-
-            histo_x->SetBinContent(plane_adc_count*time_i, 0);
-            histo_y->SetBinContent(plane_adc_count*time_i, 0);
-
+        else
+        {
+            integral_1d_histo = m_planes_h1d_data[histo_name];
         }
-    }
-    // Restore current directory
-    if(saved_gdir) saved_gdir->cd();
-}
 
-void ml4fpga::gem::GemReconDqmProcessor::FillIntegralPlaneData(uint64_t event_number, TDirectory *directory, const ml4fpga::gem::PlaneDecodedData *data) {
+        // Initialize 2D integral histo
+        TH2F* integral_2d_histo;
+        auto histo2d_name = histo_name+"2d";
+        histo_title = fmt::format("{} data over all times", plane_name);
+        if(!m_planes_h2d_data.count(histo2d_name)) {
+            integral_2d_histo = new TH2F(histo2d_name.c_str(), histo_title.c_str(), 256, -0.5, 256 - 0.5, 175, 0, 2000);
+            integral_2d_histo->SetDirectory(integral_dir);
+            m_planes_h2d_data[histo2d_name] = integral_2d_histo;
+        }
+        else
+        {
+            integral_2d_histo = m_planes_h2d_data[histo2d_name];
+        }
 
-    extensions::root::SwitchTDirectory switch_dir(directory);
+        // Fill the histogram
+        for(size_t time_i=0; time_i < time_frame_count; time_i++) {
+            for(size_t adc_i=0; adc_i < adc_count; adc_i++) {
+                int index = adc_count * time_i + adc_i;
+                event_data_histo->SetBinContent(index, plane_data.data[time_i][adc_i]);
+                event_noise_histo->SetBinContent(index, plane_data.PedestalNoises[adc_i]);
+                integral_1d_histo->AddBinContent(index, plane_data.data[time_i][adc_i]);
+                integral_2d_histo->Fill(adc_i, plane_data.data[time_i][adc_i]);
+            }
 
-    const auto& plane_data_x = data->plane_data.at(m_name_plane_x);
-    const auto& plane_data_y = data->plane_data.at(m_name_plane_y);
-
-    int times_count = plane_data_x.data.size();
-    if(times_count == 0) {
-        // This might happen during the end of run
-        return;
-    }
-
-    int plane_adc_count = plane_data_x.data[0].size();
-    auto nbins = times_count*plane_adc_count + times_count;
-
-    // We create m_h1d_gem_prerecon_[x,y] here as only here we know their true nbins size
-    if(nullptr == m_h1d_gem_prerecon_x) {
-        m_h1d_gem_prerecon_x = new TH1F("gem_prerecon_x", "Pre reconstruction ADC for URWELLX", nbins, -0.5, nbins - 0.5);
-    }
-
-    if(nullptr == m_h1d_gem_prerecon_y) {
-        m_h1d_gem_prerecon_y = new TH1F("gem_prerecon_y", "Pre reconstruction ADC for URWELLY", nbins, -0.5, nbins - 0.5);
-    }
-
-    for(size_t time_i=0; time_i < plane_data_x.data.size(); time_i++) {
-        for(size_t adc_i=0; adc_i < plane_data_x.data[time_i].size(); adc_i++) {
-            int index = plane_adc_count*time_i + time_i + adc_i;
-            if(event_number > 50) {
-                m_h1d_gem_prerecon_x->AddBinContent(index, plane_data_x.data[time_i][adc_i]);
-                m_h1d_gem_prerecon_y->AddBinContent(index, plane_data_x.data[time_i][adc_i]);
+            if(time_i > 0) {
+                event_data_histo->SetBinContent(adc_count * time_i, 0);
             }
         }
+
+        event_data_histos_by_plane[plane_name] = event_data_histo;
+        event_noise_histos_by_plane[plane_name] = event_noise_histo;
+    }
+
+    // Fill peaks on the instagram
+    gROOT->SetBatch(kTRUE);
+
+    auto peaks = event->Get<PlanePeak>();
+    std::unordered_map<std::string, TCanvas*> peak_canvases_by_plane;
+    std::unordered_map<std::string, TLegend*> peak_paves_by_plane;
+    for(auto &peak: peaks) {
+
+        TCanvas *canvas = nullptr;
+        TLegend *legend = nullptr;
+        auto data_hist = event_data_histos_by_plane[peak->plane_name];
+        auto noise_hist = event_noise_histos_by_plane[peak->plane_name];
+
+        if(!peak_canvases_by_plane.count(peak->plane_name)) {
+            events_dir->cd();
+
+            // Create canvas
+            auto cnv_name = fmt::format("{}_peaks", peak->plane_name);
+            canvas = new TCanvas(cnv_name.c_str(),"Histogram Drawing Options",200,10,700,900);
+            peak_canvases_by_plane[peak->plane_name] = canvas;
+
+            // Draw a histogram
+            data_hist->Draw();
+            //noise_hist->SetLineColor(kGreen);
+            //noise_hist->Draw("same");
+
+            canvas->Update();
+
+            // Draw lines
+            double xmin, ymin, xmax, ymax;
+            canvas->GetRangeAxis(xmin, ymin, xmax, ymax);
+            for(size_t time_i=0; time_i < time_frame_count; time_i++) {
+                if(time_i == 0) continue;
+                int line_x = time_i * adc_count;
+                TLine *line = new TLine(line_x, ymin, line_x, ymax);
+                line->SetLineColor(kGray); // Set the line color to red
+                line->SetLineStyle(kDashed);
+                line->Draw(); // Draw the line
+            }
+
+            // Description pave
+            legend = new TLegend(0.1,0.9 - peaks.size()*0.05 ,0.3,0.9, "Peaks info");
+            legend->SetFillColorAlpha(kWhite, 0);
+            legend->SetBorderSize(1);
+            legend->SetLineColor(kBlack);
+            legend->SetTextAlign(12);
+            legend->Clear();
+            // Save canvas and TLegend
+
+            peak_paves_by_plane[peak->plane_name] = legend;
+        }
+        else {
+            canvas = peak_canvases_by_plane[peak->plane_name];
+            legend = peak_paves_by_plane[peak->plane_name];
+        }
+
+        canvas->cd();
+        double bin_width = data_hist->GetBinWidth(peak->index);
+        double xmin = peak->index + (peak->time_id * adc_count) - peak->width/2.0 - 1.5;  // 1.5 - histo bins are aligned
+        auto peak_box = new TBox(xmin, 0, xmin + peak->width, peak->height);
+        peak_box->SetLineColor(kRed);
+        peak_box->SetFillColorAlpha(kRed, 0.5);
+        peak_box->Draw();
+
+        auto peak_desc = fmt::format("Peak channel={}, width={}, height={:.1f}, time={}",
+            peak->index, peak->width, peak->height, peak->time_id);
+        // double xmin, ymin, xmax, ymax;
+        // canvas->GetRangeAxis(xmin, ymin, xmax, ymax);
+        legend->AddEntry((TObject*) nullptr, peak_desc.c_str());
+        canvas->Update();
+        // TPaveStats *ps = (TPaveStats*) canvas->GetPrimitive("stats");
+        // ps->AddText(peak_desc.c_str());
+
+        // delete c1;
+    }
+
+    // So the next has to do with cern root automated ownership
+    for(auto pair: peak_canvases_by_plane) {
+        auto plane_name = pair.first;
+        auto canvas = pair.second;
+        canvas->cd();
+        auto pave = peak_paves_by_plane[plane_name];
+        pave->Draw();
+        canvas->Update();
+        canvas->Write();
+        delete pair.second;
+    }
+
+
+
+    for(auto pair: event_data_histos_by_plane) {
+        //pair.second->Write();
     }
 }
 
-void ml4fpga::gem::GemReconDqmProcessor::FillEventClusters(uint64_t event_num, TDirectory *directory, std::vector<const SFclust *> clusters)
+void ml4fpga::gem::GemReconDqmProcessor::FillIntegralPlaneData(const std::shared_ptr<const JEvent> &event) {
+
+
+}
+
+void ml4fpga::gem::GemReconDqmProcessor::FillEventClusters(const std::shared_ptr<const JEvent> &event)
 {
 
 
 }
 
-void ml4fpga::gem::GemReconDqmProcessor::FillIntegralClusters(uint64_t evt_num, TDirectory *directory, std::vector<const SFclust *> clusters)
+void ml4fpga::gem::GemReconDqmProcessor::FillIntegralClusters(const std::shared_ptr<const JEvent> &event)
 {
+    auto clusters = event->Get<SFclust>();
 
     m_h1d_cluster_count->Fill(clusters.size());
 
     for(auto &cluster: clusters) {
         m_h1d_cluster_pos_x->Fill(cluster->pos_x);
         m_h1d_cluster_pos_y->Fill(cluster->pos_y);
-        m_h2d_clust_pos_xy->Fill(cluster->pos_x, cluster->pos_y);
+        m_h2d_cluster_pos_xy->Fill(cluster->pos_x, cluster->pos_y);
         m_h1d_cluster_idx_x->Fill(cluster->index_x);
         m_h1d_cluster_idx_y->Fill(cluster->index_y);
-        m_h2d_clust_idx_xy->Fill(cluster->index_x, cluster->index_y);
-        m_h2d_clust_amp->Fill(cluster->amplitude);
-        m_h2d_clust_energy->Fill(cluster->energy);
+        m_h2d_cluster_idx_xy->Fill(cluster->index_x, cluster->index_y);
+        m_h2d_cluster_amp->Fill(cluster->amplitude);
+        m_h2d_cluster_energy->Fill(cluster->energy);
     }
 }
 
-void ml4fpga::gem::GemReconDqmProcessor::FillEventPeaks(uint64_t evt_num, TDirectory *directory, const ml4fpga::gem::PlanePeakFindingResult *pf_result)
+void ml4fpga::gem::GemReconDqmProcessor::FillEventPeaks(const std::shared_ptr<const JEvent> &event)
 {
+    gROOT->SetBatch(kFALSE);
 
 }
 
-void ml4fpga::gem::GemReconDqmProcessor::FillIntegralPeaks(uint64_t evt_num, TDirectory *directory, const ml4fpga::gem::PlanePeakFindingResult *pf_result)
+void ml4fpga::gem::GemReconDqmProcessor::FillIntegralPeaks(const std::shared_ptr<const JEvent> &event)
 {
+    auto pf_result = event->GetSingle<PlanePeakFindingResult>();
     const auto& x_peaks = pf_result->peaks_by_plane.at(m_name_plane_x);
     const auto& y_peaks = pf_result->peaks_by_plane.at(m_name_plane_y);
 
@@ -448,9 +562,7 @@ void ml4fpga::gem::GemReconDqmProcessor::FillIntegralPeaks(uint64_t evt_num, TDi
         }
     }
 
-
     double plane_size_x = fMapping->GetPlaneSize(m_name_plane_x);
     double plane_size_y = fMapping->GetPlaneSize(m_name_plane_y);
-
 }
 

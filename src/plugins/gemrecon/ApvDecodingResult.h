@@ -10,10 +10,6 @@
 #include "extensions/spdlog/SpdlogExtensions.h"
 #include "GemReconDqmProcessor.h"
 #include "rawdataparser/DGEMSRSWindowRawData.h"
-#include "plugins/gemrecon/old_code/GemConfiguration.h"
-#include "plugins/gemrecon/old_code/GEMPedestal.h"
-#include <TH2F.h>
-#include "plugins/gemrecon/old_code/GEMCluster.h"
 #include <JANA/JFactoryT.h>
 #include <JANA/JFactoryGenerator.h>
 #include <JANA/JMultifactory.h>
