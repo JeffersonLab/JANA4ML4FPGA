@@ -1,0 +1,6 @@
+uproot
+matplotlib
+numpy
+plotly
+pandas
+jupyter
