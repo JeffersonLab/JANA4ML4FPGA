@@ -281,7 +281,7 @@ void FlatTreeWriterProcessor::SaveGEMSRSWindowRawData(std::vector<const DGEMSRSW
         srs_save.slot = srs_item->slot;
         srs_save.channel = srs_item->channel;
         srs_save.apv_id = srs_item->apv_id;
-        srs_save.channel_apv = srs_item->channel_apv;
+        srs_save.channel_apv = ml4fpga::gem::Constants::ApvChannelCorrection(srs_item->channel_apv);
 
         for(auto sample: srs_item->samples) {
             srs_save.samples.push_back(sample);
@@ -326,7 +326,6 @@ void FlatTreeWriterProcessor::SaveGEMSimpleClusters(std::vector<const ml4fpga::g
         flatio::GemSimpleCluster cluster_save;
         cluster_save.x = cluster->pos_x;
         cluster_save.y = cluster->pos_y;
-
 
         cluster_save.energy = cluster->energy;
         cluster_save.adc = cluster->amplitude;
