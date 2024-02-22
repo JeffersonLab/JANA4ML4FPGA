@@ -38,6 +38,7 @@ namespace ml4fpga {
                 for (unsigned short sample: srs_item->samples) {
                     samples.push_back(sample);
                 }
+                // m_log->info("ch {:<4} : mapped: {}", srs_item->channel_apv, Constants::ApvChannelCorrection(srs_item->channel_apv));
 
                 apvid_chan_sampls[(int) srs_item->apv_id][Constants::ApvChannelCorrection(srs_item->channel_apv)] = samples;
                 int bin_index = fMapping->APVchannelCorrection(srs_item->channel_apv);
