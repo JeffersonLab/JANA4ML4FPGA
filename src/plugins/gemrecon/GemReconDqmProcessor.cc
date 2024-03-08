@@ -354,15 +354,22 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(const std::shared_pt
     int time_frame_count = 0;
     int nbins = 0;
     int adc_count = 0;
+    //fmt::print("here 0\n");
 
     // Iterate over planes
     for(const auto& kv: data->plane_data) {
         auto plane_name = kv.first;
         const auto& plane_data = kv.second;
+        //fmt::print("here 1 plane_name={}\n", plane_name);
 
         std::string histo_name = fmt::format("plane_{}", plane_name);
         std::string histo_title = fmt::format("{} data for event {}", plane_name, event_number);
         time_frame_count = plane_data.data.size();
+        //fmt::print("time_frame_count={}\n", time_frame_count);
+        if(time_frame_count == 0) {
+            continue;
+        }
+
         adc_count = plane_data.data[0].size();
         nbins = time_frame_count * adc_count;
 
@@ -371,6 +378,8 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(const std::shared_pt
         auto event_noise_histo = new TH1F(("noise_" + histo_name).c_str(), histo_title.c_str(), nbins, -0.5, nbins - 0.5);
         event_data_histo->SetDirectory(events_dir);
         event_noise_histo->SetDirectory(events_dir);
+
+        //fmt::print("here 1 make histos\n", plane_name);
 
         // Initialize 1D integral histo
         TH1F* integral_1d_histo;
@@ -384,6 +393,8 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(const std::shared_pt
         {
             integral_1d_histo = m_planes_h1d_data[histo_name];
         }
+
+        //fmt::print("here 1 init histos\n", plane_name);
 
         // Initialize 2D integral histo
         TH2F* integral_2d_histo;
@@ -399,6 +410,8 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(const std::shared_pt
             integral_2d_histo = m_planes_h2d_data[histo2d_name];
         }
 
+        //fmt::print("here 1 init histos2\n", plane_name);
+
         // Fill the histogram
         for(size_t time_i=0; time_i < time_frame_count; time_i++) {
             for(size_t adc_i=0; adc_i < adc_count; adc_i++) {
@@ -413,10 +426,13 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(const std::shared_pt
                 event_data_histo->SetBinContent(adc_count * time_i, 0);
             }
         }
+        //fmt::print("here 1 fill histos\n", plane_name);
+
 
         event_data_histos_by_plane[plane_name] = event_data_histo;
         event_noise_histos_by_plane[plane_name] = event_noise_histo;
     }
+    //fmt::print("here PEAKS\n");
 
     // Fill peaks on the instagram
     gROOT->SetBatch(kTRUE);
