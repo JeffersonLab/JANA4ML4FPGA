@@ -147,7 +147,7 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
                     SaveGEMPlanePeak(peaks);
                 }
                 catch(std::exception ex) {
-                    m_log->error("event->Get<SFclust>() problem: {}", ex.what());
+                    //m_log->error("event->Get<SFclust>() problem: {}", ex.what());
                     // It will fail without gemrecon plugin
                     // TODO fix it fix it fix it !!!!111oneone
                 }

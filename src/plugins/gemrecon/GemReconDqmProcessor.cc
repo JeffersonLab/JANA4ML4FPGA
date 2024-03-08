@@ -146,6 +146,7 @@ void ml4fpga::gem::GemReconDqmProcessor::Finish() {
 
 void ml4fpga::gem::GemReconDqmProcessor::FillEventRawData(const std::shared_ptr<const JEvent> &event) {
 
+
     // Get data
     auto srs_data = event->Get<DGEMSRSWindowRawData>();
     auto hists_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_raw");

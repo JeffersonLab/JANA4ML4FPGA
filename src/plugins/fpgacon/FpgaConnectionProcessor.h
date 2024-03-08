@@ -5,6 +5,15 @@
 #include <extensions/spdlog/SpdlogMixin.h>
 #include <TDirectory.h>
 
+#include <TSocket.h>
+#include <TMarker.h>
+#include <TCanvas.h>
+#include <TH2.h>
+#include <TF1.h>
+#include <rawdataparser/Df125WindowRawData.h>
+
+#include "services/dqm/DataQualityMonitorService.h"
+
 class JEvent;
 class JApplication;
 
@@ -13,7 +22,7 @@ class FpgaConnectionProcessor:
         public spdlog::extensions::SpdlogMixin<FpgaConnectionProcessor>   // this automates proper Log initialization
 {
 public:
-    explicit FpgaConnectionProcessor(JApplication *);
+    explicit FpgaConnectionProcessor(JApplication *app): JEventProcessor(app) {};
     ~FpgaConnectionProcessor() override = default;
 
     //----------------------------
@@ -46,5 +55,6 @@ private:
 
     /// Directory to store histograms to
     TDirectory *m_dir_main{};
+    std::shared_ptr<DataQualityMonitorService> m_dqm_service;
 };
 
