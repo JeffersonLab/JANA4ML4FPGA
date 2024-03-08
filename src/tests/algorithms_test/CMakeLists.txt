@@ -9,10 +9,13 @@ add_executable(${DIRECOTRY_NAME}
         algorithms_test.cc
         catch_amalgamated.cpp
         catch_amalgamated.hpp
-        rolling_average_tests.cpp
+
         average_tests.cpp
         standard_deviation_test.cpp
         peak_finder_tests.cpp
+        rolling_average_tests.cpp
+        rolling_statistics_tests.cpp
+
         )
 
 # These tests need their own main

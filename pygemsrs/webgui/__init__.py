@@ -1,0 +1,241 @@
+import cgi
+import os
+
+from flask import Flask, g, render_template
+
+def print_app_functions(app):
+    print("APPLICATION VIEW FUNCTIONS:")
+    print("====================================")
+    for name, func in app.view_functions.items():
+        print(f"{name:<15}: {func}")
+
+    print("====================================")
+    print()
+
+
+
+"""Create and configure an instance of the Flask application."""
+app = Flask(__name__, instance_relative_config=True)
+app.config.from_mapping(
+    # a default secret that should be overridden by instance config
+    SQL_CONNECTION_STRING="mysql://ccdb_user@localhost/ccdb"
+)
+
+@app.before_request
+def before_request():
+    """This function is called in the beginning of requests"""
+    # Connect to CCDB
+    # g.db = ccdb.AlchemyProvider()
+    # g.db.connect(app.config["SQL_CONNECTION_STRING"])
+    pass
+
+@app.teardown_request
+def teardown_request(exception):
+    """This function is called in the end of each request"""
+
+    # # Try to get CCDB connectino and close it
+    # db = getattr(g, 'db', None)
+    # if db:
+    #     db.disconnect()
+    pass
+
+@app.route("/hello")
+def hello():
+    return "Hello, World!"
+
+@app.route('/')
+def index():
+    return render_template(
+        "index.html"
+    )
+
+@app.route('/simple')
+def simple():
+    return render_template("simple.html")
+
+@app.route('/tree')
+def directory_tree():
+    # Get ccdb Alchemy provider from flask global state 'g'
+    db: ccdb.AlchemyProvider = g.db
+
+    # This will make ccdb to get directories from db
+    root_dir = db.get_root_directory()
+
+    # Generate html code of directory tree
+    html_tree = dir_to_ul(root_dir, level=0)
+
+    return render_template("simple_tree.html", html_tree=html_tree)
+
+@app.route('/vars')
+def variations_test():
+    # Get ccdb Alchemy provider from flask global state 'g'
+    db: ccdb.AlchemyProvider = g.db
+
+    variations = db.get_variations()
+
+    return render_template("variations.html", variations=variations)
+
+@app.route('/logs')
+def log_records():
+    # Get ccdb Alchemy provider from flask global state 'g'
+    db: ccdb.AlchemyProvider = g.db
+
+    records = db.get_log_records(100)
+
+    return render_template("simple_logs.html", records=records)
+
+@app.route('/versions/<path:table_path>')
+def versions(table_path):
+
+    # Get ccdb Alchemy provider from flask global state 'g'
+    db: ccdb.AlchemyProvider = g.db
+
+    if table_path:
+        assignments = db.get_assignments("/" + table_path)  # "/test/test_vars/test_table"
+    else:
+        assignments = None
+
+    return render_template("simple_versions.html", assignments=assignments, table_path=table_path)
+
+@app.route('/test_request')
+def test_request():
+    db: ccdb.AlchemyProvider = g.db
+
+    db.get_root_directory()  # Loads directories
+
+    tables = db.search_type_tables("*")
+
+    tables_autocomplete = '[' + ','.join(['"' + table.path + '"' for table in tables]) + ']'
+    variations = db.get_variations()
+
+    return render_template("test_request.html", variations=variations, tables=tables,
+                           tables_autocomplete=tables_autocomplete)
+
+@app.route('/show_request', methods=['GET', 'POST'])
+def show_request():
+    from flask import request
+
+    db: ccdb.AlchemyProvider = g.db
+    # return str(request.form["request"])
+
+    str_request = request.args.get('request', '')
+
+    if not str_request:
+        return "Error empty request"
+
+    assignment = None  # this is the desired assignment
+    variation = ""
+    created = ""
+    author = ""
+    run_range = ""
+    comment = ""
+
+    # get request from web form
+    # str_request = "/test/test_vars/test_table:0:default:2012-10-30_23-48-41"
+
+    # parse request and prepare time
+    request = parse_request(str_request)
+    assert isinstance(request, ParseRequestResult)
+    time = request.time if request.time_is_parsed else None
+
+    # query database for assignments for this request
+    try:
+        assignments = db.get_assignments(request.path, request.run, request.variation, time)
+    except ccdb.errors.ObjectIsNotFoundInDbError:
+        return "Something is not found in the DB"
+
+    # get first assignment
+    if assignments and len(assignments) != 0:
+        assignment = assignments[0]
+        assert (isinstance(assignment, ccdb.Assignment))
+
+        variation = assignment.variation.name
+        created = str(assignment.created)
+        run_range = str(assignment.run_range.min) + " - "
+        run_range = run_range + (
+            str(assignment.run_range.max) if assignment.run_range.max != 2147483647 else "inf.")
+        comment = assignment.comment.replace("\n", "<br />")
+    try:
+        author = db.session.query(User).filter(User.id == assignment.author_id).one().name
+    except Exception as ex:
+        print(ex)
+
+    return render_template("show_request.html",
+                           assignment=assignment,
+                           variation=variation,
+                           created=created,
+                           author=author,
+                           run_range=run_range,
+                           comment=comment,
+                           user_request_str=str_request
+                           )
+
+@app.route('/dowload_request')
+def download_request():
+    from flask import request
+
+    db: ccdb.AlchemyProvider = g.db
+    # return str(request.form["request"])
+
+    str_request = request.args.get('request', '')
+
+    if str_request:
+
+        # parse request and prepare time
+        request = parse_request(str_request)
+        assert isinstance(request, ParseRequestResult)
+        time = request.time if request.time_is_parsed else None
+
+        # query database for assignments for this request
+        assignments = db.get_assignments(request.path, request.run, request.variation, time)
+
+        # get first assignment
+        if not assignments or len(assignments) == 0:
+            return "No assignments found"
+
+        assignment = assignments[0]
+        assert (isinstance(assignment, ccdb.Assignment))
+        result = " "
+        # print META information about the request
+        result += f"#meta full request: {assignment.request}\n<br>"
+        result += f"#meta variation: {assignment.variation.name}\n<br>"
+        result += f"#meta created: {assignment.created}\n<br>"
+        max_run = assignment.run_range.max if assignment.run_range.max != 2147483647 else "inf."
+        result += f"#meta run range: {assignment.run_range.min} - {max_run}<br>"
+        try:
+            result += f"#meta author:  {db.session.query(User).filter(User.id == assignment.author_id).one().name}<br>"  # TODO make provider proper function to handl author by id
+        except Exception as ex:
+            result += f"#meta author: error getting name by id = {assignment.author_id}<br>"
+
+        # print comment
+        result += "<br>\n#" + assignment.comment.replace("\n", "\n#") + "\n\n<br><br>"
+
+        # column names
+        result += "#& ".join([column.name for column in assignment.constant_set.type_table.columns]) + "<br>"
+
+        # print
+        for row in assignment.constant_set.data_table:
+            result += " ".join(row) + "<br>"
+
+        return result
+
+# THIS IS FOR FUTURE
+# ====================================================================
+# from ccdb.webgui.data_timeline import bp as time_line_bp
+# from ccdb.webgui.dashboard import bp as dashboard_bp
+#
+# app.register_blueprint(time_line_bp)
+# app.register_blueprint(dashboard_bp)
+#
+# # make url_for('index') == url_for('blog.index')
+# # in another app, you might define a separate main index here with
+# # app.route, while giving the blog blueprint a url_prefix, but for
+# # the tutorial the blog will be the main index
+# app.add_url_rule("/", endpoint="index")
+# ====================================================================
+
+print_app_functions(app)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)

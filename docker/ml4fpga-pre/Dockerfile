@@ -72,7 +72,7 @@ RUN edpm config global cxx_standard=17 &&\
 
 # aa
 RUN python3 -m pip install --user --upgrade --force-reinstall  edpm &&\
-    edpm config jana2 branch="master" &&\
+    edpm config jana2 branch="v2.1.2" &&\
     edpm config jana2 cmake_flags="-DUSE_PODIO=Off -DUSE_ROOT=On" &&\
     edpm install jana4ml4fpga --deps-only
 
@@ -101,6 +101,8 @@ ENTRYPOINT ["/entrypoint.sh"]
 USER root
 
 RUN echo "done"
+
+
 
 #CMD jupyter lab --ip=0.0.0.0 --no-browser \
 #    --NotebookApp.custom_display_url=http://127.0.0.1:8888 \

@@ -11,7 +11,10 @@
 #include "PlaneDecodedDataFactory.h"
 #include "GemMappingService.h"
 #include "PeakFactory.h"
+
 #include <JANA/JFactoryGenerator.h>
+
+#include "SampleAnalysisFactory.h"
 
 
 extern "C" {
@@ -28,7 +31,7 @@ extern "C" {
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::ApvDecodedDataFactory>());
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::PlaneDecodedDataFactory>());
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::PeakFactory>());
-        app->ProvideService(std::make_shared<ml4fpga::gem::GemMappingService>(app));
+        app->Add(new JFactoryGeneratorT<ml4fpga::gem::SampleAnalysisFactory>());
     }
 }
     

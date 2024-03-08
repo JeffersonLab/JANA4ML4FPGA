@@ -134,6 +134,8 @@ EVIOBlockedEventParser::ParseEVIOBlockedEvent(EVIOBlockedEvent &block, JEventPoo
         // Allocate M JEvents from the pool
         for (uint32_t i = 0; i < M; i++) {
             auto event = pool->get(0);
+            // event->SetEventNumber()
+            // event->SetEventNumber()
             event->SetEventNumber(event_num + i); // should be 0 for BOR and EPICS events
             events.push_back(event);
         }

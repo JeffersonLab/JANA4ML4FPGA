@@ -41,6 +41,8 @@ namespace ml4fpga::gem {
 
 
 
+        void FillIntegralTimePeakData(const std::shared_ptr<const JEvent>& event);
+
         //----------------------------
         // Process
         //

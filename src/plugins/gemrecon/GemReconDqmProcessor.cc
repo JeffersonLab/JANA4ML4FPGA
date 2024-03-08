@@ -29,6 +29,7 @@
 #include "ApvDecodedDataFactory.h"
 #include "ClusterFactory.h"
 #include "GemMappingService.h"
+#include "SampleData.h"
 
 
 //-------------------------------------
@@ -79,6 +80,7 @@ void ml4fpga::gem::GemReconDqmProcessor::Init() {
 }
 
 
+
 //------------------
 // Process
 //------------------
@@ -112,6 +114,9 @@ void ml4fpga::gem::GemReconDqmProcessor::Process(const std::shared_ptr<const JEv
         // Peaks
         FillEventPeaks(event);
         FillIntegralPeaks(event);
+
+        // TimeBinData
+        FillIntegralTimePeakData(event);
     }
     catch (std::exception &exp) {
         std::string no_factory_message = "Could not find JFactoryT<DGEMSRSWindowRawData>";
@@ -143,7 +148,7 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventRawData(const std::shared_ptr<
 
     // Get data
     auto srs_data = event->Get<DGEMSRSWindowRawData>();
-    auto  hists_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_raw");
+    auto hists_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_raw");
     uint64_t event_number = event->GetEventNumber();
 
     // check srs data is not empty and there are samples
@@ -566,3 +571,7 @@ void ml4fpga::gem::GemReconDqmProcessor::FillIntegralPeaks(const std::shared_ptr
     double plane_size_y = fMapping->GetPlaneSize(m_name_plane_y);
 }
 
+
+void ml4fpga::gem::GemReconDqmProcessor::FillIntegralTimePeakData(const std::shared_ptr<const JEvent>& event) {
+    auto pf_result = event->GetSingle<SampleData>();
+}

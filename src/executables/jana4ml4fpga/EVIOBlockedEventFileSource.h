@@ -5,13 +5,18 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include <cinttypes>
-
 #include <JANA/JBlockedEventSource.h>
-#include <JANA/JLogger.h>
-#include <evio/HDEVIO.h>
 
-#include <rawdataparser/EVIOBlockedEvent.h>
+#include "evio/HDEVIO.h"
+
+// #include <JANA/JBlockedEventSource.h>
+// #include <JANA/JLogger.h>
+// #include <evio/HDEVIO.h>
+// #include <JANA/Engine/JMailbox.h>
+//
+// #include <rawdataparser/EVIOBlockedEvent.h>
 
 #define DEFAULT_READ_BUFF_LEN 4000000  // number taken from the CDAQtcp example
 
@@ -40,7 +45,8 @@ public:
     /**
      * Process an EVIOBlockedEvent block and extract events from the block.
      */
-    std::vector<std::shared_ptr<JEvent>> DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool) override;
+    std::vector<std::shared_ptr<JEvent>> DisentangleBlock(EVIOBlockedEvent& block, JEventPool& pool) override;
+    //std::vector<std::shared_ptr<JEvent>> DisentangleBlock(EVIOBlockedEvent &block, JEventPool &pool) override;
 
 
 private:

@@ -1,45 +1,46 @@
-//
-// Created by romanov on 5/5/2023.
-//
 #pragma once
 
 #include <iostream>
 #include <deque>
-#include <stdexcept>
+#include <numeric> // For std::accumulate
+#include <type_traits> // For std::is_integral
 
 namespace ml4fpga::extmath {
 
-    class RollingAverage {
-    public:
-        explicit RollingAverage(size_t windowSize) : windowSize(windowSize), currentSum(0), currentCount(0) {
-            if (windowSize == 0) {
-                throw std::invalid_argument("windowSize must be greater than 0");
-            }
+template<typename T = double>
+class RollingAverage {
+    static_assert(!std::is_integral<T>::value || sizeof(T) != 0, 
+                  "MovingAverage cannot be instantiated with zero-sized types or integral without explicit handling for division.");
+
+public:
+    explicit RollingAverage(size_t capacity)
+        : m_capacity(capacity), m_sum(0) {
+        if (capacity == 0) {
+            throw std::invalid_argument("Capacity must be greater than zero.");
+        }
+    }
+
+    void add(T value) {
+        if (m_values.size() == m_capacity) {
+            m_sum -= m_values.front();
+            m_values.pop_front();
         }
 
-        void add(double value) {
-            buffer.push_back(value);
-            currentSum += value;
+        m_values.push_back(value);
+        m_sum += value;
+    }
 
-            if (currentCount < windowSize) {
-                currentCount++;
-            } else {
-                currentSum -= buffer.front();
-                buffer.pop_front();
-            }
-        }
+    [[nodiscard]] double average() const {
+        if (m_values.empty()) return 0.0; // Return 0.0 if no elements have been added
+        
+        // If T is an integral type, this ensures that we perform floating-point division
+        return static_cast<double>(m_sum) / m_values.size();
+    }
 
-        double mean() const {
-            if (currentCount == 0) {
-                throw std::runtime_error("No values added yet");
-            }
-            return currentSum / currentCount;
-        }
+private:
+    size_t m_capacity;
+    std::deque<T> m_values;
+    T m_sum;
+};
 
-    private:
-        size_t windowSize;
-        std::deque<double> buffer;
-        double currentSum;
-        size_t currentCount;
-    };
-}
+}   // namespace
