@@ -104,37 +104,44 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
             }
         }
 
+        bool has_srs_raw_window_data = false;
+        bool has_gem_reconstruction = false;
+        bool has_f125_reconstruction = false;
+
         // What factories do we have?
         for (auto factory: event->GetFactorySet()->GetAllFactories()) {
+            const std::string &obj_name = factory->GetObjectName();
+            auto obj_num = factory->GetNumObjects();
 
             // Df125Config
-            if(factory->GetObjectName() == "Df125Config" && factory->GetNumObjects() > 0) {
+            if(obj_name == "Df125Config" && obj_num > 0) {
                 // pass
             }
 
-            if(factory->GetObjectName() == "Df125FDCPulse" && factory->GetNumObjects() > 0) {
+            if(obj_name == "Df125FDCPulse" && obj_num > 0) {
                 auto f125_pulse_records = event->Get<Df125FDCPulse>();
                 SaveF125FDCPulse(f125_pulse_records);
             }
 
-            if(factory->GetObjectName() == "Df250PulseData" && factory->GetNumObjects() > 0) {
+            if(obj_name == "Df250PulseData" && obj_num > 0) {
                 auto f250_pulse_records = event->Get<Df250PulseData>();
                 SaveF250FDCPulse(f250_pulse_records);
             }
 
-            if(factory->GetObjectName() == "Df125WindowRawData" && factory->GetNumObjects() > 0) {
+            if(obj_name == "Df125WindowRawData" && obj_num > 0) {
                 auto f125_wraw_records = event->Get<Df125WindowRawData>();
                 SaveF125WindowRawData(f125_wraw_records);
             }
 
-            if(factory->GetObjectName() == "Df250WindowRawData" && factory->GetNumObjects() > 0) {
+            if(obj_name == "Df250WindowRawData" && obj_num > 0) {
                 auto f250_wraw_records = event->Get<Df250WindowRawData>();
                 SaveF250WindowRawData(f250_wraw_records);
             }
 
-            if(factory->GetObjectName() == "DGEMSRSWindowRawData" && factory->GetNumObjects() > 0) {
+            if(obj_name == "DGEMSRSWindowRawData" && obj_num > 0) {
                 auto srs_data = event->Get<DGEMSRSWindowRawData>();
                 SaveGEMSRSWindowRawData(srs_data);
+                has_srs_raw_window_data = true;
 
                 try
                 {

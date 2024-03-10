@@ -6,14 +6,9 @@
 #pragma once
 
 
-class TH2F;
-
 namespace ml4fpga::fpgacon {
-
-    struct F125ClusterContext {
-        bool is_electron = false;
-        TH2F* hevt = nullptr;
-        TH2F* hevtc = nullptr;
+    struct FpgaHitsToTrack {
+        int hit_index=0;        /// Index of the hit (cluster)
+        int trk_index=0;        /// Index of the track associated with the hit
     };
-
 }

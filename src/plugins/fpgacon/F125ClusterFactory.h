@@ -17,7 +17,7 @@
 
 namespace ml4fpga::fpgacon {
 
-    class F125ClusterFactory : public CozyFactory<EmptyConfig>
+    class F125ClusterFactory : public CozyFactory<>
     {
     public:
         F125ClusterFactory() = default;
@@ -30,11 +30,14 @@ namespace ml4fpga::fpgacon {
         Output<F125Cluster> m_cluster_output {this};
         Output<F125ClusterContext> m_cluster_context_output {this};
 
+
         Parameter<bool> m_cfg_use_clustering {this, "use_clustering", true, "Maximum num vertices that can be found"};
-        TH2F * hevt;
-        TH2F * hevtc;
-        TH2F * hevti;
-        TH2F * hevtf;
+        Parameter<double> m_cfg_dedx_threshold {this, "dedx_threshold", 120, "f125 DE/DX threshold to fill histograms"};
+        Parameter<int> m_cfg_time_window_start {this, "time_window_start", 95, "f125 DE/DX threshold to fill histograms"};
+        TH2F * hevt  = nullptr;
+        TH2F * hevtc = nullptr;
+        TH2F * hevti = nullptr;
+        TH2F * hevtf = nullptr;
         // ParameterRef<bool> m_reassignTracksAfterFirstFit {this, "reassignTracksAfterFirstFit",
         //                        config().m_reassignTracksAfterFirstFit,
         //                        "Whether or not to reassign tracks after first fit"};

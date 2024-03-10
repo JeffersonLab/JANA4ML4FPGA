@@ -5,22 +5,22 @@
 
 #pragma once
 
+#include <extensions/jana/CozyFactory.h>
 #include <extensions/spdlog/SpdlogMixin.h>
 #include <JANA/JFactoryT.h>
-#include "FpgaResult.h"
+#include "FpgaHitsToTrack.h"
 
 namespace ml4fpga::fpgacon {
-    class FpgaResultFactory :
-        public JFactoryT<FpgaResult>,
-        public spdlog::extensions::SpdlogMixin<FpgaResultFactory>
+    class FpgaExchangeFactory : public CozyFactory<>
     {
     public:
-        FpgaResultFactory() = default;
+        FpgaExchangeFactory() = default;
         void Init() override;
         void Process(const std::shared_ptr<const JEvent>&) override;
-        void Finish() override;
+
     private:
         int m_cfg_use_tcp; // Send messages to FPGA via TCP
+        size_t m_cfg_fpga_max_hits = 50;   // Max hits to be sent to FPGA
 
     };
 }

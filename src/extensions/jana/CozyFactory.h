@@ -319,7 +319,7 @@ public:
         m_prefix = (this->GetPluginName().empty()) ? tag : this->GetPluginName() + ":" + tag;
 
         // Set output collection names and create corresponding helper factories
-        for (size_t i = 0; auto* output : m_outputs) {
+        for (auto* output : m_outputs) {
             output->CreateHelperFactory(*this);
         }
 

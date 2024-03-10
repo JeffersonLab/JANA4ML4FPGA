@@ -34,6 +34,9 @@ public:
 
         // Get TDirectory for histograms root file
         m_glb_lock = m_app->GetService<JGlobalRootLock>();
+        m_app->SetDefaultParameter("dqm:min_event", m_min_event_index, "Min event number, when DQM working.");
+        m_app->SetDefaultParameter("dqm:max_event", m_max_event_index, "Max event number, when DQM working. 0 - no cap");
+        m_app->SetDefaultParameter("dqm:every", m_min_event_index, "DQM work every x events: 1 - every event, 2 - once in 2 events, etc.");
     }
 
     /// This will return a pointer to the top-level directory for current file
@@ -80,7 +83,7 @@ public:
         bool is_step_ok = event_index > 1 && (event_index % m_step) == 0;
         if(is_step_ok
            && event_index >= m_min_event_index
-           && event_index <= m_max_event_index) {
+           && (m_max_event_index == 0 || event_index <= m_max_event_index)) {
             return true;
         }
         return false;

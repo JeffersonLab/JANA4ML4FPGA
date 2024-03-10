@@ -177,7 +177,10 @@ jana4ml4fpga
 tcp-cdaq-evio
 ```
 
-### Useful flags
+## Flags
+
+
+#### JANA
 
 ```sh
 # Write extended info where plugins are loaded from  
@@ -200,7 +203,35 @@ tcp-cdaq-evio
 # Save events to EVIO file
 -PEVIO:output_file=/file/name.evio
 
-# Number of SRS window raw data time all_samples
+
+```
+
+#### SRS
+
+```sh
+# (!) Important (!) Number of SRS window raw data time all_samples
 -Pdaq:srs_window_raw:ntsamples=9
+
+# (!) Important (!) GEM mapping file
+-Pgemrecon:mapping=/tmp/JANA4ML4FPGA/scripts/db/2023_mapping_fermilab3.cfg
+
+# Logging flags
+-Pgemrecon:LogLevel=info
+-Pgemrecon:ClusterF:LogLevel=info
+
+
+```
+
+#### Data Quality Monitor (DQM)
+
+```sh
+# Min event number, when DQM fill plots.
+-Pdqm:min_event
+
+# Max event number, when DQM fill plots. 0 - no cap
+-Pdqm:max_event
+
+# DQM work every x events: 1 - every event, 3 - once every 3 events, etc.
+-Pdqm:every
 ```
 

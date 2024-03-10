@@ -32,6 +32,7 @@ extern "C" {
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::PlaneDecodedDataFactory>());
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::PeakFactory>());
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::SampleAnalysisFactory>());
+        app->ProvideService(std::make_shared<ml4fpga::gem::GemMappingService>(app));
     }
 }
     

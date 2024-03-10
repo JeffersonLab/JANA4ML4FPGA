@@ -17,13 +17,13 @@
 class JEvent;
 class JApplication;
 
-class FpgaConnectionProcessor:
+class FpgaDqmProcessor:
         public JEventProcessor,
-        public spdlog::extensions::SpdlogMixin<FpgaConnectionProcessor>   // this automates proper Log initialization
+        public spdlog::extensions::SpdlogMixin<FpgaDqmProcessor>   // this automates proper Log initialization
 {
 public:
-    explicit FpgaConnectionProcessor(JApplication *app): JEventProcessor(app) {};
-    ~FpgaConnectionProcessor() override = default;
+    explicit FpgaDqmProcessor(JApplication *app): JEventProcessor(app) {};
+    ~FpgaDqmProcessor() override = default;
 
     //----------------------------
     // Init
@@ -56,5 +56,7 @@ private:
     /// Directory to store histograms to
     TDirectory *m_dir_main{};
     std::shared_ptr<DataQualityMonitorService> m_dqm_service;
+
+    float m_cfg_min_clust_size=10;
 };
 

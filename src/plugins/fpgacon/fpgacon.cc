@@ -6,9 +6,9 @@
 #include <JANA/JApplication.h>
 #include <JANA/JFactoryGenerator.h>
 
-#include "FpgaConnectionProcessor.h"
+#include "FpgaDqmProcessor.h"
 #include "F125ClusterFactory.h"
-#include "FpgaResultFactory.h"
+#include "FpgaExchangeFactory.h"
 #include <extensions/jana/CozyFactoryGeneratorT.h>
 
 extern "C" {
@@ -18,7 +18,7 @@ extern "C" {
         InitJANAPlugin(app);
 
         // Adds our processor to JANA2 to execute
-        app->Add(new FpgaConnectionProcessor(app));
+        app->Add(new FpgaDqmProcessor(app));
 
 
         app->Add(new CozyFactoryGeneratorT<ml4fpga::fpgacon::F125ClusterFactory>("clust", app));
