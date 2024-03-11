@@ -31,20 +31,22 @@
 
 
 namespace ml4fpga::fpgacon {
-	void FpgaExchangeFactory::Init() {
-		std::string plugin_name = GetPluginName();
-
-		// Get JANA application
-		auto app = GetApplication();
-		InitLogger(plugin_name + ":fpga");
-
-
-		app->SetDefaultParameter(plugin_name + ":use_fpga", m_cfg_use_tcp, "Send messages to FPGA via TCP");
+	void FpgaExchangeFactory::CozyInit() {
+		// std::string plugin_name = GetPluginName();
+		//
+		// // Get JANA application
+		// auto app = GetApplication();
+		// InitLogger(plugin_name + ":fpga");
+		//
+		//
+		// app->SetDefaultParameter(plugin_name + ":use_fpga", m_cfg_use_tcp, "Send messages to FPGA via TCP");
 
 
 	}
 
-	void FpgaExchangeFactory::Process(const std::shared_ptr<const JEvent> &event) {
+
+
+	void FpgaExchangeFactory::CozyProcess(uint64_t run_number, uint64_t event_number) {
 
 
 
@@ -76,7 +78,7 @@ namespace ml4fpga::fpgacon {
      	int k = 4; //-- start data 4 words header;
 		logger()->trace("-- BUFFER:: \n");
 
-		auto clusters = event->Get<F125Cluster>();
+		auto &clusters = m_input_clusters();
 		for(auto& cluster: clusters) {
 		}
 
@@ -162,7 +164,7 @@ namespace ml4fpga::fpgacon {
 
      		PAD = NDATA[3];
      		size_t nnodes = lenNODES - 4 - PAD; //-- 4 is size of header
-     		printf("nodes return: %d (nclust=%d), TRKS: \n", nnodes, nclust);
+     		printf("nodes return: %d (nclust=%d), TRKS: \n", nnodes, clusters.size());
 
 
      		unsigned int TDATA[2048];
@@ -199,10 +201,10 @@ namespace ml4fpga::fpgacon {
      		if (nfits > 0) {
      			//=============== Draw FPGA Clust =============
      			for(int clust_iter=0; clust_iter < std::min(nnodes, clusters.size()); clust_iter++) {
-     				auto result = new FpgaHitsToTrack();
-     				result->hit_index = clust_iter;
-     				result->trk_index = NDATA[clust_iter + 4];
-
+     				auto hits_track_assoc = new FpgaHitsToTrack();		   // Hits id to track id association
+     				hits_track_assoc->hit_index = clust_iter;
+     				hits_track_assoc->trk_index = NDATA[clust_iter + 4];
+     				m_output_hits_to_track().push_back(hits_track_assoc);
      			}
 
      			// for (int nd = 0; nd < std::min(nnodes, nhits); nd++) {
@@ -242,66 +244,72 @@ namespace ml4fpga::fpgacon {
      			};
 
      			int cnt = 4; // word counter in data buffer
-     			c2->cd(3);
-     			gPad->Modified();
-     			gPad->Update();
+     			// c2->cd(3);
+     			// gPad->Modified();
+     			// gPad->Update();
      			for (int i = 0; i < ntracks; i++) {
-     				int trknum = TDATA[cnt++];
-     				float aa = FTDATA[cnt++];
-     				float bb = FTDATA[cnt++];
-     				printf(" Fit Track=%d aa=%f bb=%f \n", trknum, aa, bb);
 
-     				TF1 ftrk("ftrk", "[0]*x+[1]", zStart, zEnd);
-     				ftrk.SetParameter(0, aa);
-     				ftrk.SetParameter(1, bb);
-     				ftrk.DrawClone("same");
-     				gPad->Modified();
-     				gPad->Update();
+     				auto track_fit = new FpgaTrackFit();
+     				track_fit->track_id = TDATA[cnt++];
+     				track_fit->slope = FTDATA[cnt++];
+     				track_fit->intersect = FTDATA[cnt++];
+     				m_output_trak_fit().push_back(track_fit);
+
+
+     				// printf(" Fit Track=%d aa=%f bb=%f \n", trknum, aa, bb);
+				     //
+				     //
+     				// TF1 ftrk("ftrk", "[0]*x+[1]", zStart, zEnd);
+     				// ftrk.SetParameter(0, aa);
+     				// ftrk.SetParameter(1, bb);
+     				// ftrk.DrawClone("same");
+     				// gPad->Modified();
+     				// gPad->Update();
      			}
-     			c2->Modified();
-     			c2->Update();
+     			// c2->Modified();
+     			// c2->Update();
  #endif  // --- end  if USE_FIT  ---
      		}
      		else {
      			printf(" No tracks to draw \n");
      		}
 
-     		//=============== Draw All Clust ================
-     		//----------------------  To FPGA ------------------
-     		c2->cd(2);
-     		gPad->Modified();
-     		gPad->Update();
-     		printf(" Draw clusters  \n");
-     		for (int k = 0; k < nhits; k++) {
-     			TMarker mh = TMarker(hits_Zpos[k], hits_Xpos[k], 24);
-     			int mhcol = 1;
-     			mh.SetMarkerColor(mhcol);
-     			mh.SetMarkerSize(1.5);
-     			mh.DrawClone();
-     			gPad->Modified();
-     			gPad->Update();
-     		}
-     		c2->Modified();
-     		c2->Update();
-     		//----------------------  from FPGA ------------------
-     		c2->cd(3);
-     		gPad->Modified();
-     		gPad->Update();
-     		printf(" Draw clusters  \n");
-     		for (int k = 0; k < nhits; k++) {
-     			TMarker mh = TMarker(hits_Zpos[k], hits_Xpos[k], 24);
-     			int mhcol = 1;
-     			mh.SetMarkerColor(mhcol);
-     			mh.SetMarkerSize(1.5);
-     			//c2->cd(2); mh.DrawClone();  c2->Modified(); c2->Update();
-     			mh.DrawClone();
-     			gPad->Modified();
-     			gPad->Update();
-     		}
-     		c2->Modified();
-     		c2->Update();
+     		// //=============== Draw All Clust ================
+     		// //----------------------  To FPGA ------------------
+     		// c2->cd(2);
+     		// gPad->Modified();
+     		// gPad->Update();
+     		// printf(" Draw clusters  \n");
+     		// for (int k = 0; k < nhits; k++) {
+     		// 	TMarker mh = TMarker(hits_Zpos[k], hits_Xpos[k], 24);
+     		// 	int mhcol = 1;
+     		// 	mh.SetMarkerColor(mhcol);
+     		// 	mh.SetMarkerSize(1.5);
+     		// 	mh.DrawClone();
+     		// 	gPad->Modified();
+     		// 	gPad->Update();
+     		// }
+     		// c2->Modified();
+     		// c2->Update();
+     		// //----------------------  from FPGA ------------------
+     		// c2->cd(3);
+     		// gPad->Modified();
+     		// gPad->Update();
+     		// printf(" Draw clusters  \n");
+     		// for (int k = 0; k < nhits; k++) {
+     		// 	TMarker mh = TMarker(hits_Zpos[k], hits_Xpos[k], 24);
+     		// 	int mhcol = 1;
+     		// 	mh.SetMarkerColor(mhcol);
+     		// 	mh.SetMarkerSize(1.5);
+     		// 	//c2->cd(2); mh.DrawClone();  c2->Modified(); c2->Update();
+     		// 	mh.DrawClone();
+     		// 	gPad->Modified();
+     		// 	gPad->Update();
+     		// }
+     		// c2->Modified();
+     		// c2->Update();
      	} // -- end mod  ---
-     	printf(" all done, click low right pad ...  \n");
+     	//printf(" all done, click low right pad ...  \n");
      	//c2->cd(2); gPad->WaitPrimitive();
      	//if (jentry<35) sleep(5); else sleep(1);
 

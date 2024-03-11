@@ -8,6 +8,9 @@
 #include <extensions/jana/CozyFactory.h>
 #include <extensions/spdlog/SpdlogMixin.h>
 #include <JANA/JFactoryT.h>
+
+#include "F125Cluster.h"
+#include "FpgaTrackFit.h"
 #include "FpgaHitsToTrack.h"
 
 namespace ml4fpga::fpgacon {
@@ -15,8 +18,13 @@ namespace ml4fpga::fpgacon {
     {
     public:
         FpgaExchangeFactory() = default;
-        void Init() override;
+        void CozyInit() override;
+        void CozyProcess(uint64_t run_number, uint64_t event_number) override;
         void Process(const std::shared_ptr<const JEvent>&) override;
+
+        Input<F125Cluster> m_input_clusters;
+        Output<FpgaHitsToTrack> m_output_hits_to_track;
+        Output<FpgaTrackFit> m_output_trak_fit;
 
     private:
         int m_cfg_use_tcp; // Send messages to FPGA via TCP

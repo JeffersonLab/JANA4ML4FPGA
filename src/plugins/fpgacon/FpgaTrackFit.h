@@ -9,6 +9,9 @@
 namespace ml4fpga::fpgacon {
 
     struct FpgaTrackFit {
+        int track_id;
+        double slope;
+        double intersect;
 
     };
 }

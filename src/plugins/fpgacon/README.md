@@ -2,36 +2,24 @@
 
 
 ```mermaid
-flowchart LR
+flowchart TB
     classDef alg fill:#44cc;
+    classDef ext fill:#cc44;
     classDef col fill:#cc66ff;
   
     subgraph JANA4ML4FPGA
         direction TB
-        Df125WindowRawData(<strong>Df125WindowRawData</strong><br/><i>from EVIO</i>)
+        Df125WindowRawData(<strong>Data from EVIO</strong><br/><i>Df125WindowRawData</i>)
         Df125WindowRawData --> F125ClusterFactory[<strong>Clustering</strong>:<br/><i>F125ClusterFactory</i>]:::alg
-        F125ClusterFactory --> F125Cluster(<strong>F125Cluster</strong><br/><i>Array of clusters</a>)
-        F125ClusterFactory --> F125ClusterContext(<strong>F125ClusterContext</strong><br/><i>Additional data</i>)
-    
+        
+        F125ClusterFactory --> F125Cluster(<strong>Array of clusters & clustering info</strong><br/><i>F125Cluster<br>F125ClusterContext</i>)
         F125Cluster --> FpgaExchangeFactory[<strong>FPGA data exchange</strong>:<br/><i>FpgaExchangeFactory</i>]:::alg
-        F125ClusterContext --> FpgaExchangeFactory
-    
-        FpgaExchangeFactory --> FpgaHitsToTrack(<strong>Hits to track association</strong><br/><i>FpgaHitsToTrack</i>)
-        FpgaExchangeFactory --> FpgaTrackFit(<strong>Resulting track fits</strong><br/><i>FpgaTrackFit</i>)
-    
-        FpgaHitsToTrack --> FpgaDqmProcessor[<strong>Plotting histograms</strong>:<br/><i>F125ClusterFactory</i>]:::alg
-        FpgaTrackFit --> FpgaDqmProcessor        
-
+        FpgaExchangeFactory --> FpgaHitsToTrack(<strong>Hits to track assoc. & track fits</strong><br/><i>FpgaHitsToTrack<br>FpgaTrackFit</i>)
+        FpgaHitsToTrack --> FpgaDqmProcessor[<strong>Plotting histograms</strong><br/><i>FpgaDqmProcessor</i>]:::alg
+        F125Cluster -.-> FpgaDqmProcessor
     end
 
-    subgraph FPGA
-        direction TB
-        FPGAProcessor{{<strong>FPGA processing</strong>}}:::alg
-    end
-
-    FpgaExchangeFactory <----> FPGA
-
-
+    FpgaExchangeFactory <====>  FPGAProcessor(((<strong>F P G A</strong>))):::ext
 ```
 
 
