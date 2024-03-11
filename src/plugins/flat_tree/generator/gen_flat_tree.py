@@ -284,6 +284,38 @@ io_classes = [
             FieldInfo('double', 'area'),
             FieldInfo('double', 'real_pos'),
         ]),
+    ClassInfo(
+        name="F125Cluster",
+        root_name="f125_cluster",
+        fields=[
+            FieldInfo('uint32_t', 'id'),
+            FieldInfo('float', 'pos_x'),
+            FieldInfo('float', 'pos_y'),
+            FieldInfo('float', 'pos_z'),
+            FieldInfo('float', 'dedx'),
+            FieldInfo('float', 'size'),
+            FieldInfo('float', 'width_y1'),
+            FieldInfo('float', 'width_y2'),
+            FieldInfo('float', 'width_dy'),
+            FieldInfo('float', 'length_x1'),
+            FieldInfo('float', 'length_x2'),
+            FieldInfo('float', 'length_dx'),
+        ]),
+    ClassInfo(
+        name="FpgaHitsToTrack",
+        root_name="fpga_hit_track",
+        fields=[
+            FieldInfo('uint32_t', 'hit_id'),
+            FieldInfo('uint32_t', 'track_id')
+        ]),
+    ClassInfo(
+        name="FpgaTrackFit",
+        root_name="fpga_track_fit",
+        fields=[
+            FieldInfo('uint32_t', 'id'),
+            FieldInfo('float', 'slope'),
+            FieldInfo('float', 'intersect')
+        ]),
 ]
 
 def gen_fields_code(template: str, class_info: ClassInfo, spaces: int):

@@ -20,7 +20,7 @@ namespace ml4fpga::fpgacon {
         FpgaExchangeFactory() = default;
         void CozyInit() override;
         void CozyProcess(uint64_t run_number, uint64_t event_number) override;
-        void Process(const std::shared_ptr<const JEvent>&) override;
+
 
         Input<F125Cluster> m_input_clusters;
         Output<FpgaHitsToTrack> m_output_hits_to_track;

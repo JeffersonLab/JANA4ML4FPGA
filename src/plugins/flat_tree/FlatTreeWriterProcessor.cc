@@ -21,6 +21,8 @@
 #include <services/root_output/RootFile_service.h>
 #include <plugins/gemrecon/Constants.h>
 
+#include "plugins/fpgacon/F125Cluster.h"
+
 //------------------
 // OccupancyAnalysis (Constructor)
 //------------------
@@ -112,10 +114,17 @@ void FlatTreeWriterProcessor::Process(const std::shared_ptr<const JEvent> &event
         for (auto factory: event->GetFactorySet()->GetAllFactories()) {
             const std::string &obj_name = factory->GetObjectName();
             auto obj_num = factory->GetNumObjects();
+            const std::string jana_demangle = JTypeInfo::demangle<ml4fpga::fpgacon::F125Cluster>();
 
             // Df125Config
             if(obj_name == "Df125Config" && obj_num > 0) {
-                // pass
+
+
+            }
+
+            if(obj_name == jana_demangle && event->GetEventNumber() > 4) {
+                auto f125_clusters = event->Get<ml4fpga::fpgacon::F125Cluster>();
+                logger()->trace("has F125Cluster");
             }
 
             if(obj_name == "Df125FDCPulse" && obj_num > 0) {

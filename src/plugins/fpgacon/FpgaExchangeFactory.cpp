@@ -41,22 +41,12 @@ namespace ml4fpga::fpgacon {
 		//
 		// app->SetDefaultParameter(plugin_name + ":use_fpga", m_cfg_use_tcp, "Send messages to FPGA via TCP");
 
-
 	}
 
 
 
 	void FpgaExchangeFactory::CozyProcess(uint64_t run_number, uint64_t event_number) {
 
-
-
-     	int MinClustSize = 10;
-     	double MinClustWidth = 0.001;
-     	double MinClustLength = 0.01;
-     	double zStart = 5.; // mm
-     	double zEnd = 29.; // mm
-     	//int ihit=0;
-     	int ii = 0;
 
 		auto sock = std::make_unique<TSocket>("localhost", 20250);
 
