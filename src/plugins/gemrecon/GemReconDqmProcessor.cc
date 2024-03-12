@@ -146,6 +146,7 @@ void ml4fpga::gem::GemReconDqmProcessor::Finish() {
 
 void ml4fpga::gem::GemReconDqmProcessor::FillEventRawData(const std::shared_ptr<const JEvent> &event) {
 
+
     // Get data
     auto srs_data = event->Get<DGEMSRSWindowRawData>();
     auto hists_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "gem_raw");
@@ -522,8 +523,6 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventPlaneData(const std::shared_pt
         delete pair.second;
     }
 
-
-
     for(auto pair: event_data_histos_by_plane) {
         //pair.second->Write();
     }
@@ -589,5 +588,5 @@ void ml4fpga::gem::GemReconDqmProcessor::FillIntegralPeaks(const std::shared_ptr
 
 
 void ml4fpga::gem::GemReconDqmProcessor::FillIntegralTimePeakData(const std::shared_ptr<const JEvent>& event) {
-    auto pf_result = event->GetSingle<SampleData>();
+    // auto pf_result = event->GetSingle<SampleData>();
 }
