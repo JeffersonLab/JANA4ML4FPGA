@@ -7,7 +7,7 @@
 
 #include <JANA/JApplication.h>
 #include <JANA/Services/JServiceLocator.h>
-
+#include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
 /**

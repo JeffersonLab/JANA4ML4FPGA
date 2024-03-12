@@ -2,6 +2,7 @@
 // Subject to the terms in the LICENSE file found in the top-level directory.
 //
 //
+#include <spdlog/fmt/ostr.h>
 #include "Log_service.h"
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <extensions/spdlog/SpdlogExtensions.h>

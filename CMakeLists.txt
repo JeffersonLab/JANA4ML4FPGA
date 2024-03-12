@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
 
 project(JANA4ML4FPGA VERSION 0.0.0)
 
@@ -10,6 +10,8 @@ message(STATUS "CMAKE_CXX_STANDARD = ${CMAKE_CXX_STANDARD}")
 
 # Enable -fPIC for all targets
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+set(CMAKE_BUILD_TYPE Debug)
 
 # Find packages
 find_package(JANA REQUIRED)
@@ -68,7 +70,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src/libraries)
 #    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SANITIZE_FLAGS}")
 #endif()
 
-set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")
+# set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")
 
 # ---------------------------------------------------------------------------
 print_grand_header("    B U I L D   J A N A 4 M L 4 F P G A   P A R T S    ")

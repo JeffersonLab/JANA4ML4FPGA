@@ -17,6 +17,15 @@ namespace ml4fpga::gem {
             m_apv_averages[apv_id] = std::vector<extmath::Average>(Constants::ChannelsCount);
             m_apv_std[apv_id] = std::vector<extmath::StandardDeviation>(Constants::ChannelsCount);
         }
+
+        /// Number of events to average Pedestal
+        m_events_to_average = 500;
+        m_minimal_events = 15;
+        m_constant_offset = 3000;
+        m_constant_noise = 0;
+        m_events_counter = 0;
+        m_drop_peaks_on = false;
+        m_drop_peaks_threshold = 300;
     }
 
     void PedestalFactory::BeginRun(const std::shared_ptr<const JEvent>& event) {

@@ -28,6 +28,8 @@ namespace ml4fpga::gem {
         double m_constant_offset = 3000;
         double m_constant_noise = 0;
         size_t m_events_counter = 0;
+        bool m_drop_peaks_on = false;
+        size_t m_drop_peaks_threshold = 300;
     };
 
 
