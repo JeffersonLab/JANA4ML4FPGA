@@ -1,0 +1,33 @@
+{
+    "cmake.cmakePath": "/gluonfs1/home/hdtrdops/soft_ml4fpga/miniconda/envs/ml4fpga/bin/cmake",
+    "cmake.additionalCompilerSearchDirs": [
+        "/gluonfs1/home/hdtrdops/soft_ml4fpga/miniconda/envs/ml4fpga/bin/"
+    ],
+    "cmake.buildEnvironment": {
+        "CMAKE_PREFIX_PATH": "/gluonfs1/home/hdtrdops/soft_ml4fpga/miniconda/envs/ml4fpga/share/HepMC3/cmake:/gluonfs1/home/hdtrdops/soft_ml4fpga/jana2/jana2-v2.1.0/lib/cmake/JANA:${env:CMAKE_PREFIX_PATH}"
+    },
+    "cmake.configureEnvironment": {
+        "CMAKE_PREFIX_PATH": "/gluonfs1/home/hdtrdops/soft_ml4fpga/miniconda/envs/ml4fpga/share/HepMC3/cmake:/gluonfs1/home/hdtrdops/soft_ml4fpga/jana2/jana2-v2.1.0/lib/cmake/JANA:${env:CMAKE_PREFIX_PATH}"
+    },
+    "files.associations": {
+        "mutex": "cpp"
+    },
+    "cmake.debugConfig": {
+        "args": [
+            "-Pplugins=CDAQfile,flat_tree,root_output,gemrecon,dqm",
+        "-Pjana:nevents=800",
+        "-Pdaq:srs_window_raw:ntsamples=6",
+        "-Pjana:debug_plugin_loading=1",
+        "-Pgemrecon:LogLevel=info",
+        "-Pgemrecon:mapping=db/2023_fermi_SRSmap1.cfg",
+        "-Phistsfile=ROOT/Run_003200.root",
+        "DATA/hd_rawdata_003200_000.evio"],
+        "cwd": "${workspaceFolder}/scripts",
+        "environment": [
+            {
+                "name": "JANA_PLUGIN_PATH",
+                "value": "/home/hdtrdops/soft_ml4fpga/jana4ml4fpga/jana4ml4fpga-main/install/plugins/:${workspaceFolder}/builda/src/libraries/evio/:${workspaceFolder}/builda/src/services/root_output/:${workspaceFolder}/builda/src/services/log/:${workspaceFolder}/builda/src/services/pytorch/:${workspaceFolder}/builda/src/services/dqm/:${workspaceFolder}/builda/src/plugins/cdaq/:${workspaceFolder}/builda/src/plugins/test_cdaq/:${workspaceFolder}/builda/src/plugins/CDAQfile/:${workspaceFolder}/builda/src/plugins/single_event_evio/:${workspaceFolder}/builda/src/plugins/print_evio/:${workspaceFolder}/builda/src/plugins/flat_tree/:${workspaceFolder}/builda/src/plugins/gemrecon/:${workspaceFolder}/builda/src/plugins/ml4fpa_dqm:/home/hdtrdops/soft_ml4fpga/jana4ml4fpga/jana4ml4fpga-main/install/plugins/:${env:JANA_PLUGIN_PATH}"
+            }
+        ]
+    },
+}

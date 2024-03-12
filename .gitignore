@@ -1,9 +1,13 @@
 # The directory is used to build and install everything by default
+builda/
 build/
 install/
 include/
 bin/
 .vscode/
+
+# Cmake project for current machine
+CMakePresets.json
 
 # Temp folder
 tmp/
@@ -496,3 +500,41 @@ builda/src/tests/algorithms_test/CMakeFiles/algorithms_test.dir/DependInfo.cmake
 builda/src/tests/algorithms_test/CMakeFiles/algorithms_test.dir/flags.make
 builda/src/tests/algorithms_test/CMakeFiles/algorithms_test.dir/link.txt
 builda/src/tests/algorithms_test/CMakeFiles/algorithms_test.dir/progress.make
+builda/install_manifest.txt
+builda/.cmake/api/v1/reply/cache-v2-84a3fcce428910ce2a8c.json
+builda/.cmake/api/v1/reply/cmakeFiles-v1-85919e46716c65856b2b.json
+builda/.cmake/api/v1/reply/codemodel-v2-bb91e434e6bd425d31be.json
+builda/.cmake/api/v1/reply/directory-src.executables.jana4ml4fpga-Debug-935e95c5533215dc6047.json
+builda/.cmake/api/v1/reply/directory-src.libraries.evio-Debug-2b7c9f5782d09d1eeaa5.json
+builda/.cmake/api/v1/reply/directory-src.libraries.rawdataparser-Debug-7e2a8abd94635ed21f0b.json
+builda/.cmake/api/v1/reply/directory-src.plugins.cdaq-Debug-11ff1f85d56f8ec13839.json
+builda/.cmake/api/v1/reply/directory-src.plugins.example_evio_analysis-Debug-237f9dc4f8798534da5c.json
+builda/.cmake/api/v1/reply/directory-src.plugins.flat_tree-Debug-9b1b5e90fb5506b783ff.json
+builda/.cmake/api/v1/reply/directory-src.plugins.fpgacon-Debug-075b5fd00aad65c40887.json
+builda/.cmake/api/v1/reply/directory-src.plugins.gemrecon-Debug-3dfde356c31c6df9e31f.json
+builda/.cmake/api/v1/reply/directory-src.plugins.ml4fpa_dqm-Debug-0e7eac3c0a37388215ad.json
+builda/.cmake/api/v1/reply/directory-src.plugins.print_evio-Debug-e7df00f8da67ab3edbd6.json
+builda/.cmake/api/v1/reply/directory-src.plugins.single_event_evio-Debug-9244a2b7980fca3dca03.json
+builda/.cmake/api/v1/reply/directory-src.plugins.test_cdaq-Debug-aea8004004ebe828e373.json
+builda/.cmake/api/v1/reply/directory-src.services.dqm-Debug-34f2ccb6392ae67d7a80.json
+builda/.cmake/api/v1/reply/directory-src.services.log-Debug-2fadbf00bcb617208fb7.json
+builda/.cmake/api/v1/reply/directory-src.services.pytorch-Debug-20b10c6b137a4578882b.json
+builda/.cmake/api/v1/reply/directory-src.services.root_output-Debug-df40c867d29ead1e458b.json
+builda/.cmake/api/v1/reply/index-2024-03-12T03-09-18-0340.json
+builda/.cmake/api/v1/reply/target-cdaq_plugin-Debug-1def333e4a2928e4c736.json
+builda/.cmake/api/v1/reply/target-CDAQfile_plugin-Debug-5239f599a1c1da3beabd.json
+builda/.cmake/api/v1/reply/target-dqm_plugin-Debug-9fc19e45398ff7d76cfb.json
+builda/.cmake/api/v1/reply/target-example_evio_analysis_plugin-Debug-53ea3be9c660976375ea.json
+builda/.cmake/api/v1/reply/target-flat_tree_plugin-Debug-c8b25a87c5cfb296aefa.json
+builda/.cmake/api/v1/reply/target-fpgacon_plugin-Debug-74ee2c308621f2f09c6e.json
+builda/.cmake/api/v1/reply/target-gemrecon_plugin-Debug-96d6f981508c30af82fc.json
+builda/.cmake/api/v1/reply/target-jana4ml4fpga-Debug-9ac5175547d02d62e298.json
+builda/.cmake/api/v1/reply/target-log_plugin-Debug-870d0b67c732e1f0e87e.json
+builda/.cmake/api/v1/reply/target-ml4fpa_dqm_plugin-Debug-90ec8b0e25cca184dd7d.json
+builda/.cmake/api/v1/reply/target-print_evio_plugin-Debug-c1fc4eb0d6f60aa17201.json
+builda/.cmake/api/v1/reply/target-pytorch_plugin-Debug-a38c04eee3006d9c378c.json
+builda/.cmake/api/v1/reply/target-root_output_plugin-Debug-8302a36dc2f6fa30fbfe.json
+builda/.cmake/api/v1/reply/target-single_event_evio_plugin-Debug-45d5044f6ee27163c1a7.json
+builda/.cmake/api/v1/reply/target-test_cdaq_plugin-Debug-1a63df2da7769ae19bf6.json
+builda/.cmake/api/v1/reply/toolchains-v1-fda9b2b219ff6ddc2e74.json
+builda/src/executables/jana4ml4fpga/jana4ml4fpga

@@ -1,0 +1,87 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            // Resolved by CMake Tools:
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [
+                "-Pplugins=CDAQfile,flat_tree,root_output,gemrecon,dqm",
+                "-Pjana:nevents=800",
+                "-Pdaq:srs_window_raw:ntsamples=6",
+                "-Pjana:debug_plugin_loading=1",
+                "-Pgemrecon:LogLevel=info",
+                "-Pgemrecon:mapping=db/2023_fermi_SRSmap1.cfg",
+                "-Phistsfile=ROOT/Run_003200.root",
+                "DATA/hd_rawdata_003200_000.evio"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/scripts",
+            "environment": [
+                {
+                    // add the directory where our target was built to the PATHs
+                    // it gets resolved by CMake Tools:
+                    "name": "PATH",
+                    "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}"
+                },
+                {
+                    "name": "JANA_PLUGIN_PATH",
+                    "value": "/home/hdtrdops/soft_ml4fpga/jana4ml4fpga/jana4ml4fpga-main/install/plugins/:${env:JANA_PLUGIN_PATH}"
+                }
+            ],
+            "console": "externalTerminal",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Fpga connect",
+            "type": "cppdbg",
+            "request": "launch",
+            // Resolved by CMake Tools:
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [
+                "-Pplugins=CDAQfile,flat_tree,root_output,dqm,fpgacon",
+                "-Pjana:nevents=3",                
+                "-Pjana:nskip=2",
+                "-Pjana:debug_plugin_loading=1",
+                "-Pjana:timeout=0",
+                "-Pdqm:min_event=3",
+                "-Pdaq:srs_window_raw:ntsamples=6",
+                "-Pevio:LogLevel=trace",
+                "-Pfpgacon:fpga:port=20250",
+                "-Phistsfile=test_run_003202.root",
+                "DATA/hd_rawdata_003202_000.evio"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/scripts",
+            "environment": [
+                {
+                    // add the directory where our target was built to the PATHs
+                    // it gets resolved by CMake Tools:
+                    "name": "PATH",
+                    "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}"
+                },
+                {
+                    "name": "JANA_PLUGIN_PATH",
+                    "value": "/home/hdtrdops/soft_ml4fpga/jana4ml4fpga/jana4ml4fpga-main/install/plugins/:${env:JANA_PLUGIN_PATH}"
+                }
+            ],
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

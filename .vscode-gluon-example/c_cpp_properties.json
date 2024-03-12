@@ -1,0 +1,19 @@
+
+
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/gluonfs1/home/hdtrdops/soft_ml4fpga/miniconda/envs/ml4fpga/include"
+            ],
+            "compilerPath": "/gluonfs1/home/hdtrdops/soft_ml4fpga/miniconda/envs/ml4fpga/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-x64"
+            
+        }
+    ],
+    "version": 4
+}
