@@ -27,8 +27,10 @@ if ((3000 < $RUN && $RUN <= 3156)) ; then
     SRS_MAPPING="db/2023_fermi_SRSmap0.cfg"
 elif (( 3156 < $RUN && $RUN <= 3261)) ; then 
     SRS_MAPPING="db/2023_fermi_SRSmap1.cfg"
-elif ((3261 < $RUN && $RUN <=3199)) ; then
+elif ((3261 < $RUN && $RUN <=3299)) ; then
     SRS_MAPPING="db/2023_fermi_SRSmap2.cfg"
+elif ((4000 < $RUN && $RUN <=4999)) ; then
+    SRS_MAPPING="db/2023_mapping_HDGEM.cfg"
 fi
 
 echo "SRS_MAPPING = $SRS_MAPPING"
