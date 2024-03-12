@@ -46,6 +46,7 @@ namespace ml4fpga::fpgacon {
 
 
 	void FpgaExchangeFactory::CozyProcess(uint64_t run_number, uint64_t event_number) {
+		if(event_number < 3) return;
 
 		int port = m_cfg_port();
 		const std::string &host = m_cfg_host();

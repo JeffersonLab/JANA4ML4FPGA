@@ -57,7 +57,7 @@ namespace ml4fpga::fpgacon {
     }
 
     void F125ClusterFactory::CozyProcess(uint64_t run_number, uint64_t event_number) {
-	    CozyFactory<>::CozyProcess(run_number, event_number);
+		if(event_number < 3) return;
 
     	std::vector<const Df125WindowRawData *> f125_values = m_f125_input();
 
