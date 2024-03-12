@@ -1,0 +1,37 @@
+#################################################################################################
+     readoutType    DetType    DetName     Plane   size (mm)  connectors  orientation
+#################################################################################################
+DET,  CARTESIAN,   STANDARD,   GEMTR1,   GEMTR1X,   409.6,   4,    1,  GEMTR1Y, 51.2,   1,   1
+DET,  CARTESIAN,   STANDARD,   GEMTR2,   GEMTR2X,   409.6,   4,    1,  GEMTR2Y, 51.2,   1,   1
+#DET,  CARTESIAN,   STANDARD,   GEMTR3,   GEMTR3X,   409.6,   1,    1,  GEMTR3Y, 51.2,   1,   1
+###############################################################
+#     fecId   adcCh   detPlane  apvOrient  apvIndex    apvHdr #
+###############################################################
+#
+###X->Y is clockwise
+
+#################
+#  SRU1 -> GEM1
+#################
+#
+FEC,   0,     10.0.0.2
+APV,   0,     0,      GEMTR1X,     0,    0,    1500,     normal
+APV,   0,     1,      GEMTR1X,     0,    1,    1500,     normal
+APV,   0,     2,      GEMTR1X,     0,    2,    1500,     normal
+APV,   0,     3,      GEMTR1X,     0,    3,    1500,     normal
+APV,   0,     4,      GEMTR1Y,     0,    0,    1500,     normal
+#
+# APV,   0,     5,      GEMTR3Y,     0,    0,    1500,     normal
+#
+APV,   0,     6,      GEMTR2X,     0,    0,    1500,     normal
+APV,   0,     7,      GEMTR2X,     0,    1,    1500,     normal
+APV,   0,     8,      GEMTR2X,     0,    2,    1500,     normal
+APV,   0,     9,      GEMTR2X,     0,    3,    1500,     normal
+APV,   0,     10,     GEMTR2Y,     0,    0,    1500,     normal
+#
+#APV,   0,     11,     GEMTR3X,     0,    0,    1500,     normal
+#APV,   0,     12,     GEMTRDY,     0,    0,    1500,     normal
+#APV,   0,     13,     GEMTRDY,     0,    1,    1500,     normal
+#APV,   0,     14,     GEMTRK1X,     0,    0,    1500,     normal
+#APV,   0,     15,     GEMTRK1X,     0,    1,    1500,     normal
+
