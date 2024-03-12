@@ -19,6 +19,7 @@
 #include "F125Cluster.h"
 #include "F125ClusterContext.h"
 #include "services/dqm/DataQualityMonitorService.h"
+#include "FpgaHitsToTrack.h"
 
 
 //------------------
@@ -113,6 +114,8 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 	canvas->Update();
 	canvas->Write();
 	delete canvas;
+
+	auto hits_assoc = event->Get<ml4fpga::fpgacon::FpgaHitsToTrack>();
 }
 
 

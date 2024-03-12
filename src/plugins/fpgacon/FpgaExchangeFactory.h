@@ -14,7 +14,7 @@
 #include "FpgaHitsToTrack.h"
 
 namespace ml4fpga::fpgacon {
-    class FpgaExchangeFactory : public CozyFactory<>
+    class FpgaExchangeFactory : public CozyFactory<EmptyConfig>
     {
     public:
         FpgaExchangeFactory() = default;
@@ -22,13 +22,15 @@ namespace ml4fpga::fpgacon {
         void CozyProcess(uint64_t run_number, uint64_t event_number) override;
 
 
-        Input<F125Cluster> m_input_clusters;
-        Output<FpgaHitsToTrack> m_output_hits_to_track;
-        Output<FpgaTrackFit> m_output_trak_fit;
+        Input<F125Cluster> m_input_clusters {this};
+        Output<FpgaHitsToTrack> m_output_hits_to_track {this};
+        Output<FpgaTrackFit> m_output_trak_fit {this};
 
     private:
-        int m_cfg_use_tcp; // Send messages to FPGA via TCP
+
         size_t m_cfg_fpga_max_hits = 50;   // Max hits to be sent to FPGA
+        Parameter<std::string> m_cfg_host {this, "host", "localhost", "Host address to connect to"};
+        Parameter<int> m_cfg_port {this, "port", 20250, "Port to connect to"};
 
     };
 }

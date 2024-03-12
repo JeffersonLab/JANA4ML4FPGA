@@ -22,6 +22,7 @@ extern "C" {
 
 
         app->Add(new CozyFactoryGeneratorT<ml4fpga::fpgacon::F125ClusterFactory>("clust", app));
+        app->Add(new CozyFactoryGeneratorT<ml4fpga::fpgacon::FpgaExchangeFactory>("fpga", app));
 
         //app->Add(new JFactoryGeneratorT<ml4fpga::fpgacon::FpgaResultFactory>());
     }

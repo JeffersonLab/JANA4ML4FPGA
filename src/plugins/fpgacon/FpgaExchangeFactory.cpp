@@ -47,8 +47,9 @@ namespace ml4fpga::fpgacon {
 
 	void FpgaExchangeFactory::CozyProcess(uint64_t run_number, uint64_t event_number) {
 
-
-		auto sock = std::make_unique<TSocket>("localhost", 20250);
+		int port = m_cfg_port();
+		const std::string &host = m_cfg_host();
+		auto sock = std::make_unique<TSocket>(host.c_str(), port);
 
 
 
@@ -163,7 +164,9 @@ namespace ml4fpga::fpgacon {
      		printf("read FIT out, wait for FPGA data ... \n"); //=======================================================
      		//RHEADER[10];
 
-     		sock->RecvRaw((char *)RHEADER, sizeof(RHEADER), kDefault);
+     		int receive_result = sock->RecvRaw((char *)RHEADER, sizeof(RHEADER), kDefault);
+     		logger()->info("receive_result={}", receive_result);
+
      		int lenFITS = RHEADER[2];
      		printf("RHEADER::");
      		for (int ih = 0; ih < 5; ih++) printf(" %d \n", RHEADER[ih]);
@@ -305,6 +308,7 @@ namespace ml4fpga::fpgacon {
 
 
      	//-------------------------------------------------------
+
      }
 
 

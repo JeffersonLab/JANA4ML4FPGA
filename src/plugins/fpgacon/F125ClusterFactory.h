@@ -14,6 +14,7 @@
 
 #include "F125Cluster.h"
 #include "F125ClusterContext.h"
+#include "FpgaHitsToTrack.h"
 
 namespace ml4fpga::fpgacon {
 
@@ -27,6 +28,7 @@ namespace ml4fpga::fpgacon {
         void CozyFinish() override;
     private:
         Input<Df125WindowRawData> m_f125_input {this};
+
         Output<F125Cluster> m_cluster_output {this};
         Output<F125ClusterContext> m_cluster_context_output {this};
 
