@@ -30,6 +30,7 @@ namespace ml4fpga::gem {
         size_t m_events_counter = 0;
         bool m_drop_peaks_on = false;
         size_t m_drop_peaks_threshold = 300;
+        std::map<int, std::string> m_apv_names;
     };
 
 

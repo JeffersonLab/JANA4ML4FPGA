@@ -4,15 +4,17 @@
 #include "GemMapping.h"
 #include "Pedestal.h"
 #include "Constants.h"
+#include "GemMappingService.h"
 
 namespace ml4fpga::gem {
     void PedestalFactory::Init() {
         InitLogger(GetPluginName() + ":gem:PedestalFactory");
 
-        auto mapping = GemMapping::GetInstance();
+        auto mapping = GetApplication()->GetService<GemMappingService>()->GetMapping();
+        m_apv_names = mapping->GetAPVFromIDMap();
 
         // Initialize list of average channels per ID
-        for(auto &apv_pair: mapping->GetAPVFromIDMap()) {
+        for(auto &apv_pair: m_apv_names) {
             auto apv_id = apv_pair.first;
             m_apv_averages[apv_id] = std::vector<extmath::Average>(Constants::ChannelsCount);
             m_apv_std[apv_id] = std::vector<extmath::StandardDeviation>(Constants::ChannelsCount);
@@ -42,6 +44,9 @@ namespace ml4fpga::gem {
         // Process each APV
         for(auto& apv_pair: srs_data->data) {
             int apv_id = apv_pair.first;
+
+            // It might be EVIO contains APV that we don't need to process
+            if(!m_apv_names.count(apv_id)) continue;
             auto apv_data = apv_pair.second;
             auto timebins = apv_data.AsTimebins();
 

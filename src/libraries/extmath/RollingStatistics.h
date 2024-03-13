@@ -14,14 +14,15 @@ namespace ml4fpga::extmath {
     template<typename T = double>
     class RollingStatistics {
     public:
-        explicit RollingStatistics(size_t capacity)
+        explicit RollingStatistics(size_t capacity=0)
             : m_capacity(capacity), m_sum(0), m_sum_of_squares(0) {
             if (capacity == 0) {
-                throw std::invalid_argument("Capacity must be greater than zero.");
+
             }
         }
 
         void add(T value) {
+            if(m_capacity == 0) return;
             if (m_values.size() == m_capacity) {
                 T old_value = m_values.front();
                 m_sum -= old_value;

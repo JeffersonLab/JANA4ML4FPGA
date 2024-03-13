@@ -15,6 +15,8 @@
 #include <JANA/JFactoryGenerator.h>
 
 #include "SampleAnalysisFactory.h"
+#include <extensions/jana/CozyFactoryGeneratorT.h>
+#include <extensions/jana/CozyFactory.h>
 
 
 extern "C" {
@@ -31,7 +33,8 @@ extern "C" {
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::ApvDecodedDataFactory>());
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::PlaneDecodedDataFactory>());
         app->Add(new JFactoryGeneratorT<ml4fpga::gem::PeakFactory>());
-        app->Add(new JFactoryGeneratorT<ml4fpga::gem::SampleAnalysisFactory>());
+        app->Add(new CozyFactoryGeneratorT<ml4fpga::gem::SampleAnalysisFactory>("sample", app));
+
         app->ProvideService(std::make_shared<ml4fpga::gem::GemMappingService>(app));
     }
 }

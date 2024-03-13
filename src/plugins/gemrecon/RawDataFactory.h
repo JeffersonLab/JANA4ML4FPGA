@@ -22,6 +22,7 @@ namespace ml4fpga::gem {
         void Finish() override;
 
 
+        std::map<int, std::string> m_apv_id_names_map;
     };
 
 } // ml4fpga

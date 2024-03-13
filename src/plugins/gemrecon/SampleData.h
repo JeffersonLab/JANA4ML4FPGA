@@ -9,11 +9,14 @@
 namespace ml4fpga::gem {
     class SampleData {
     public:
-        int apv;
-        int channel;
-        int encoded_channel;
-        int time_bin;
+        uint64_t id;
+        uint32_t apv;
+        uint32_t channel;
+        uint32_t encoded_channel;
+        uint32_t time_bin;
         double value;
+        double rolling_average;
+        double rolling_std;
     };
 }
 

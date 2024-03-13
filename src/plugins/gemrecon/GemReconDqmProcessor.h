@@ -73,6 +73,7 @@ namespace ml4fpga::gem {
         std::shared_ptr<DataQualityMonitorService> m_dqm_service;
         std::string m_name_plane_x = "URWELLX";
         std::string m_name_plane_y = "URWELLY";
+        std::map<int, std::string> m_apv_id_names_map;
 
         void FillEventRawData(const std::shared_ptr<const JEvent> &event);
 

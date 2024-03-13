@@ -60,6 +60,7 @@ void ml4fpga::gem::GemReconDqmProcessor::Init() {
 
     // Get mapping
     fMapping = app->GetService<GemMappingService>()->GetMapping();
+    m_apv_id_names_map = fMapping->GetAPVFromIDMap();
 
     // Create histograms
     int nbins = 2 * Constants::ChannelsCount;
@@ -192,8 +193,12 @@ void ml4fpga::gem::GemReconDqmProcessor::FillEventRawData(const std::shared_ptr<
         auto apv_id = apvPair.first;
         auto apv_channels = apvPair.second;
 
+        // It might be EVIO contains APV that we don't need to process
+        if(!m_apv_id_names_map.count(apv_id)) continue;
+
+
         // Crate histogram
-        std::string apv_name = fMapping->GetAPVFromID(apv_id);
+        std::string apv_name = m_apv_id_names_map[apv_id];
         std::string histo_name = fmt::format("raw_{}", apv_name);
         std::string histo_title = fmt::format("SRSRawWindowSata for Event# {} APV {}-{}", event_number, apv_id, apv_name);
 

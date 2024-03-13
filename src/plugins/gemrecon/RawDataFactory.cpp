@@ -8,10 +8,17 @@
 #include "libraries/rawdataparser/DGEMSRSWindowRawData.h"
 #include <JANA/JEvent.h>
 
+#include "GemMappingService.h"
+
 namespace ml4fpga {
+    namespace gem {
+        class GemMappingService;
+    }
 
     void gem::RawDataFactory::Init() {
         InitLogger(GetPluginName() + ":" + JTypeInfo::demangle<RawDataFactory>());
+        auto mapping = GetApplication()->GetService<GemMappingService>()->GetMapping();
+        m_apv_id_names_map = mapping->GetAPVFromIDMap();
     }
 
     void gem::RawDataFactory::Process(const std::shared_ptr<const JEvent> &event) {
@@ -33,12 +40,16 @@ namespace ml4fpga {
 
             for (auto srs_item: srs_data) {
 
+                // It might be EVIO contains APV that we don't need to process
+                if(!m_apv_id_names_map.count((int) srs_item->apv_id)) continue;
+
                 // Dumb copy of samples because one is int and the other is uint16_t
                 std::vector<int> samples;
                 for (unsigned short sample: srs_item->samples) {
                     samples.push_back(sample);
                 }
                 // m_log->info("ch {:<4} : mapped: {}", srs_item->channel_apv, Constants::ApvChannelCorrection(srs_item->channel_apv));
+
 
                 apvid_chan_sampls[(int) srs_item->apv_id][Constants::ApvChannelCorrection(srs_item->channel_apv)] = samples;
                 int bin_index = fMapping->APVchannelCorrection(srs_item->channel_apv);
