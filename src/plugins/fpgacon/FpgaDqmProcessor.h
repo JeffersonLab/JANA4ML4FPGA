@@ -58,5 +58,9 @@ private:
     std::shared_ptr<DataQualityMonitorService> m_dqm_service;
 
     float m_cfg_min_clust_size=10;
+
+    // We use this m_total_event_num because when there are several files of the same accelerator-run
+    // we have the same event numbers and have memory leaks with histograms having the same names
+    uint64_t m_total_event_num = 0;
 };
 

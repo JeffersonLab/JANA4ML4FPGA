@@ -17,6 +17,7 @@ namespace flatio {
         uint32_t apv;
         uint32_t plane;
         uint32_t detector;
+        bool is_noise;
         double value;
         double raw_value;
         double rolling_average;
@@ -37,6 +38,7 @@ namespace flatio {
             tree->Branch("gem_sample_data_apv", &m_vect_apv);
             tree->Branch("gem_sample_data_plane", &m_vect_plane);
             tree->Branch("gem_sample_data_detector", &m_vect_detector);
+            tree->Branch("gem_sample_data_is_noise", &m_vect_is_noise);
             tree->Branch("gem_sample_data_value", &m_vect_value);
             tree->Branch("gem_sample_data_raw_value", &m_vect_raw_value);
             tree->Branch("gem_sample_data_rolling_average", &m_vect_rolling_average);
@@ -53,6 +55,7 @@ namespace flatio {
             m_vect_apv.clear();
             m_vect_plane.clear();
             m_vect_detector.clear();
+            m_vect_is_noise.clear();
             m_vect_value.clear();
             m_vect_raw_value.clear();
             m_vect_rolling_average.clear();
@@ -72,6 +75,7 @@ namespace flatio {
             m_vect_apv.push_back(data.apv);
             m_vect_plane.push_back(data.plane);
             m_vect_detector.push_back(data.detector);
+            m_vect_is_noise.push_back(data.is_noise);
             m_vect_value.push_back(data.value);
             m_vect_raw_value.push_back(data.raw_value);
             m_vect_rolling_average.push_back(data.rolling_average);
@@ -91,6 +95,7 @@ namespace flatio {
         std::vector<uint32_t> m_vect_apv;
         std::vector<uint32_t> m_vect_plane;
         std::vector<uint32_t> m_vect_detector;
+        std::vector<bool> m_vect_is_noise;
         std::vector<double> m_vect_value;
         std::vector<double> m_vect_raw_value;
         std::vector<double> m_vect_rolling_average;

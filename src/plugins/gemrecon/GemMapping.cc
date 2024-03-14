@@ -26,6 +26,8 @@ void GemMapping::SetCartesianStripsReadoutMap(std::string readoutBoard, std::str
 
     fPlaneIDFromPlaneMap[planeX] = 0;
     fPlaneIDFromPlaneMap[planeY] = 1;
+    fPlaneFromPlaneIDMap[0] = planeX;
+    fPlaneFromPlaneIDMap[1] = planeY;
 
     fDetectorFromPlaneMap[planeX] = detector;
     fDetectorFromPlaneMap[planeY] = detector;
@@ -66,6 +68,8 @@ void GemMapping::SetUVStripsReadoutMap(std::string readoutBoard, std::string det
 
     fPlaneIDFromPlaneMap[planeTop] = 0;
     fPlaneIDFromPlaneMap[planeBot] = 1;
+    fPlaneFromPlaneIDMap[0] = planeTop;
+    fPlaneFromPlaneIDMap[1] = planeBot;
 
     fDetectorFromPlaneMap[planeTop] = detector;
     fDetectorFromPlaneMap[planeBot] = detector;
@@ -109,6 +113,8 @@ void GemMapping::Set1DStripsReadoutMap(std::string readoutBoard, std::string det
     fDetectorListFromReadoutBoardMap[readoutBoard].push_back(detector);
 
     fPlaneIDFromPlaneMap[plane] = 0;
+    fPlaneFromPlaneIDMap[0] = plane;
+
     fDetectorFromPlaneMap[plane] = detector;
     fPlaneListFromDetectorMap[detector].push_back(plane);
 
@@ -183,6 +189,7 @@ void GemMapping::SetPadsReadoutMap(std::string readoutBoard, std::string detecto
     fDetectorFromPlaneMap[padPlane] = detector;
     fPlaneListFromDetectorMap[detector].push_back(padPlane);
     fPlaneIDFromPlaneMap[padPlane] = 0;
+    fPlaneFromPlaneIDMap[0] = padPlane;
 
     fPadDetectorMap[detector].push_back(padSizeX);
     fPadDetectorMap[detector].push_back(padSizeY);

@@ -272,6 +272,7 @@ private:
     std::map<int, std::string> fAPVstatusMap;
 
     std::map<std::string, int> fPlaneIDFromPlaneMap;
+    std::map<int, std::string> fPlaneFromPlaneIDMap;
     std::map<int, std::string> fPlaneFromAPVIDMap;
 
     std::map<int, std::string> fReadoutBoardFromIDMap;

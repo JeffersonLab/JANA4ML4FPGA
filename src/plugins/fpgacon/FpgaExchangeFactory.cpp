@@ -197,7 +197,7 @@ namespace ml4fpga::fpgacon {
      			for(int clust_iter=0; clust_iter < std::min(nnodes, clusters.size()); clust_iter++) {
      				auto hits_track_assoc = new FpgaHitsToTrack();		   // Hits id to track id association
      				hits_track_assoc->hit_index = clust_iter;
-     				hits_track_assoc->trk_index = NDATA[clust_iter + 4];
+     				hits_track_assoc->track_index = NDATA[clust_iter + 4];
      				m_output_hits_to_track().push_back(hits_track_assoc);
      			}
 

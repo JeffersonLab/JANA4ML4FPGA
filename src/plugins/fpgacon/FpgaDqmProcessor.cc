@@ -48,7 +48,13 @@ void FpgaDqmProcessor::Init() {
 // This function is called every event
 void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 
+	// We use this m_total_event_num because when there are several files of the same accelerator-run
+	// we have the same event numbers and have memory leaks with histograms having the same names
+	uint64_t m_total_event_num = 0;
+
 	if(event->GetEventNumber()<3) return;
+
+
 
 	try {
 		bool should_fill_event = m_dqm_service->ShouldProcessEvent(event->GetEventNumber());
@@ -68,7 +74,7 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 
 	auto context = event->GetSingle<ml4fpga::fpgacon::F125ClusterContext>();
 
-	auto hists_dir = m_dqm_service->GetPerEventSubDir(event->GetEventNumber(), "fpgacon");
+	auto hists_dir = m_dqm_service->GetPerEventSubDir(m_total_event_num, "fpgacon");
 
 	auto hevt = static_cast<TH2*>(context->hevt->Clone("hevt-n"));
 	hevt->SetDirectory(hists_dir);
@@ -79,9 +85,9 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 
 	// Fill peaks on the instagram
 	gROOT->SetBatch(kTRUE);
-	uint64_t event_number = event->GetEventNumber();
+	uint64_t event_number = m_total_event_num;
 	//-----------------  canvas 1 FPGA Display ----------
-	std::string title = fmt::format("Clustering event {}", event->GetEventNumber());
+	std::string title = fmt::format("Clustering event {}", m_total_event_num);
 	TCanvas *canvas = new TCanvas("FPGA",title.c_str(),100,100,1000,1300);
 	canvas->cd();
 	hevt->Draw("colz");
