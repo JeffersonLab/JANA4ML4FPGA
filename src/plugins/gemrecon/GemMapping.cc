@@ -361,13 +361,15 @@ void GemMapping::SaveMapping(const char *file) {
 void GemMapping::LoadMapping(const char *mappingCfgFilename) {
 
     Clear();
-    printf("   GemMapping::LoadDefaultMapping() ==> Loading Mapping from %s \n", mappingCfgFilename);
+    printf("   GemMapping::LoadMapping() ==> Loading Mapping from %s \n", mappingCfgFilename);
     int apvNo = 0;
     int detID = 0;
     // Check if the file exists and can be opened for reading
-    if (!std::filesystem::exists(mappingCfgFilename) || !std::filesystem::is_regular_file(mappingCfgFilename)) {
+    if (!std::filesystem::exists(mappingCfgFilename) ||
+        !std::filesystem::is_regular_file(mappingCfgFilename)) {
         throw JException("Error: File '" + std::string(mappingCfgFilename) + "' does not exist or cannot be opened.");
     }
+
     ifstream filestream(mappingCfgFilename, ifstream::in);
     TString line;
     while (line.ReadLine(filestream)) {

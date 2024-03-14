@@ -30,7 +30,7 @@ namespace ml4fpga::gem {
         Service<GemMappingService> m_mapping_service {this};
         int m_req_ntsamples;                        // Number of time samples set in flag
         GemMapping* m_mapping;
-        std::map<int, std::string> m_apv_id_names_map;
+        std::map<int, std::string> m_apv_names_by_id;
         //Output<FpgaTrackFit> m_output_trak_fit {this};
 
     private:

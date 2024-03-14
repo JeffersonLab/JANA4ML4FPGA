@@ -14,7 +14,9 @@ namespace ml4fpga::gem {
         GetApplication()->GetParameter("daq:srs_window_raw:ntsamples", m_req_ntsamples);
 
         m_mapping = m_mapping_service().GetMapping();
-        m_apv_id_names_map = m_mapping->GetAPVFromIDMap();
+        m_apv_names_by_id = m_mapping->GetAPVFromIDMap();
+        m_mapping->GetAPVIndexOnPlaneFromIDMap();
+
 
     }
 
@@ -32,7 +34,7 @@ namespace ml4fpga::gem {
         for (auto srs_item: m_srs_raw_data()) {
 
             // It might be EVIO contains APV that we don't need to process
-            if(!m_apv_id_names_map.count((int) srs_item->apv_id)) continue;
+            if(!m_apv_names_by_id.count((int) srs_item->apv_id)) continue;
 
             // Dumb copy of samples because one is int and the other is uint16_t
             std::vector<int> samples;
@@ -41,10 +43,21 @@ namespace ml4fpga::gem {
                 auto result = new SampleData();
                 result->apv = srs_item->apv_id;
                 result->channel = Constants::ApvChannelCorrection(srs_item->channel_apv);
-                result->encoded_channel = srs_item->channel_apv;
+                if(m_mapping->GetAPVOrientation(result->apv)) {
+                    result->channel = Constants::ChannelsCount - 1 - result->channel;
+
+                }
+                result->raw_channel = srs_item->channel_apv;
                 result->value = sample;
                 result->time_bin = sample_index;
                 result->id = result->time_bin + result->channel*1000 + result->apv*1000000 + 1000000000;
+
+                auto plane_name = m_mapping->GetPlaneFromAPVID(result->apv);
+                auto plane_id = m_mapping->GetPlaneID(plane_name);
+                result->plane = plane_id;
+                auto det_name = m_mapping->GetDetectorFromAPVIDMap()[result->apv];
+                result->detector = m_mapping->GetDetectorID(det_name);
+                
                 if(!m_sample_stats.count(result->id)) {
                     m_sample_stats[result->id] = extmath::RollingStatistics<double>(m_rolling_len());
                 }

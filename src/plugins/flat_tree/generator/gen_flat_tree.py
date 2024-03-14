@@ -316,6 +316,23 @@ io_classes = [
             FieldInfo('float', 'slope'),
             FieldInfo('float', 'intersect')
         ]),
+    ClassInfo(
+        name="GemSampleData",
+        root_name="gem_sample_data",
+        fields=[
+            FieldInfo('uint64_t', 'id'),
+            FieldInfo('uint32_t', 'channel'),
+            FieldInfo('uint32_t', 'raw_channel'),
+            FieldInfo('uint32_t', 'time_bin'),
+            FieldInfo('uint32_t', 'apv'),
+            FieldInfo('uint32_t', 'plane'),
+            FieldInfo('uint32_t', 'detector'),
+            FieldInfo('double', 'value'),
+            FieldInfo('double', 'raw_value'),
+            FieldInfo('double', 'rolling_average'),
+            FieldInfo('double', 'rolling_std'),
+        ]),
+
 ]
 
 def gen_fields_code(template: str, class_info: ClassInfo, spaces: int):
