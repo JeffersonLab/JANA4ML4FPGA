@@ -608,10 +608,10 @@ void ml4fpga::gem::GemReconDqmProcessor::FillSampleData(const std::shared_ptr<co
 
     // The trick is that SampleData is guaranteed to be ordered by
     // detector -> plane -> time bin -> apv on plane -> channel num
-    auto samples = event->GetSingle<SampleData>();
+    auto samples = event->Get<SampleData>();
 
     // Select samples by plane, the second map saves sorting in order apv
-    std::unordered_map<uint64_t, std::map<uint64_t, SampleData*>> m_samples_by_plane;
+    std::unordered_map<uint64_t, std::map<uint64_t, const SampleData*>> m_samples_by_plane;
     for(auto sample: samples) {
         m_samples_by_plane[sample->plane][sample->id] = sample;
     }
@@ -619,7 +619,7 @@ void ml4fpga::gem::GemReconDqmProcessor::FillSampleData(const std::shared_ptr<co
     // Build plots for each plane:
     for(auto pair: m_samples_by_plane) {
         auto plane_id = pair.first;
-        auto plane_name = m_mapping->GetPlaneIDFromPlaneMap()
+        auto plane_name = m_mapping->GetPlaneIDFromPlaneMap();
     }
 
 

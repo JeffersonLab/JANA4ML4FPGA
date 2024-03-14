@@ -20,6 +20,7 @@
 #include "F125ClusterContext.h"
 #include "services/dqm/DataQualityMonitorService.h"
 #include "FpgaHitsToTrack.h"
+#include "FpgaTrackFit.h"
 
 
 //------------------
@@ -88,8 +89,8 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 	uint64_t event_number = m_total_event_num;
 	//-----------------  canvas 1 FPGA Display ----------
 	std::string title = fmt::format("Clustering event {}", m_total_event_num);
-	TCanvas *canvas = new TCanvas("FPGA",title.c_str(),100,100,1000,1300);
-	canvas->cd();
+	TCanvas *clust_canvas = new TCanvas("clust_canvas",title.c_str(),100,100,1000,1300);
+	clust_canvas->cd();
 	hevt->Draw("colz");
 	int COLMAP[]={1,2,3,4,6,5};
 
@@ -114,12 +115,62 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 		m.Draw();
 		gPad->Modified();
 		gPad->Update();
-
 	}
 	//canvas->Modified();
-	canvas->Update();
-	canvas->Write();
-	delete canvas;
+	clust_canvas->Update();
+	clust_canvas->Write();
+	delete clust_canvas;
+
+
+	// Fit canvas
+
+	 title = fmt::format("Clustering event {}", m_total_event_num);
+	TCanvas *tfit_canvas = new TCanvas("clust_canvas",title.c_str(),100,100,1000,1300);
+	tfit_canvas->cd();
+	hevt->Draw("colz");
+
+	double zStart =  5.; // mm
+	double zEnd   = 29.; // mm
+
+
+	logger()->trace("{:>10} {:>10} {:>10} {:>10}", "id", "pos_x", "pos_z", "dedx");
+	auto ht_assoc = event->Get<ml4fpga::fpgacon::FpgaHitsToTrack>();
+	auto track_fits = event->Get<ml4fpga::fpgacon::FpgaTrackFit>();
+	for(auto tfit: track_fits) {
+		TF1 ftrk("ftrk", "[0]*x+[1]", zStart, zEnd);
+		ftrk.SetParameter(0, tfit->slope);
+		ftrk.SetParameter(1, tfit->intersect);
+		ftrk.DrawClone("same");
+	}
+
+	if(ht_assoc.size() == clusters.size()) {
+		for(int i=0; i < clusters.size(); i++) {
+			auto& cluster = clusters[i];
+			logger()->trace("{:>10} {:>10.2f} {:>10.2f} {:>10.2f}", cluster->id, cluster->pos_x, cluster->pos_z, cluster->dedx);
+
+			// Put marker on the prlot
+			int mstyle = cluster->size < m_cfg_min_clust_size ? 22 : 20;		// Cluster marker style
+			TMarker m = TMarker(cluster->pos_z, cluster->pos_x, mstyle);
+
+			// Cluster marker color
+			int tcol=std::min(ht_assoc[i]->track_index,6);
+			int mcolor = COLMAP[tcol-1];
+			m.SetMarkerColor(mcolor);
+
+			// Size
+			m.SetMarkerSize(0.7 + cluster->dedx / 300);	// Parametrize?
+
+			// Update everything
+			m.Draw();
+			gPad->Modified();
+			gPad->Update();
+		}
+	}
+	//canvas->Modified();
+	clust_canvas->Update();
+	clust_canvas->Write();
+	delete clust_canvas;
+
 
 	auto hits_assoc = event->Get<ml4fpga::fpgacon::FpgaHitsToTrack>();
 }
