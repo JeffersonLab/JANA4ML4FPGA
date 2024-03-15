@@ -48,6 +48,9 @@ void FpgaDqmProcessor::Init() {
 //------------------
 // This function is called every event
 void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
+	try {
+            
+
 
 	// We use this m_total_event_num because when there are several files of the same accelerator-run
 	// we have the same event numbers and have memory leaks with histograms having the same names
@@ -183,6 +186,13 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 	tfit_canvas->Update();
 	tfit_canvas->Write();
 	delete tfit_canvas;
+
+	        }
+        catch(std::exception &e) {
+            logger()->warn("FpgaDqmProcessor Exception during process {}", e.what());
+            //m_logger->warn("Exception during process {}", e.what());
+            //throw JException();
+        }
 }
 
 
