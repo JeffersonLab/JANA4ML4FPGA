@@ -138,7 +138,6 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 		ftrk.DrawClone("same");
 	}
 
-
 	for(int i=0; i < hit_track_assocs.size(); i++) {
 		auto hit_track_assoc = hit_track_assocs[i];
 
@@ -149,8 +148,11 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 		}
 
 		// Check if result is in range of cluster indexes
-		if(hit_track_assoc->track_index < 0 || hit_track_assoc->track_index >= track_fits.size()) {
-			logger()->warn("hit_track_assoc->track_index={} is outside of tracks indexes track_fits.size()={}", hit_track_assoc->track_index, track_fits.size());
+		if(hit_track_assoc->track_index - 1 < 0 || hit_track_assoc->track_index - 1 >= track_fits.size()) {
+			if(!track_fits.empty()) {
+				logger()->warn("hit_track_assoc->track_index={} is outside of tracks indexes track_fits.size()={}", hit_track_assoc->track_index, track_fits.size());
+			}
+
 			continue;
 		}
 
