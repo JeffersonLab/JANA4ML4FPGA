@@ -51,11 +51,9 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 
 	// We use this m_total_event_num because when there are several files of the same accelerator-run
 	// we have the same event numbers and have memory leaks with histograms having the same names
-	uint64_t m_total_event_num = 0;
+	m_total_event_num++;
 
 	if(event->GetEventNumber()<3) return;
-
-
 
 	try {
 		bool should_fill_event = m_dqm_service->ShouldProcessEvent(event->GetEventNumber());
@@ -76,20 +74,21 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 	auto context = event->GetSingle<ml4fpga::fpgacon::F125ClusterContext>();
 
 	auto hists_dir = m_dqm_service->GetPerEventSubDir(m_total_event_num, "fpgacon");
+	hists_dir->cd();
 
 	auto hevt = static_cast<TH2*>(context->hevt->Clone("hevt-n"));
 	hevt->SetDirectory(hists_dir);
 
 	auto hevtc = static_cast<TH2*>(context->hevtc->Clone("hevtc-n"));
 	hevtc->SetDirectory(hists_dir);
-	hists_dir->cd();
+
 
 	// Fill peaks on the instagram
 	gROOT->SetBatch(kTRUE);
 	uint64_t event_number = m_total_event_num;
 	//-----------------  canvas 1 FPGA Display ----------
 	std::string title = fmt::format("Clustering event {}", m_total_event_num);
-	TCanvas *clust_canvas = new TCanvas("clust_canvas",title.c_str(),100,100,1000,1300);
+	TCanvas *clust_canvas = new TCanvas("clusters",title.c_str(),100,100,1000,1300);
 	clust_canvas->cd();
 	hevt->Draw("colz");
 	int COLMAP[]={1,2,3,4,6,5};
@@ -107,14 +106,8 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 		int tcol=2;
 		int mcolor = COLMAP[tcol-1];
 		m.SetMarkerColor(mcolor);
-
-		// Size
 		m.SetMarkerSize(0.7 + cluster->dedx / 300);	// Parametrize?
-
-		// Update everything
 		m.Draw();
-		gPad->Modified();
-		gPad->Update();
 	}
 	//canvas->Modified();
 	clust_canvas->Update();
@@ -124,8 +117,8 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 
 	// Fit canvas
 
-	 title = fmt::format("Clustering event {}", m_total_event_num);
-	TCanvas *tfit_canvas = new TCanvas("clust_canvas",title.c_str(),100,100,1000,1300);
+	title = fmt::format("Clustering event {}", m_total_event_num);
+	auto tfit_canvas = new TCanvas("tracks",title.c_str(),100,100,1000,1300);
 	tfit_canvas->cd();
 	hevt->Draw("colz");
 
@@ -161,18 +154,16 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 			m.SetMarkerSize(0.7 + cluster->dedx / 300);	// Parametrize?
 
 			// Update everything
-			m.Draw();
-			gPad->Modified();
-			gPad->Update();
+			m.DrawClone("same");
 		}
 	}
+	else {
+		logger()->warn("ht_assoc.size():{} != clusters.size():{} ", ht_assoc.size(), clusters.size());
+	}
 	//canvas->Modified();
-	clust_canvas->Update();
-	clust_canvas->Write();
-	delete clust_canvas;
-
-
-	auto hits_assoc = event->Get<ml4fpga::fpgacon::FpgaHitsToTrack>();
+	tfit_canvas->Update();
+	tfit_canvas->Write();
+	delete tfit_canvas;
 }
 
 

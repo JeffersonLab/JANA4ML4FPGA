@@ -617,9 +617,12 @@ void ml4fpga::gem::GemReconDqmProcessor::FillSampleData(const std::shared_ptr<co
     }
 
     // Build plots for each plane:
-    for(auto pair: m_samples_by_plane) {
-        auto plane_id = pair.first;
-        auto plane_name = m_mapping->GetPlaneIDFromPlaneMap();
+    for(auto & [plane_id, plane_samples_map]: m_samples_by_plane) {
+        auto plane_name = m_mapping->GetPlaneFromPlaneID(plane_id);
+
+        std::string histo_name = fmt::format("{}_samples", plane_name);
+        std::string histo_title = fmt::format("{} Sample data for event {}", plane_name, m_total_event_num);
+
     }
 
 
