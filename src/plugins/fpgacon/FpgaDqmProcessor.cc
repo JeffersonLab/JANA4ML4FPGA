@@ -107,7 +107,9 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 		int mcolor = COLMAP[tcol-1];
 		m.SetMarkerColor(mcolor);
 		m.SetMarkerSize(0.7 + cluster->dedx / 300);	// Parametrize?
-		m.Draw();
+		m.DrawClone("same");
+		clust_canvas->Modified();
+		clust_canvas->Update();
 	}
 	//canvas->Modified();
 	clust_canvas->Update();
@@ -117,7 +119,7 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 
 	// Fit canvas
 
-	title = fmt::format("Clustering event {}", m_total_event_num);
+	title = fmt::format("Fpga matching and fitting event {}", m_total_event_num);
 	auto tfit_canvas = new TCanvas("tracks",title.c_str(),100,100,1000,1300);
 	tfit_canvas->cd();
 	hevt->Draw("colz");
@@ -127,7 +129,7 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 
 
 	logger()->trace("{:>10} {:>10} {:>10} {:>10}", "id", "pos_x", "pos_z", "dedx");
-	auto ht_assoc = event->Get<ml4fpga::fpgacon::FpgaHitsToTrack>();
+	auto hit_track_assocs = event->Get<ml4fpga::fpgacon::FpgaHitsToTrack>();
 	auto track_fits = event->Get<ml4fpga::fpgacon::FpgaTrackFit>();
 	for(auto tfit: track_fits) {
 		TF1 ftrk("ftrk", "[0]*x+[1]", zStart, zEnd);
@@ -136,30 +138,43 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 		ftrk.DrawClone("same");
 	}
 
-	if(ht_assoc.size() == clusters.size()) {
-		for(int i=0; i < clusters.size(); i++) {
-			auto& cluster = clusters[i];
-			logger()->trace("{:>10} {:>10.2f} {:>10.2f} {:>10.2f}", cluster->id, cluster->pos_x, cluster->pos_z, cluster->dedx);
 
-			// Put marker on the prlot
-			int mstyle = cluster->size < m_cfg_min_clust_size ? 22 : 20;		// Cluster marker style
-			TMarker m = TMarker(cluster->pos_z, cluster->pos_x, mstyle);
+	for(int i=0; i < hit_track_assocs.size(); i++) {
+		auto hit_track_assoc = hit_track_assocs[i];
 
-			// Cluster marker color
-			int tcol=std::min(ht_assoc[i]->track_index,6);
-			int mcolor = COLMAP[tcol-1];
-			m.SetMarkerColor(mcolor);
-
-			// Size
-			m.SetMarkerSize(0.7 + cluster->dedx / 300);	// Parametrize?
-
-			// Update everything
-			m.DrawClone("same");
+		// Check if result is in range of cluster indexes
+		if(hit_track_assoc->hit_index < 0 || hit_track_assoc->hit_index >= clusters.size()) {
+			logger()->warn("hit_track_assoc->hit_index={} is outside of cluster indexes clusters.size()={}", hit_track_assoc->hit_index, clusters.size());
+			continue;
 		}
+
+		// Check if result is in range of cluster indexes
+		if(hit_track_assoc->track_index < 0 || hit_track_assoc->track_index >= track_fits.size()) {
+			logger()->warn("hit_track_assoc->track_index={} is outside of tracks indexes track_fits.size()={}", hit_track_assoc->track_index, track_fits.size());
+			continue;
+		}
+
+		auto& cluster = clusters[hit_track_assoc->hit_index];
+		logger()->trace("{:>10} {:>10.2f} {:>10.2f} {:>10.2f}", cluster->id, cluster->pos_x, cluster->pos_z, cluster->dedx);
+
+		// Put marker on the prlot
+		int mstyle = cluster->size < m_cfg_min_clust_size ? 22 : 20;		// Cluster marker style
+		TMarker m = TMarker(cluster->pos_z, cluster->pos_x, mstyle);
+
+		// Cluster marker color
+		int tcol=std::min(hit_track_assoc->track_index,6);
+		int mcolor = COLMAP[tcol-1];
+		m.SetMarkerColor(mcolor);
+
+		// Size
+		m.SetMarkerSize(0.7 + cluster->dedx / 300);	// Parametrize?
+
+		// Update everything
+		m.DrawClone("same");
+		tfit_canvas->Modified();
+		tfit_canvas->Update();
 	}
-	else {
-		logger()->warn("ht_assoc.size():{} != clusters.size():{} ", ht_assoc.size(), clusters.size());
-	}
+
 	//canvas->Modified();
 	tfit_canvas->Update();
 	tfit_canvas->Write();
