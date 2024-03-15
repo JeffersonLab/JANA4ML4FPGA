@@ -12,7 +12,7 @@
 #define MAXCLNT 32  //--  used 32 bit word   !!!!
 #define MAXMOD  15L      //-- max 15 modules/crates
 #define MAXDATA_DC  300000L  //-- in words;
-#define MAXDATA 65536L   //-- in words;  400kB max (RAW CDC) => 100000L
+#define MAXDATA 100000L   //-- in words;  400kB max (RAW CDC) => 100000L
 
 #define   BORE_TRIGGERID  0x55555555
 #define   INFO_TRIGGERID  0x5555AAAA
@@ -158,8 +158,6 @@ void CDaqEventSource::WaitForClient() {
 void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
 
     try {
-
-
         static std::once_flag begin_data_taking_flag;
 
         /// Calls to GetEvent are synchronized with each other, which means they can
@@ -283,7 +281,7 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
 
             if (cdaq_trigger_id == BORE_TRIGGERID) {    //-------------         New run           -----------
                 // New run number?
-                m_log->debug("evtTrigID == BORE_TRIGGERID {} {} {} New run number?", header_trigger_id, cdaq_trigger_id,
+                m_log->debug("evtTrigID == BORE_TRIGGERID header_trigger_id={} cdaq_trigger_id={} header_run_number={} New run number?", header_trigger_id, cdaq_trigger_id,
                              header_run_number);
             }
 
@@ -353,9 +351,12 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             event_buffer_ptr[0] = event_words_len + 1;    // +1 because the length word itself is not counted in length
             event_buffer_ptr[1] = 0xFF331001;           // 0xFF33-bank of banks, 10-special, 01-1 event
 
+
             // >oODebugging output
             // TODO make a flag to show this dumps
             // parser.DumpBinary(event_buffer_ptr, &event_buffer_ptr[24], 0, nullptr);
+
+            // TODO add run number event->SetRunNumber()
 
             // Parse the block
             auto events = parser.ParseEVIOBlockedEvent(block, event); // std::vector <std::shared_ptr<JEvent>>
