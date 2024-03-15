@@ -7,6 +7,8 @@
 #include <extensions/spdlog/SpdlogMixin.h>
 #include <sys/socket.h>
 #include <future>
+#include "rawdataparser/CDaqTCPevent.h"
+#include "evio/HDEVIO.h"
 //#include "rawdataparser/EVIOFileWriter.h"
 
 class CDaqEventSource : public JEventSource, public spdlog::extensions::SpdlogMixin<CDaqEventSource>
@@ -65,9 +67,12 @@ private:
 
     // EVIO block parser
     EVIOBlockedEventParserConfig m_parser_config;
-    EVIOBlockedEventParser parser; // TODO: make this persistent
+    // EVIOBlockedEventParser parser; // TODO: make this persistent
     size_t m_end_of_runs_count=0;
     //EVIOFileWriter *m_evio_output_file;
+
+    void PrintEVIOBlockHeader(uint32_t* buff);
+
 };
 
 template <>

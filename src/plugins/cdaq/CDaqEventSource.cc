@@ -14,6 +14,16 @@
 
 #define MAXDATA 65536L   //-- in words;  400kB max (RAW CDC) => 100000L
 
+//------------------------
+// HexStr
+//------------------------
+inline std::string HexStr(uint32_t v) {
+    char str[256];
+    sprintf(str, "0x%08x", v);
+
+    return std::string(str);
+}
+
 
 CDaqEventSource::CDaqEventSource(std::string resource_name, JApplication *app) : JEventSource(resource_name, app) {
     SetTypeName(NAME_OF_THIS); // Provide JANA with class name
@@ -84,7 +94,9 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
         // Disable the timeout at this point since the call to tcp_event_get 
         // may block indefinitely while waiting for an event.
         static std::once_flag co_to_flag;
-        std::call_once( co_to_flag, [this](){m_log->info("Disabling JANA timeout due to networked event source."); japp->SetTimeoutEnabled(false);});
+        std::call_once( co_to_flag, [this](){
+            m_log->info("Disabling JANA timeout due to networked event source.");
+            japp->SetTimeoutEnabled(false);});
 
         // Diable ticker temporarily
         auto ticker = japp->IsTickerEnabled();
@@ -104,8 +116,12 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
         // Check results
         if( res ){
             // Error reading event
+            m_log->warn("Error reading event from TCP, result code = {}", res);
             delete tcpevent;
             return;
+        } else {
+            m_log->trace("HOST2={} DATA.size={} lenDATA={} Nr_Modules={} ModuleID={} TriggerID={}",
+                         tcpevent->HOST2, tcpevent->DATA.size(), tcpevent->lenDATA, tcpevent->Nr_Modules, tcpevent->ModuleID, tcpevent->TriggerID);
         }
 
         //--------------------  Parse the event ---------------------------
@@ -119,6 +135,8 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
         // for purposes of parsing and then return it to the tcpevent.
         EVIOBlockedEvent block;
         block.data.swap(tcpevent->DATA); // loan event data to block
+
+        PrintEVIOBlockHeader(block.data.data());
 
         // Get events from current block
         EVIOBlockedEventParser parser;
@@ -177,3 +195,20 @@ void CDaqEventSource::ThrowOnErrno(const std::string &comment) {
     throw JException(error_message);
 
 }
+
+void CDaqEventSource::PrintEVIOBlockHeader(uint32_t* buff) {
+    using namespace std;
+        cout << endl;
+        cout << "EVIO Block Header:" << endl;
+        cout << "------------------------" << endl;
+        cout << " Block Length: " << HexStr(buff[0]) << " (" << buff[0] << " words = " << (buff[0]>>(10-2)) << " kB)" << endl;
+        cout << " Block Number: " << HexStr(buff[1]) << endl;
+        cout << "Header Length: " << HexStr(buff[2]) << " (should be 8)" << endl;
+        cout << "  Event Count: " << HexStr(buff[3]) << endl;
+        cout << "   Reserved 1: " << HexStr(buff[4]) << endl;
+        cout << "     Bit Info: " << HexStr(buff[5]>>8) << endl;
+        cout << "      Version: " << HexStr(buff[5]&0xFF) << endl;
+        cout << "   Reserved 3: " << HexStr(buff[6]) << endl;
+        cout << "   Magic word: " << HexStr(buff[7]) << endl;
+}
+

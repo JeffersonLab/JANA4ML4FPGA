@@ -1336,6 +1336,7 @@ void EVIOBlockedEventParser::Parsef250Bank(uint32_t rocid, uint32_t *&iptr, uint
 
                     iptr++;
                     if ((*iptr >> 30) != 0x00) {
+                        cout << " (*iptr >> 30) != 0x00 " << endl;
                         DumpBinary(istart_pulse_data, iend, 128, iptr);
                         if (continue_on_format_error) {
                             iptr = iend;
