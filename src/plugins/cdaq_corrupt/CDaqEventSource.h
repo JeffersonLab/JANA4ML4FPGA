@@ -73,6 +73,11 @@ private:
 
     void PrintEVIOBlockHeader(uint32_t* buff);
 
+    void NetworkOpen();
+
+    CDaqTCPevent *ReadNetworkEvent(int count);
+
+    CDaqTCPevent *ReadEventFromDisk(const string &base_name, int event_num);
 };
 
 template <>
