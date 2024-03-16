@@ -460,6 +460,7 @@ void FlatTreeWriterProcessor::SaveFPGATrackFits(const std::vector<const ml4fpga:
         trk_fit_save.id = tfit->track_id;
         trk_fit_save.slope = tfit->slope;
         trk_fit_save.intersect = tfit->intersect;
+        m_fpga_track_fit_io.add(trk_fit_save);
     }
 }
 
