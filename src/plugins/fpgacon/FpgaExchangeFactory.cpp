@@ -38,18 +38,15 @@ namespace ml4fpga::fpgacon {
         //
         //
         // app->SetDefaultParameter(plugin_name + ":use_fpga", m_cfg_use_tcp, "Send messages to FPGA via TCP");
+        int port = m_cfg_port();
+        const std::string&host = m_cfg_host();
+        sock = std::make_unique<TSocket>(host.c_str(), port);
     }
 
 
     void FpgaExchangeFactory::CozyProcess(uint64_t run_number, uint64_t event_number) {
         try {
             if (event_number < 3) return;
-
-            int port = m_cfg_port();
-            const std::string&host = m_cfg_host();
-            auto sock = std::make_unique<TSocket>(host.c_str(), port);
-
-
 #if (USE_TCP==1)
             //-----------------  send DATA  ----------------
             //printf(" send DATA  \n");

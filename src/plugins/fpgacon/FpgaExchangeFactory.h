@@ -8,6 +8,7 @@
 #include <extensions/jana/CozyFactory.h>
 #include <extensions/spdlog/SpdlogMixin.h>
 #include <JANA/JFactoryT.h>
+#include <TSocket.h>
 
 #include "F125Cluster.h"
 #include "FpgaTrackFit.h"
@@ -32,6 +33,7 @@ namespace ml4fpga::fpgacon {
         Parameter<std::string> m_cfg_host {this, "host", "localhost", "Host address to connect to"};
         Parameter<int> m_cfg_port {this, "port", 20250, "Port to connect to"};
 
+        std::unique_ptr<TSocket> sock;
     };
 }
 
