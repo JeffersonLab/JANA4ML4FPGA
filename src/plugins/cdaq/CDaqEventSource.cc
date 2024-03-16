@@ -111,6 +111,13 @@ void CDaqEventSource::WaitForClient() {
     char host_name[128];
     int len = 128;
 
+    m_log->info("Disabling JANA timeout due to networked event source.");
+    japp->SetTimeoutEnabled(false);
+
+    // Diable ticker temporarily
+    m_ticker_backup = japp->IsTickerEnabled();
+    japp->SetTicker(false);
+
     m_log->info("Waiting for clients");
     m_log->debug("   socket_fd={}", m_socket_fd);
     m_log->debug("   port={}", m_port);
@@ -171,7 +178,10 @@ void CDaqEventSource::GetEvent(std::shared_ptr<JEvent> event) {
             // Not yet connected. Wait more
             throw RETURN_STATUS::kTRY_AGAIN;
         } else {
-            std::call_once(begin_data_taking_flag, [this]() { m_log->info("Starting to receive events..."); });
+            std::call_once(begin_data_taking_flag, [this]() {
+                m_log->info("Starting to receive events...");
+                japp->SetTicker(true);
+            });
         }
         int receive_fd = m_receive_fd;
 
