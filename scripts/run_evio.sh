@@ -9,13 +9,14 @@ Parameters:
 - 'MODE'   - Can be "ADC", "DUMP", or "SRS". Defaults to "ADC".
 - 'SRSBIN' - Used when 'MODE' is "SRS". Number of SRS time bins . Defaults to 3.
 Usage:
-run_evio.sh [run_num] [max events] [mode] [srsbin]
+run_evio.sh [run_num] [max events] [mode] [srsbin] [file_num]
 EOH
 
 RUN=${1-help}
 MAXEVT=${2-0}
 MODE=${3-ADC}
 SRSBIN=${4-3}
+FILE=$5
 
 if [[ $RUN == "help" ]] || [[ $RUN == "--help" ]] ; then
     echo -e "\n$HELP_TEXT\n"
@@ -40,7 +41,15 @@ echo "SRS_MAPPING = $SRS_MAPPING"
 
 RUNNUM=$(printf '%06d' ${RUN} ) 
 
-FILELIST="`/bin/ls DATA/hd_rawdata_${RUNNUM}_*.evio `"
+if [[ x$FILE == "x" ]] ; then 
+    echo " All Files "
+    FILELIST="`/bin/ls DATA/hd_rawdata_${RUNNUM}_*.evio `"
+else 
+    FILENUM=$(printf '%03d' ${FILE} )
+    FILELIST="`/bin/ls DATA/hd_rawdata_${RUNNUM}_${FILENUM}.evio `"
+    echo " Process file = $FILELIST "
+fi
+sleep 1
 
 echo "FILELIST = $FILELIST "
 echo "RUN = $RUN "
@@ -77,6 +86,7 @@ else
     set -x
     jana4ml4fpga -Pplugins=CDAQfile,flat_tree,root_output,gemrecon,dqm \
     -Pjana:nevents=${MAXEVT} \
+    -Pjana:timeout=0 \
     -Pdaq:srs_window_raw:ntsamples=${SRSBIN} \
     -Pjana:debug_plugin_loading=1 \
     -Pevio:LogLevel=trace \

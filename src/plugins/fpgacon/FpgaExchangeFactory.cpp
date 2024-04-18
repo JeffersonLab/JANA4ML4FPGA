@@ -30,17 +30,20 @@
 
 namespace ml4fpga::fpgacon {
     void FpgaExchangeFactory::CozyInit() {
-        // std::string plugin_name = GetPluginName();
+        std::string plugin_name = GetPluginName();
         //
         // // Get JANA application
-        // auto app = GetApplication();
+        auto app = GetApplication();
         // InitLogger(plugin_name + ":fpga");
         //
         //
-        // app->SetDefaultParameter(plugin_name + ":use_fpga", m_cfg_use_tcp, "Send messages to FPGA via TCP");
+        bool use_fpga = false;
+        app->SetDefaultParameter(plugin_name + ":use_fpga", use_fpga, "Send messages to FPGA via TCP");
         int port = m_cfg_port();
         const std::string&host = m_cfg_host();
-        sock = std::make_unique<TSocket>(host.c_str(), port);
+        m_socket = std::make_unique<TSocket>(host.c_str(), port);
+
+
     }
 
 
@@ -128,8 +131,8 @@ namespace ml4fpga::fpgacon {
                 HEADER[6] = k;
                 HEADER[7] = k;
 
-                sock->SendRaw((char *)HEADER, sizeof(HEADER), kDefault);
-                sock->SendRaw((char *)DATA, lenDATA * 4, kDefault);
+                m_socket->SendRaw((char *)HEADER, sizeof(HEADER), kDefault);
+                m_socket->SendRaw((char *)DATA, lenDATA * 4, kDefault);
 
 
                 printf("read GNN out, wait for FPGA data ... \n"); //=======================================================
@@ -139,13 +142,13 @@ namespace ml4fpga::fpgacon {
                 int RHEADER[10];
                 int COLMAP[] = {1, 2, 3, 4, 6, 5};
 
-                sock->RecvRaw((char *)RHEADER, sizeof(RHEADER), kDefault);
+                m_socket->RecvRaw((char *)RHEADER, sizeof(RHEADER), kDefault);
                 int lenNODES = RHEADER[2];
                 printf("RHEADER::");
                 for (int ih = 0; ih < 5; ih++) printf(" %d (0x%x) \n", RHEADER[ih], RHEADER[ih]);
                 printf(" LenDATA=%d \n", RHEADER[2]);
 
-                sock->RecvRaw((char *)NDATA, lenNODES * 4, kDefault);
+                m_socket->RecvRaw((char *)NDATA, lenNODES * 4, kDefault);
 
                 PAD = NDATA[3];
                 size_t nnodes = lenNODES - 4 - PAD; //-- 4 is size of header
@@ -158,14 +161,14 @@ namespace ml4fpga::fpgacon {
                 printf("read FIT out, wait for FPGA data ... \n"); //=======================================================
                 //RHEADER[10];
 
-                int receive_result = sock->RecvRaw((char *)RHEADER, sizeof(RHEADER), kDefault);
+                int receive_result = m_socket->RecvRaw((char *)RHEADER, sizeof(RHEADER), kDefault);
                 logger()->info("receive_result={}", receive_result);
 
                 int lenFITS = RHEADER[2];
                 printf("RHEADER::");
                 for (int ih = 0; ih < 5; ih++) printf(" %d \n", RHEADER[ih]);
                 printf(" LenDATA=%d \n", RHEADER[2]);
-                sock->RecvRaw((char *)TDATA, lenFITS * 4, kDefault);
+                m_socket->RecvRaw((char *)TDATA, lenFITS * 4, kDefault);
 
                 PAD = TDATA[3];
 
