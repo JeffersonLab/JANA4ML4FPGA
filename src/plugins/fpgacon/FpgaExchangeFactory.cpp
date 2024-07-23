@@ -52,6 +52,7 @@ namespace ml4fpga::fpgacon {
         try {
 
             if (event_number < 3) return;
+            TStopwatch event_sw;
 
             auto time_info = new FpgaExchangeTimeInfo();
 #if (USE_TCP==1)
@@ -328,10 +329,15 @@ namespace ml4fpga::fpgacon {
 
 
             //-------------------------------------------------------
+            event_sw.Stop();
+            time_info->event_cpu_time = event_sw.CpuTime();
+            time_info->event_real_time = event_sw.RealTime();
 
             if(event_number < 10)
             {
                 logger()->info("Exchange time info:");
+                logger()->info("   event_cpu_time:      {}", time_info->event_cpu_time);
+                logger()->info("   event_real_time:     {}", time_info->event_real_time);
                 logger()->info("   send_cpu_time:       {}", time_info->send_cpu_time);
                 logger()->info("   send_real_time:      {}", time_info->send_real_time);
                 logger()->info("   receive1_cpu_time:   {}", time_info->receive1_cpu_time);

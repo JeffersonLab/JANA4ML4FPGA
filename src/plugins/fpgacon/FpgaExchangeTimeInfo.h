@@ -8,6 +8,8 @@
 namespace ml4fpga::fpgacon {
 
     struct FpgaExchangeTimeInfo {
+        double event_cpu_time = 0;
+        double event_real_time = 0;
         double send_cpu_time = 0;
         double send_real_time = 0;
         double receive1_cpu_time = 0;
