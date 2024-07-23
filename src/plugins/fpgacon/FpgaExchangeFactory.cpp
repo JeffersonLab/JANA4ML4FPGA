@@ -192,8 +192,8 @@ namespace ml4fpga::fpgacon {
                 m_socket->RecvRaw((char *)TDATA, lenFITS * 4, kDefault);
 
                 receive2_sw.Stop();
-                time_info->receive1_cpu_time = receive2_sw.CpuTime();
-                time_info->receive1_real_time = receive2_sw.RealTime();
+                time_info->receive2_cpu_time = receive2_sw.CpuTime();
+                time_info->receive2_real_time = receive2_sw.RealTime();
 
                 PAD = TDATA[3];
 
@@ -336,14 +336,14 @@ namespace ml4fpga::fpgacon {
             if(event_number < 10)
             {
                 logger()->info("Exchange time info:");
-                logger()->info("   event_cpu_time     [ms]:  {}", time_info->event_cpu_time*1000);
-                logger()->info("   event_real_time    [ms]:  {}", time_info->event_real_time*1000);
-                logger()->info("   send_cpu_time      [ms]:  {}", time_info->send_cpu_time*1000);
-                logger()->info("   send_real_time     [ms]:  {}", time_info->send_real_time*1000);
-                logger()->info("   receive1_cpu_time  [ms]:  {}", time_info->receive1_cpu_time*1000);
-                logger()->info("   receive1_real_time [ms]:  {}", time_info->receive1_real_time*1000);
-                logger()->info("   receive2_cpu_time  [ms]:  {}", time_info->receive2_cpu_time*1000);
-                logger()->info("   receive2_real_time [ms]:  {}", time_info->receive2_real_time*1000);
+                logger()->info("   event_cpu_time     [us]:  {}", time_info->event_cpu_time*1000000);
+                logger()->info("   event_real_time    [us]:  {}", time_info->event_real_time*1000000);
+                logger()->info("   send_cpu_time      [us]:  {}", time_info->send_cpu_time*1000000);
+                logger()->info("   send_real_time     [us]:  {}", time_info->send_real_time*1000000);
+                logger()->info("   receive1_cpu_time  [us]:  {}", time_info->receive1_cpu_time*1000000);
+                logger()->info("   receive1_real_time [us]:  {}", time_info->receive1_real_time*1000000);
+                logger()->info("   receive2_cpu_time  [us]:  {}", time_info->receive2_cpu_time*1000000);
+                logger()->info("   receive2_real_time [us]:  {}", time_info->receive2_real_time*1000000);
             }
             m_output_timing().push_back(time_info);
         }
