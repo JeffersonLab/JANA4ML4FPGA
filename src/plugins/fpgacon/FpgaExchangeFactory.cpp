@@ -42,7 +42,8 @@ namespace ml4fpga::fpgacon {
         int port = m_cfg_port();
         const std::string&host = m_cfg_host();
         m_socket = std::make_unique<TSocket>(host.c_str(), port);
-
+        m_socket->SetOption(kNoDelay,1);
+        logger()->info("  kNoDelay \n");
 
     }
 
