@@ -336,14 +336,14 @@ namespace ml4fpga::fpgacon {
             if(event_number < 10)
             {
                 logger()->info("Exchange time info:");
-                logger()->info("   event_cpu_time:      {}", time_info->event_cpu_time);
-                logger()->info("   event_real_time:     {}", time_info->event_real_time);
-                logger()->info("   send_cpu_time:       {}", time_info->send_cpu_time);
-                logger()->info("   send_real_time:      {}", time_info->send_real_time);
-                logger()->info("   receive1_cpu_time:   {}", time_info->receive1_cpu_time);
-                logger()->info("   receive1_real_time:  {}", time_info->receive1_real_time);
-                logger()->info("   receive2_cpu_time:   {}", time_info->receive2_cpu_time);
-                logger()->info("   receive2_real_time:  {}", time_info->receive2_real_time);
+                logger()->info("   event_cpu_time     [ms]:  {}", time_info->event_cpu_time*1000);
+                logger()->info("   event_real_time    [ms]:  {}", time_info->event_real_time*1000);
+                logger()->info("   send_cpu_time      [ms]:  {}", time_info->send_cpu_time*1000);
+                logger()->info("   send_real_time     [ms]:  {}", time_info->send_real_time*1000);
+                logger()->info("   receive1_cpu_time  [ms]:  {}", time_info->receive1_cpu_time*1000);
+                logger()->info("   receive1_real_time [ms]:  {}", time_info->receive1_real_time*1000);
+                logger()->info("   receive2_cpu_time  [ms]:  {}", time_info->receive2_cpu_time*1000);
+                logger()->info("   receive2_real_time [ms]:  {}", time_info->receive2_real_time*1000);
             }
             m_output_timing().push_back(time_info);
         }
