@@ -50,7 +50,10 @@ namespace ml4fpga::fpgacon {
 
     void FpgaExchangeFactory::CozyProcess(uint64_t run_number, uint64_t event_number) {
         try {
+
             if (event_number < 3) return;
+
+            auto time_info = new FpgaExchangeTimeInfo();
 #if (USE_TCP==1)
             //-----------------  send DATA  ----------------
             //printf(" send DATA  \n");
@@ -132,8 +135,14 @@ namespace ml4fpga::fpgacon {
                 HEADER[6] = k;
                 HEADER[7] = k;
 
+                TStopwatch send_sw;
+
                 m_socket->SendRaw((char *)HEADER, sizeof(HEADER), kDefault);
                 m_socket->SendRaw((char *)DATA, lenDATA * 4, kDefault);
+
+                send_sw.Stop();
+                time_info->send_cpu_time = send_sw.CpuTime();
+                time_info->send_real_time = send_sw.RealTime();
 
 
                 printf("read GNN out, wait for FPGA data ... \n"); //=======================================================
@@ -143,6 +152,8 @@ namespace ml4fpga::fpgacon {
                 int RHEADER[10];
                 int COLMAP[] = {1, 2, 3, 4, 6, 5};
 
+                TStopwatch receive1_sw;
+
                 m_socket->RecvRaw((char *)RHEADER, sizeof(RHEADER), kDefault);
                 int lenNODES = RHEADER[2];
                 printf("RHEADER::");
@@ -150,6 +161,12 @@ namespace ml4fpga::fpgacon {
                 printf(" LenDATA=%d \n", RHEADER[2]);
 
                 m_socket->RecvRaw((char *)NDATA, lenNODES * 4, kDefault);
+
+                receive1_sw.Stop();
+                time_info->receive1_cpu_time = receive1_sw.CpuTime();
+                time_info->receive1_real_time = receive1_sw.RealTime();
+
+
 
                 PAD = NDATA[3];
                 size_t nnodes = lenNODES - 4 - PAD; //-- 4 is size of header
@@ -162,6 +179,8 @@ namespace ml4fpga::fpgacon {
                 printf("read FIT out, wait for FPGA data ... \n"); //=======================================================
                 //RHEADER[10];
 
+                TStopwatch receive2_sw;
+
                 int receive_result = m_socket->RecvRaw((char *)RHEADER, sizeof(RHEADER), kDefault);
                 logger()->info("receive_result={}", receive_result);
 
@@ -170,6 +189,10 @@ namespace ml4fpga::fpgacon {
                 for (int ih = 0; ih < 5; ih++) printf(" %d \n", RHEADER[ih]);
                 printf(" LenDATA=%d \n", RHEADER[2]);
                 m_socket->RecvRaw((char *)TDATA, lenFITS * 4, kDefault);
+
+                receive2_sw.Stop();
+                time_info->receive1_cpu_time = receive2_sw.CpuTime();
+                time_info->receive1_real_time = receive2_sw.RealTime();
 
                 PAD = TDATA[3];
 
@@ -305,6 +328,18 @@ namespace ml4fpga::fpgacon {
 
 
             //-------------------------------------------------------
+
+            if(event_number < 10)
+            {
+                logger()->info("Exchange time info:");
+                logger()->info("   send_cpu_time:       {}", time_info->send_cpu_time);
+                logger()->info("   send_real_time:      {}", time_info->send_real_time);
+                logger()->info("   receive1_cpu_time:   {}", time_info->receive1_cpu_time);
+                logger()->info("   receive1_real_time:  {}", time_info->receive1_real_time);
+                logger()->info("   receive2_cpu_time:   {}", time_info->receive2_cpu_time);
+                logger()->info("   receive2_real_time:  {}", time_info->receive2_real_time);
+            }
+            m_output_timing().push_back(time_info);
         }
         catch (std::exception&e) {
             logger()->warn("FpgaExchangeFactory Exception during process {}", e.what());
