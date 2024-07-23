@@ -210,38 +210,38 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
 //------------------
 void FpgaDqmProcessor::Finish() {
     //    m_log->trace("FpgaConnectionProcessor finished\n");
-    if(m_h1d_timing_event_cpu_time) {
-    m_h1d_timing_event_cpu_time->Write();
-    delete m_h1d_timing_event_cpu_time;
-    }
-    if(m_h1d_timing_event_real_time) {
-    m_h1d_timing_event_real_time->Write();
-    delete m_h1d_timing_event_real_time;
-    }
-    if(m_h1d_timing_send_cpu_time) {
-    m_h1d_timing_send_cpu_time->Write();
-    delete m_h1d_timing_send_cpu_time;
-    }
-    if(m_h1d_timing_send_real_time) {
-    m_h1d_timing_send_real_time->Write();
-    delete m_h1d_timing_send_real_time;
-    }
-    if(m_h1d_timing_receive1_cpu_time) {
-    m_h1d_timing_receive1_cpu_time->Write();
-    delete m_h1d_timing_receive1_cpu_time;
-    }
-    if(m_h1d_timing_receive1_real_time) {
-    m_h1d_timing_receive1_real_time->Write();
-    delete m_h1d_timing_receive1_real_time;
-    }
-    if(m_h1d_timing_receive2_cpu_time) {
-    m_h1d_timing_receive2_cpu_time->Write();
-    delete m_h1d_timing_receive2_cpu_time;
-    }
-    if(m_h1d_timing_receive2_real_time) {
-    m_h1d_timing_receive2_real_time->Write();
-    delete m_h1d_timing_receive2_real_time;
-    }
+    // if(m_h1d_timing_event_cpu_time) {
+    // m_h1d_timing_event_cpu_time->Write();
+    // delete m_h1d_timing_event_cpu_time;
+    // }
+    // if(m_h1d_timing_event_real_time) {
+    // m_h1d_timing_event_real_time->Write();
+    // delete m_h1d_timing_event_real_time;
+    // }
+    // if(m_h1d_timing_send_cpu_time) {
+    // m_h1d_timing_send_cpu_time->Write();
+    // delete m_h1d_timing_send_cpu_time;
+    // }
+    // if(m_h1d_timing_send_real_time) {
+    // m_h1d_timing_send_real_time->Write();
+    // delete m_h1d_timing_send_real_time;
+    // }
+    // if(m_h1d_timing_receive1_cpu_time) {
+    // m_h1d_timing_receive1_cpu_time->Write();
+    // delete m_h1d_timing_receive1_cpu_time;
+    // }
+    // if(m_h1d_timing_receive1_real_time) {
+    // m_h1d_timing_receive1_real_time->Write();
+    // delete m_h1d_timing_receive1_real_time;
+    // }
+    // if(m_h1d_timing_receive2_cpu_time) {
+    // m_h1d_timing_receive2_cpu_time->Write();
+    // delete m_h1d_timing_receive2_cpu_time;
+    // }
+    // if(m_h1d_timing_receive2_real_time) {
+    // m_h1d_timing_receive2_real_time->Write();
+    // delete m_h1d_timing_receive2_real_time;
+    // }
 }
 
 void FpgaDqmProcessor::ProcessTimeInfo(const ml4fpga::fpgacon::FpgaExchangeTimeInfo* time_info)
@@ -259,6 +259,16 @@ void FpgaDqmProcessor::ProcessTimeInfo(const ml4fpga::fpgacon::FpgaExchangeTimeI
         m_h1d_timing_receive1_real_time = new TH1F("timing_receive1_real_time", "Time information m_h1d_timing_receive1_real_time", 100, -0.5, 999.5);
         m_h1d_timing_receive2_cpu_time  = new TH1F("timing_receive2_cpu_time", "Time information m_h1d_timing_receive2_cpu_time ", 100, -0.5, 999.5);
         m_h1d_timing_receive2_real_time = new TH1F("timing_receive2_real_time", "Time information m_h1d_timing_receive2_real_time", 100, -0.5, 999.5);
+
+        m_h1d_timing_event_cpu_time->SetDirectory(integ_dir);
+        m_h1d_timing_event_real_time->SetDirectory(integ_dir);
+        m_h1d_timing_send_cpu_time->SetDirectory(integ_dir);
+        m_h1d_timing_send_real_time->SetDirectory(integ_dir);
+        m_h1d_timing_receive1_cpu_time->SetDirectory(integ_dir);
+        m_h1d_timing_receive1_real_time->SetDirectory(integ_dir);
+        m_h1d_timing_receive2_cpu_time->SetDirectory(integ_dir);
+        m_h1d_timing_receive2_real_time->SetDirectory(integ_dir);
+
 
     }
 
