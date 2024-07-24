@@ -268,16 +268,14 @@ void FpgaDqmProcessor::ProcessTimeInfo(const ml4fpga::fpgacon::FpgaExchangeTimeI
         m_h1d_timing_receive1_real_time->SetDirectory(integ_dir);
         m_h1d_timing_receive2_cpu_time->SetDirectory(integ_dir);
         m_h1d_timing_receive2_real_time->SetDirectory(integ_dir);
-
-
     }
 
-    m_h1d_timing_event_cpu_time->Fill(time_info->event_cpu_time    );
-    m_h1d_timing_event_real_time->Fill(time_info->event_real_time   );
-    m_h1d_timing_send_cpu_time->Fill(time_info->send_cpu_time     );
-    m_h1d_timing_send_real_time->Fill(time_info->send_real_time    );
-    m_h1d_timing_receive1_cpu_time->Fill(time_info->receive1_cpu_time );
-    m_h1d_timing_receive1_real_time->Fill(time_info->receive1_real_time);
-    m_h1d_timing_receive2_cpu_time->Fill(time_info->receive2_cpu_time );
-    m_h1d_timing_receive2_real_time->Fill(time_info->receive2_real_time);
+    m_h1d_timing_event_cpu_time->Fill(time_info->event_cpu_time * 1000000    );
+    m_h1d_timing_event_real_time->Fill(time_info->event_real_time * 1000000   );
+    m_h1d_timing_send_cpu_time->Fill(time_info->send_cpu_time * 1000000     );
+    m_h1d_timing_send_real_time->Fill(time_info->send_real_time * 1000000    );
+    m_h1d_timing_receive1_cpu_time->Fill(time_info->receive1_cpu_time * 1000000 );
+    m_h1d_timing_receive1_real_time->Fill(time_info->receive1_real_time * 1000000 );
+    m_h1d_timing_receive2_cpu_time->Fill(time_info->receive2_cpu_time * 1000000 );
+    m_h1d_timing_receive2_real_time->Fill(time_info->receive2_real_time * 1000000 );
 }

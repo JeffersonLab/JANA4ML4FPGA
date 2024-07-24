@@ -50,6 +50,7 @@ namespace ml4fpga::fpgacon {
 
     void FpgaExchangeFactory::CozyProcess(uint64_t run_number, uint64_t event_number) {
         try {
+            int verbose_event_len = 100;
 
             if (event_number < 3) return;
             TStopwatch event_sw;
@@ -57,7 +58,7 @@ namespace ml4fpga::fpgacon {
             auto time_info = new FpgaExchangeTimeInfo();
 #if (USE_TCP==1)
             //-----------------  send DATA  ----------------
-            //printf(" send DATA  \n");
+
             int DC_NROC = 4;
             static unsigned int BUFFER[BUFSIZE];
             float* FBUFFER = (float *)BUFFER;
@@ -114,7 +115,7 @@ namespace ml4fpga::fpgacon {
                 int evtSize = BUFFER[2];
                 int evtPad = BUFFER[3];
 
-                if (itrg < 200) {
+                if (event_number < verbose_event_len) {
                     printf("==> SEND:: Trg=%d(%d,%d) Mod=%d(%d) siz=%d(%d), evtPad=%d\n"
                            , evtTrigID, itrg, BUFFER[1], evtModID, mod_index, evtSize, LENEVENT, evtPad);
                 }
@@ -146,7 +147,10 @@ namespace ml4fpga::fpgacon {
                 time_info->send_real_time = send_sw.RealTime();
 
 
-                printf("read GNN out, wait for FPGA data ... \n"); //=======================================================
+                if (event_number < verbose_event_len)
+                {
+                    printf("read GNN out, wait for FPGA data ... \n"); //=======================================================
+                }
 
 
                 unsigned int NDATA[MAX_NODES + 10];
@@ -157,9 +161,13 @@ namespace ml4fpga::fpgacon {
 
                 m_socket->RecvRaw((char *)RHEADER, sizeof(RHEADER), kDefault);
                 int lenNODES = RHEADER[2];
-                printf("RHEADER::");
-                for (int ih = 0; ih < 5; ih++) printf(" %d (0x%x) \n", RHEADER[ih], RHEADER[ih]);
-                printf(" LenDATA=%d \n", RHEADER[2]);
+
+                if (event_number < verbose_event_len)
+                {
+                    printf("RHEADER::");
+                    for (int ih = 0; ih < 5; ih++) printf(" %d (0x%x) \n", RHEADER[ih], RHEADER[ih]);
+                    printf(" LenDATA=%d \n", RHEADER[2]);
+                }
 
                 m_socket->RecvRaw((char *)NDATA, lenNODES * 4, kDefault);
 
@@ -167,28 +175,35 @@ namespace ml4fpga::fpgacon {
                 time_info->receive1_cpu_time = receive1_sw.CpuTime();
                 time_info->receive1_real_time = receive1_sw.RealTime();
 
-
-
                 PAD = NDATA[3];
                 size_t nnodes = lenNODES - 4 - PAD; //-- 4 is size of header
-                printf("nodes return: %d (nclust=%d), TRKS: \n", nnodes, clusters.size());
+                if (event_number < verbose_event_len)
+                {
+                    printf("nodes return: %d (nclust=%d), TRKS: \n", nnodes, clusters.size());
+                }
 
 
                 unsigned int TDATA[2048];
                 float* FTDATA = (float *)TDATA;
 #if (USE_FIT==1)
-                printf("read FIT out, wait for FPGA data ... \n"); //=======================================================
-                //RHEADER[10];
+                if (event_number < verbose_event_len)
+                {
+                    printf("read FIT out, wait for FPGA data ... \n");
+                }
 
                 TStopwatch receive2_sw;
 
                 int receive_result = m_socket->RecvRaw((char *)RHEADER, sizeof(RHEADER), kDefault);
-                logger()->info("receive_result={}", receive_result);
+                logger()->debug("receive_result={}", receive_result);
 
                 int lenFITS = RHEADER[2];
-                printf("RHEADER::");
-                for (int ih = 0; ih < 5; ih++) printf(" %d \n", RHEADER[ih]);
-                printf(" LenDATA=%d \n", RHEADER[2]);
+
+                if (event_number < verbose_event_len)
+                {
+                    printf("RHEADER::");
+                    for (int ih = 0; ih < 5; ih++) printf(" %d \n", RHEADER[ih]);
+                    printf(" LenDATA=%d \n", RHEADER[2]);
+                }
                 m_socket->RecvRaw((char *)TDATA, lenFITS * 4, kDefault);
 
                 receive2_sw.Stop();
@@ -196,14 +211,16 @@ namespace ml4fpga::fpgacon {
                 time_info->receive2_real_time = receive2_sw.RealTime();
 
                 PAD = TDATA[3];
-
-                for (int i = 0; i < lenFITS; i++) {
-                    printf("tracks fit return: i=%d  data=0x%x (%f)  \n", i, TDATA[i], FTDATA[i]);
-                }
-
-
                 int nfits = lenFITS - 4 - PAD;
-                printf("tracks fit return: %d  PAD=%d , TDATA[3]=%d \n", nfits, PAD, TDATA[3]);
+
+                if (event_number < verbose_event_len)
+                {
+                    for (int i = 0; i < lenFITS; i++) {
+                        printf("tracks fit return: i=%d  data=0x%x (%f)  \n", i, TDATA[i], FTDATA[i]);
+                    }
+
+                    printf("tracks fit return: %d  PAD=%d , TDATA[3]=%d \n", nfits, PAD, TDATA[3]);
+                }
 
 #else
      		int nfits=nnodes;
@@ -254,7 +271,10 @@ namespace ml4fpga::fpgacon {
                     int ntracks = nfits / 3;
                     int cs = nfits % 3;
                     if (cs != 0) {
-                        printf("==========>>>>   Error FIT results : %d %d %d \n", nfits, ntracks, cs);
+                        if (event_number < verbose_event_len)
+                        {
+                            printf("==========>>>>   Error FIT results : %d %d %d \n", nfits, ntracks, cs);
+                        }
                         break;
                     };
 
@@ -268,24 +288,16 @@ namespace ml4fpga::fpgacon {
                         track_fit->slope = FTDATA[cnt++];
                         track_fit->intersect = FTDATA[cnt++];
                         m_output_trak_fit().push_back(track_fit);
-
-
-                        // printf(" Fit Track=%d aa=%f bb=%f \n", trknum, aa, bb);
-                        //
-                        //
-                        // TF1 ftrk("ftrk", "[0]*x+[1]", zStart, zEnd);
-                        // ftrk.SetParameter(0, aa);
-                        // ftrk.SetParameter(1, bb);
-                        // ftrk.DrawClone("same");
-                        // gPad->Modified();
-                        // gPad->Update();
                     }
                     // c2->Modified();
                     // c2->Update();
 #endif  // --- end  if USE_FIT  ---
                 }
                 else {
-                    printf(" No tracks to draw \n");
+                    if (event_number < verbose_event_len)
+                    {
+                        printf(" No tracks to draw \n");
+                    }
                 }
 
                 // //=============== Draw All Clust ================
