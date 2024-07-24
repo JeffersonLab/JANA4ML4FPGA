@@ -76,7 +76,7 @@ void FpgaDqmProcessor::Process(const std::shared_ptr<const JEvent>&event) {
             ProcessTimeInfo(time_info);
         }
         catch (std::exception&exp) {
-            m_log->error("Error during process");
+            m_log->error("Error during time_info");
             m_log->error("Exception what()='{}', type='{}'", exp.what(), typeid(exp).name());
             throw new JException(exp.what());
         }
