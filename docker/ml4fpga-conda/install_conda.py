@@ -12,25 +12,74 @@ from shutil import move
 from os import remove
 
 
-SCRIPT_NAME_SETUP_CONDA = "setup_conda.sh"
+mamba_ENV_NAME = 'ml4fpga'
+ENV_NAME_TOP_DIR = 'ML4FPGA_TOP_DIR'
+
+SCRIPT_NAME_SETUP_mamba = "setup_mamba.sh"
 SCRIPT_NAME_BUILD_SOFT = "build_software.sh"
 SCRIPT_NAME_ENV_BASH = "setup_env.sh"
 SCRIPT_NAME_ENV_CSH = "setup_env.csh"
-ENV_NAME_TOP_DIR = 'ML4FPGA_TOP_DIR'
-CONDA_ENV_NAME = 'ml4fpga'
+SCRIPT_NAME_mamba_ENV = "environment.yaml"
 INSTALL_SCRIPTS_DIR_NAME = "install_scripts"
+
+# --------------------------------------------------------
+#   mamba ENVIRONMENT
+#   This file defines what packages mamba installs
+# --------------------------------------------------------
+
+mamba_env_content = """
+name: ${mamba_env_name}
+channels:
+  - mamba-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - gcc
+  - cmake
+  - xerces-c
+  - xorg-libxmu
+  - clhep
+  - git
+  - git-lfs
+  - nodejs
+  - boost
+  - ipywidgets
+  - zstd
+  - hepmc3
+  - pip
+  - pip:
+    - click
+    - appdirs
+    - edpm
+    - uproot
+    - awkward-numba
+    - numpy
+    - pandas
+    - matplotlib
+    - seaborn
+    - plotly
+    - pyjet
+    - pyjano
+    - wget
+    - edpm
+variables:
+  PYTHONHTTPSVERIFY: "0"
+  EDPM_DATA_PATH: ${EDPM_DATA_PATH}
+"""
+
 
 
 class InstallInfo:
     this_script_dir: str
     top_dir: str
-    conda_dir: str
-    conda_env_name: str
-    conda_env_dir: str
+    mamba_dir: str
+    mamba_env_name: str
+    mamba_env_dir: str
     scripts_dir: str
-    script_setup_conda: str
+    script_setup_mamba: str
     script_build_soft: str
     script_openssl_cnf: str
+    script_mamba_env: str
     env_name_top_dir = ENV_NAME_TOP_DIR
 
 
@@ -44,22 +93,24 @@ class InstallInfo:
         top_dir = os.environ.get(ENV_NAME_TOP_DIR, this_script_dir)
         os.environ[ENV_NAME_TOP_DIR] = top_dir
 
-        # Conda
-        conda_dir = path.join(top_dir, 'miniconda')
-        conda_env_name = CONDA_ENV_NAME
-        conda_env_dir = path.join(conda_dir, 'envs', conda_env_name)        # Directory of the conda environment
+        # mamba
+        mamba_dir = path.join(top_dir, 'micromamba')
+        mamba_env_name = mamba_ENV_NAME
+        mamba_env_dir = path.join(mamba_dir, 'envs', mamba_env_name)        # Directory of the mamba environment
 
         # Create result
         result = InstallInfo()
         result.this_script_dir=this_script_dir
         result.top_dir=top_dir
-        result.conda_dir=conda_dir
-        result.conda_env_name=conda_env_name
-        result.conda_env_dir=conda_env_dir
+        result.mamba_dir=mamba_dir
+        result.mamba_env_name=mamba_env_name
+        result.mamba_env_dir=mamba_env_dir
         result.scripts_dir=path.join(top_dir, INSTALL_SCRIPTS_DIR_NAME)
-        result.script_setup_conda=path.join(top_dir, INSTALL_SCRIPTS_DIR_NAME, SCRIPT_NAME_SETUP_CONDA)
+        result.script_setup_mamba=path.join(top_dir, INSTALL_SCRIPTS_DIR_NAME, SCRIPT_NAME_SETUP_mamba)
         result.script_build_soft=path.join(top_dir, INSTALL_SCRIPTS_DIR_NAME, SCRIPT_NAME_BUILD_SOFT)
+        result.script_mamba_env=path.join(top_dir, INSTALL_SCRIPTS_DIR_NAME, SCRIPT_NAME_mamba_ENV)
         result.script_openssl_cnf=path.join(top_dir, INSTALL_SCRIPTS_DIR_NAME, 'openssl.cnf')
+
 
         result.print_self()
 
@@ -73,11 +124,12 @@ class InstallInfo:
         print("Created install info:")
         print("  -this_script_dir:", self.this_script_dir)
         print("  -top_dir:", self.top_dir)
-        print("  -conda_dir:  ", self.conda_dir)
-        print("  -conda_env_name: ", self.conda_env_name)
-        print("  -conda_env_dir: ", self.conda_env_dir)
+        print("  -mamba_dir:  ", self.mamba_dir)
+        print("  -mamba_env_name: ", self.mamba_env_name)
+        print("  -mamba_env_dir: ", self.mamba_env_dir)
         print("  -scripts_dir: ", self.scripts_dir)
-        print("  -script_setup_conda: ", self.script_setup_conda)
+        print("  -script_mamba_env: ", self.script_mamba_env)
+        print("  -script_setup_mamba: ", self.script_setup_mamba)
         print("  -script_build_soft: ", self.script_build_soft)
         print("  -script_openssl_cnf: ", self.script_openssl_cnf)
 
@@ -90,16 +142,16 @@ assert isinstance(install_info, InstallInfo)        # Mainly for AI and IDEs aut
 
 # Set strict channel priority
 # look here
-# https://conda-forge.org/docs/user/tipsandtricks.html
-# https://conda-forge.org/docs/minutes/2020-01-22.html
-# https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-channels.html
+# https://mamba-forge.org/docs/user/tipsandtricks.html
+# https://mamba-forge.org/docs/minutes/2020-01-22.html
+# https://docs.mamba.io/projects/mamba/en/latest/user-guide/tasks/manage-channels.html
 # test
-# conda config --describe channel_priority
+# mamba config --describe channel_priority
 #
-condarc_content = """
+mambarc_content = """
 channel_priority: strict
 channels:
-  - conda-forge
+  - mamba-forge
   - defaults
 """
 
@@ -122,15 +174,15 @@ print(install_info.asdict())
 template_user_sh = """
 export ML4FPGA_TOP_DIR={top_dir}
 
-# Start conda environment
-source {top_dir}/miniconda/etc/profile.d/conda.sh
-conda activate {conda_env_name}
+# Start mamba environment
+source {top_dir}/micromamba/etc/profile.d/mamba.sh
+mamba activate {mamba_env_name}
 
 # The path where edpm stores its JSon database and creates env files
 export EDPM_DATA_PATH={top_dir}
 
 # This tells EDPM not to generate source thisroot.sh
-export ROOT_INSTALLED_BY_CONDA=1
+export ROOT_INSTALLED_BY_mamba=1
 
 # This is unfortunate requirement for JLab certificates
 export PYTHONHTTPSVERIFY=0
@@ -145,15 +197,15 @@ source $EDPM_DATA_PATH/env.sh
 template_user_csh = """
 setenv ML4FPGA_TOP_DIR {top_dir}
 
-# Start conda environment
-source {top_dir}/miniconda/etc/profile.d/conda.csh
-conda activate {conda_env_name}
+# Start mamba environment
+source {top_dir}/micromamba/etc/profile.d/mamba.csh
+mamba activate {mamba_env_name}
 
 # The path where edpm stores its JSon database and creates env files
 setenv EDPM_DATA_PATH {top_dir}
 
 # This tells EDPM not to generate source thisroot.sh
-setenv ROOT_INSTALLED_BY_CONDA 1
+setenv ROOT_INSTALLED_BY_mamba 1
 
 # This is unfortunate requirement for JLab certificates
 setenv PYTHONHTTPSVERIFY 0
@@ -166,63 +218,28 @@ source $EDPM_DATA_PATH/env.csh
 
 
 # noinspection PyArgumentList
-template_setup_conda = """
+template_setup_mamba = """
 set -e
-source {conda_dir}/etc/profile.d/conda.sh
+source {mamba_dir}/etc/profile.d/mamba.sh
     
 export PYTHONHTTPSVERIFY=0
 export OPENSSL_CONF={script_openssl_cnf}
-conda config --set ssl_verify false
-conda update -n base -y conda
-conda create -y --name {conda_env_name} python=3.10
-conda activate {conda_env_name}
-conda install -c conda-forge -y gcc
-conda install -y\\
-        cmake\\
-        xerces-c\\
-        xorg-libxmu\\
-        clhep\\
-        git\\
-        git-lfs\\
-        nodejs\\
-        boost\\
-        ipywidgets\\
-        zstd\\
-        hepmc3\\
-    && echo "==========================================="\\
-    && echo " C O N D A   I N S T A L L   S U C S E S S "\\
-    && echo "==========================================="
-
-# The path where edpm stores its JSon database and creates env files
-export EDPM_DATA_PATH={top_dir}
-which pip
-pip install --upgrade\\
-       click\\
-       appdirs\\
-       edpm\\
-       uproot awkward-numba\\
-       numpy\\
-       pandas\\
-       matplotlib\\
-       seaborn\\
-       plotly\\
-       pyjet\\
-       pyjano\\
-       wget\\
-       edpm
+mamba config --set ssl_verify false
+mamba update -n base -y mamba
+mamba create -y --name {mamba_env_name} python=3.10
+mamba activate {mamba_env_name}
 
 edpm --top-dir={top_dir}
 
 edpm config global cxx_standard=17
 
 # so edpm generated the right environment
-export ROOT_INSTALLED_BY_CONDA=1
-
+export ROOT_INSTALLED_BY_mamba=1
 
 # Set root which we installed before
-edpm set root {conda_env_dir}
-edpm set clhep  {conda_env_dir}
-edpm set hepmc3 {conda_env_dir}
+edpm set root {mamba_env_dir}
+edpm set clhep  {mamba_env_dir}
+edpm set hepmc3 {mamba_env_dir}
 
 """.format(**install_info.asdict())
 
@@ -231,8 +248,8 @@ edpm set hepmc3 {conda_env_dir}
 template_build_soft = """
 set -e
 export EDPM_DATA_PATH={top_dir}
-source {conda_dir}/etc/profile.d/conda.sh
-conda activate {conda_env_name}
+source {mamba_dir}/etc/profile.d/mamba.sh
+mamba activate {mamba_env_name}
 echo ""
 echo "================================"
 echo "  B U I L D    P A C K A G E S  "
@@ -306,17 +323,17 @@ def make_file(file_path, content):
         f.write(content)
 
 
-def is_conda_env_exist():
+def is_mamba_env_exist():
     global install_info
 
-    conda_env_exe = path.join(install_info.conda_dir, 'bin', 'conda-env')
-    _, _, _, lines = run('{conda_env_exe} list'.format(conda_env_exe=conda_env_exe), silent=True)
+    mamba_env_exe = path.join(install_info.mamba_dir, 'bin', 'mamba-env')
+    _, _, _, lines = run('{mamba_env_exe} list'.format(mamba_env_exe=mamba_env_exe), silent=True)
 
-    # Conda env list give something like:
-    # # conda environments:
+    # mamba env list give something like:
+    # # mamba environments:
     #  base   <path>
     #  esc  * <path>
-    pattern = re.compile("^{env_name}\\s".format(env_name=install_info.conda_env_name))
+    pattern = re.compile("^{env_name}\\s".format(env_name=install_info.mamba_env_name))
     for line in lines:
         if pattern.match(line):
             return line
@@ -333,43 +350,53 @@ def step0_generate_scripts():
     make_file(path.join(install_info.top_dir, SCRIPT_NAME_ENV_BASH), template_user_sh)
     make_file(path.join(install_info.top_dir, SCRIPT_NAME_ENV_CSH), template_user_csh)
     make_file(install_info.script_openssl_cnf, openssl_cnf_content)
-    make_file(install_info.script_setup_conda, template_setup_conda)
+    make_file(install_info.script_setup_mamba, template_setup_mamba)
     make_file(install_info.script_build_soft, template_build_soft)
 
 
-def step1_install_miniconda():
-    """ Install miniconda """
-    # install miniconda
+def step1_install_micromamba():
+    """ Install micromamba """
+    # install micromamba
     global install_info
-    if os.path.isdir(install_info.conda_dir):
+    if os.path.isdir(install_info.mamba_dir):
         print("Path already exists. Skipping installation step.")
         return
 
     import platform
     if 'Darwin' in platform.system():
-        conda_install_sh_link = 'https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh'
+        if platform.machine() == 'arm64':  # For Apple Silicon (M1/M2)
+            mamba_install_sh_link = 'https://micro.mamba.pm/api/micromamba/osx-arm64/latest'
+        else:  # For Intel Macs
+            mamba_install_sh_link = 'https://micro.mamba.pm/api/micromamba/osx-64/latest'
+    elif platform.system() == 'Linux':
+        if platform.machine() == 'aarch64':  # For ARM64 Linux
+            mamba_install_sh_link = 'https://micro.mamba.pm/api/micromamba/linux-aarch64/latest'
+        else:  # For x86_64 Linux
+            mamba_install_sh_link = 'https://micro.mamba.pm/api/micromamba/linux-64/latest'
+    elif platform.system() == 'Windows':
+        mamba_install_sh_link = 'https://micro.mamba.pm/api/micromamba/win-64/latest'
     else:
-        conda_install_sh_link = 'https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh'
+        raise SystemError(f"Unsupported system: {platform.system()}")
 
-    print("Downloading miniconda from {} ...".format(conda_install_sh_link))
-    run('curl {conda_install_script} -o miniconda.sh'.format(conda_install_script=conda_install_sh_link))
-    run("bash miniconda.sh -b -p " + install_info.conda_dir)
-    run("rm miniconda.sh")
+    print("Downloading micromamba from {} ...".format(mamba_install_sh_link))
+    run('curl {mamba_install_script} -o micromamba.sh'.format(mamba_install_script=mamba_install_sh_link))
+    run("bash micromamba.sh -b -p " + install_info.mamba_dir)
+    run("rm micromamba.sh")
 
-    # global conda config
-    make_file(path.join(install_info.conda_dir, '.condarc'), condarc_content)
+    # global mamba config
+    make_file(path.join(install_info.mamba_dir, '.mambarc'), mambarc_content)
 
 
-def step2_setup_conda():
-    """ Setups conda, install packages"""
+def step2_setup_mamba():
+    """ Setups mamba, install packages"""
     global install_info
 
-    if is_conda_env_exist():
-        print(f"Environment {install_info.conda_env_name} exists. Skipping enironment creation ")
+    if is_mamba_env_exist():
+        print(f"Environment {install_info.mamba_env_name} exists. Skipping enironment creation ")
         return
 
     # create epic environment with root
-    return run('bash ' + install_info.script_setup_conda, shell=False, silent=False)
+    return run('bash ' + install_info.script_setup_mamba, shell=False, silent=False)
 
 
 def step3_build_software():
@@ -381,8 +408,8 @@ if __name__ == "__main__":
     steps = OrderedDict()
 
     steps['gen_scripts'] = step0_generate_scripts
-    steps['install_conda'] = step1_install_miniconda
-    steps['setup_conda'] = step2_setup_conda
+    steps['install_mamba'] = step1_install_micromamba
+    steps['setup_mamba'] = step2_setup_mamba
     steps['build_soft'] = step3_build_software
 
     # This is to print argparse help
@@ -393,7 +420,7 @@ if __name__ == "__main__":
                         help="Name of installation step. 'all' (default) - full installation",
                         default='all')
 
-    parser.add_argument("--build-root", help="Build root from sources instead of installing from conda",
+    parser.add_argument("--build-root", help="Build root from sources instead of installing from mamba",
                         action="store_true", default=False)
     args = parser.parse_args()
 
